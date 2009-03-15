@@ -1,0 +1,7 @@
+# another file used in tests
+sub: {@file: "example.coil"
+      x: "foo"
+      y.a: "bar"
+     }
+
+sub2: {@file: "example.coil"}

@@ -1,0 +1,67 @@
+NagCat Internal Operation
+=============================
+
+Overview
+--------
+
+The overall structure of NagCat consists of three main components:
+tests, queries, and the scheduler. A test handles creating any queries
+it needs to make, processing of the data a query produces, and
+generating a report to submit to Nagios. Queries handle sending a
+request to the service and does no processing on that data itself. This
+allows queries to be shared between tests that need to fetch the same
+status report from a service and process it in different ways. The most
+important item in the scheduler is a Runnable which defines a task to
+run and any other tasks that are dependencies. Query and Test classes
+are subclasses of Runnable.
+
+When the scheduler starts it goes through the list of top level tasks
+(the Test objects) and groups together tasks that share any
+dependencies so they run at the same time. This allows for the sharing
+of queries while allowing a test to assume that all its queries will run
+at about the same time.
+
+
+Notes on main classes
+---------------------
+
+Runnable:
+    The lowest level object for scheduling. It does the following:
+        - Save a list of dependencies.
+        - When it starts, first start all dependencies and wait for them
+          to finish.
+        - Once everything is finished start doing its task.
+          (By default a Runnable will simply do nothing)
+        - The same runnable cannot be started again until the previous
+          run finishes.
+
+Query:
+    A subclass of Runnable. It has the following properties:
+        - It will store the values necessary to make a request.
+          (host, port, command to send, etc)
+          These values may not change once the object is created.
+        - The string representation of a Query object is based on its
+          config to so that identical queries can be reused.
+        - It is only allowed to save state while it is running with the
+          exception of the results from the last run and the time the
+          last run ran.
+        - It makes one and only one request.
+          (as in a request cannot define two HTTP GETs to different or
+           even the same server)
+        - It does not alter the returned data in any way.
+
+SimpleTest:
+    A subclass of Runnable. It creates a Query and processes the data
+    that the it produces.
+
+Test:
+    This is the master of all and a subclass of Runnable. It sets up a
+    SimpleTest for each 'query' that is defined for a single test in the
+    configuration. (Note that a 'query' in the config file is a
+    combination of Query and SimpleTest). After all SimpleTests finish
+    it will generate a report, checking for any possible error states,
+    and submit the report to any registered report callbacks (currently
+    the only possible report callback is for Nagios)
+
+    Test objects are the only Runnables that are directly handled by the
+    scheduler.

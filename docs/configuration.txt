@@ -1,0 +1,355 @@
+NagCat Configuration
+========================
+
+Basic
+-----
+
+The configuration file that defines tests uses the coil format. This
+document assumes a working knowledge of coil but should still make sense
+to someone new to the format. A basic test may look something like this:
+
+foo-is-ok: {
+    query: {
+        type: "http"
+        path: "/status"
+        filters: [ "regex:^OK$" ]
+    }
+
+    documentation: "Check that foo reports its status as OK"
+    investigation: [ "1. Check foo is up and running."
+                     "2. Check foo can access database."
+                     "3. Stumped? Escalate to next tier." ]
+}
+
+This defines a test named 'foo-is-ok'. This name will be used to
+reference this test in the Nagios service definition or in NagCat's
+command line arguments if trying things out in stand-alone mode.
+
+The most important section is the 'query' section. It defines the
+request to send to the service as well as any processing that needs to
+be performed on the data received.
+
+To be friendly to the people who may have to respond to alerts this test
+generated documentation can be included inside the reports. The
+'documentation' attribute will always be included in the report and
+should note what exactly the results of the test mean. The
+'investigation' attribute will only be included if the test status is
+WARNING, CRITICAL, or UNKNOWN and should include some basic info on how
+to diagnose and possibly fix the issue.
+
+When this test runs it will do the following:
+
+    1. Send a GET request to "http://<hostname>:<port>/status" where
+       <hostname> and <port> are the host and port number defined by
+       either Nagios or command line arguments. If this request fails
+       abort the test and report CRITICAL.
+
+    2. Filter the returned data, passing along only the first match of
+       the regular expression. If it fails to match the expression abort
+       the test and report CRITICAL.
+
+    3. If nothing has failed so far then we must be good! Report OK.
+
+
+Compound Queries and Thresholds
+-------------------------------
+
+Some more complex tests may need to get multiple pieces of data and 
+compare them, there is no limit to the number of sub-queries in a compound
+query. For example checking that a system is using today's data set or
+that a client is in sync with its master. This can be accomplished using
+the compound query which allows you define two sub-queries within one
+query section. Note that only one level is allowed, a sub-query cannot
+itself be another compound query. Here is an example:
+
+foo-client-in-sync: {
+    query: {
+        type: "compound"
+
+        master: {
+            type: "http"
+            host: "master-foo"
+            port: 8080
+            path: "/status/sequence_number"
+            filters: [ "regex:\d+" ]
+        }
+
+        client: {
+            type: "http"
+            path: "/status/sequence_number"
+            filters: [ "regex:\d+" ]
+        }
+
+        return: "master - client"
+    }
+
+    warning: ">100"
+    critical: ">200"
+
+    documentation: "Client must not differ by more than 100"
+}
+
+In this example we fetch a sequence number from both the master and
+client, presumably representing the position of a data stream that the
+master is sending out. The compound query itself has only two special
+attributes: 'type' and 'return'. 'type' declares that it is a compound
+query and 'return' defines how to combine the results, usually in some
+sort of math expression.
+
+The 'warning' and 'critical' attributes define a comparison with the
+returned data to check, causing the test to report WARNING or CRITICAL
+respectively. If neither comparison is true then it will report OK.
+
+If a test requires a configuration or substitution that has no logical default
+then you will want to specify it in nagios, where the remainder of the host,
+port and other deployment specific configuration lives. In order to do this
+you simply specify a parameter, preceeded by an underscore, that matches the
+full coil path to the parameter you wish to override.
+
+So, to replace foo-client-in-sync with a test that has no default port for the
+master, a variable URI for the client, and a variable regex filter on the
+client return value you might create the following nagcat test:
+foo-client-in-sync: {
+    query: {
+        type: "compound"
+        master: {
+            type: "http"
+            host: "somehostdc7"
+            port: ""
+            path: "/status/sequence_number"
+            filters: [ "regex:\d+" ]
+        }
+
+        client: {
+            type: "http"
+            path: ""
+            interestingvalue: ""
+            filters: [ "regex:\d+" "regex:${interestingvalue}" ]
+        }
+
+        return: "master - client"
+    }
+    warning: ">100"
+    critical: ">200"
+}
+Then in Nagios you would need to include these parameters in the test
+declaration:
+    _query.master.host                  somehostdc9
+    _query.master.port                  1234
+    host                                someclientdc9
+    port                                9019
+    _query.client.path                  /some/path
+    _query.client.interestingvalue      foo.*bar
+
+
+Format Details
+--------------
+
+Below is a full specification of the file format. All top level items in
+the file are expected to be test definitions, each with a unique name.
+
+Any structure attribute that is not defined here may be used for
+anything which is useful for coil structure inheritance or in string
+substitution.
+
+Tests
+~~~~~
+
+Test names may be any valid coil identifier. The only attribute that is
+strictly required is 'query' but 'documentation' and 'investigation'
+should normally be included.
+
+test-name: {
+    query: {
+        type: "<query type>"
+        # All query structures must have a 'type' attribute. The
+        # interpretation of the rest of the structure depends on the
+        # type. See the Queries section for the details.
+    }
+
+    # 'repeat' defines when or how frequently to run. It may be a
+    # specific time of day or a time interval such as 10s or 10m.
+    # The default is 1 minute.
+    repeat: "1m"
+
+    # 'warning' and 'critical' will compare the data returned by the
+    # query with a given value. If it evaluates to true the test will
+    # report WARNING or CRITICAL respectively, with CRITICAL winning out
+    # over WARNING if both are true.
+    #
+    # Relational operators (< <= >= >) only work with numeric values.
+    #
+    # Equality operators (= == != <>) will compare the values as numbers
+    # if possible, otherwise it will compare them as strings.
+    # = is an alias for == and <> is an alias for !=
+    #
+    # Regular expressions can be checked with =~ and !~ and will check
+    # that the query matches or doesn't match respectively. The regular
+    # expression is matched in multiline mode and <value> is the raw 
+    # pattern. Currently the match is case sensitive and you cannot
+    # specifiy flags. For example to go critical unless the exact
+    # string "ok" is returned you could write: critical: "!~ ^ok$"
+    warning: "<operator> <value>"
+    critical: "<operator> <value>"
+
+    # 'documentation' and 'investigation' are used only for providing
+    # in-line information in the generated reports. They can be either a
+    # single string or a list of strings to represent multiple lines.
+    documentation: "What does this test actually test?"
+
+    # 'investigation' is only displayed when the status is not OK
+    investigation: [ "The problem may be caused by this."
+                     "Or it may be caused by that." ]
+
+    # 'url' provides links to additional documentation.
+    url: "http://something/amazing.html"
+
+    # 'priority' is an arbitrary string that can be used to indicate
+    # how urgent any reported problems are.
+    priority: "FIXMENOW"
+}
+
+Queries
+~~~~~~~
+
+Compound:
+
+query: {
+    type: "compound"
+
+    # At least one sub-query must be defined and may be any type except
+    # for compound.
+    # Sub-queries may have any name other than 'type' or 'return'
+    sub-query-a: { }
+
+    # All compound queries must define a return statement.
+    # Values of the sub-queries are in the format $(query-name)
+    #
+    # Values operate both as strings and numbers depending on which
+    # operator is used. The following operators expect a numeric
+    # value and will cause the alert to go CRITICAL if it is not.
+    #
+    #       + - * / // % divmod() pow() ** neg() pos() abs()
+    #
+    #       < <= => >
+    #
+    # The == and != operators will do a numeric comparison if the two
+    # values happen to be numbers, otherwise it will compare them as
+    # strings.
+    #
+    # By default there is a variable called $(NOW) which is the current
+    # time in seconds since the epoch. Useful in combination with the
+    # date2epoch filter in a subquery.
+    return: "<some expression>"
+}
+
+All other queries have the following in common:
+
+query: {
+    type: "???"
+
+    # Override the host being tested
+    host: "<host name>"
+
+    # Override the port
+    port: <port number>
+
+    # Filters are strings defining some manipulation to the data
+    # returned, they are run in the order listed.
+    # Valid filters are:
+    #   "regex:<some regular expression>"
+    #       If the regular expression includes a grouping ie: (foo) the
+    #       result will be the first grouping, otherwise it is the match
+    #       of the entire expression.
+    #
+    #   "date2epoch:<date format>"
+    #       Convert a date using the given format to a time in seconds
+    #       since the epoch, useful for doing math with $(NOW).
+    #
+    #   "xpath:<some xpath expression>"
+    #       If you are parsing XML, using XPath expressions are the way
+    #       to go. Some quick examples:
+    #       Get the HTML title:           /html/head/title/text()
+    #       Get a div with a specific id: //div[@id="something"]
+    #
+    #       More info here: http://en.wikipedia.org/wiki/XPath_1.0
+    #
+    #   "captureoutput"
+    #       Stores result text at the point where this filter is called into a
+    #       special variable that does not get processed by subsequent
+    #       filters. This variable is included as the full output when the
+    #       test crosses the warning/critical threshold rather than the final
+    #       filtered output of the test. This allows a test author to include
+    #       more details or relevant information with test failures which are
+    #       reported by the monitor but not avaialble in the final filtered
+    #       output which is typically presented with an error by nagios.
+
+    filters: [ "somefilter:arguments" ]
+
+    # 'repeat' may be defined here to override the repeat value for the
+    # entire test. This is useful for having one sub-query in a compound
+    # query run less frequently than the rest if it is an expensive
+    # operation or its value only changes at a specific time of day.
+    # The default is the parent test's repeat value.
+    repeat: "1m"
+}
+
+HTTP:
+
+query: {
+    type: "http"
+    # set type to "https" for SSL connections
+
+    # Path to request with either a GET or a POST
+    path: "/some/url/path"
+
+    # Data to POST, if missing a GET is used instead.
+    data: "some arbitrary data"
+
+    # Extra request headers to send, must be a structure with
+    # header-name: "value" pairs.
+    headers: { Accept: "text/plain" }
+}
+
+Raw TCP/SSL:
+
+query: {
+    type: "tcp"
+    # set type to "ssl" for SSL connections
+
+    # Data to send. Be sure to include any newlines, etc.
+    data: "some arbitrary data"
+}
+
+Subprocess:
+
+query: {
+    type: "subprocess"
+
+    # Command to execute, can be a shell pipeline or whatever.
+    command: "something to run"
+
+    # Data to write to stdin
+    data: "some arbitrary data"
+}
+
+SNMP: (versions 1 and 2 only currently)
+
+query: {
+    type: "snmp"
+
+    # community name, required
+    community: "public"
+
+    # OID name or number, required
+    oid: "SNMPv2-MIB::sysDescr.0"
+
+    # tcp or udp, defaults to udp if missing
+    protocol: "udp"
+
+    # port number, defaults to 161
+    port: "161"
+
+    # SNMP version, 1 or 2c, defaults to 2c
+    version: "2c"
+}

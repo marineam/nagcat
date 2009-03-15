@@ -1,0 +1,19 @@
+TODO
+====
+
+Minor Improvements
+------------------
+
+ - Pre-compile regular expressions and other optimizations.
+ - Add support for 'warning' and 'critical' at the sub-test level and
+   trickier boolean logic.
+ - Improve config validation and error messages.
+ - Include additional query data in error reports.
+ - Allow arbitrary options in single test mode.
+ - Add support for service dependencies to avoid bogus alerts.
+
+Major Features
+--------------
+
+ - Adaptive monitoring based on past behavior.
+ - Generate RRDTool graphs.

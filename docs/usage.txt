@@ -1,0 +1,7 @@
+NagCat Usage
+================
+
+TODO: how to run this thing!
+
+For now try:
+python main.py --help

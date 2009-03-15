@@ -1,0 +1,64 @@
+NagCat README
+=============
+
+INTRODUCTION
+------------
+
+NagCat is a configuration based monitoring framework intended for use
+with Nagios 3.x. NagCat uses tests defined in a coil configuration
+file and runs them against hosts defined in Nagios, submitting results
+as passive tests to Nagios. Each test run by NagCat translates to one
+service defined in Nagios. This is a significant departure from the
+normal mode of operation for Nagios which requires it to schedule and
+run independent scripts (aka active checks) to check each service it is
+monitoring.
+
+The primary purpose of this approach is to ensure that adding more tests
+for a service imposes a minimal impact. By running as a separate daemon
+NagCat has the ability to group tests together that make the same
+query to a service and run different checks against the return data. For
+example you may want to write two tests that both query Apache's
+server-status page, one test checks the number of threads working
+threads, another checks the number of requests per second. These two
+tests can be represented in Nagios as two different services and thus
+can send out alerts independently. NagCat will automatically schedule
+these two tests to run at the same time, running the two tests against
+the data returned by a single request to Apache. For such a simple
+example this may not be critical but it can be on a large and complex
+system that requires many many different tests to ensure that it is
+functioning properly.
+
+
+FEATURES
+--------
+
+ * Smart scheduling to reduce the number of queries required.
+ * Tests defined in a declarative config format, improving
+   maintainability of tests by making them easy to read and avoiding the
+   potential mess that may grow if they were all written as individual
+   Nagios plugins.
+ * Detailed reports with embedded documentation to give the person
+   responding to an alert the info the need to investigate the issue
+   even if they do not have extensive experience with the system.
+ * Tests or sub-tests can be defined to run at different intervals.
+ * Set different alert thresholds based on the time.
+
+
+DOCUMENTATION
+-------------
+
+Further documentation on the usage and implementation of NagCat can
+be found in the docs directory.
+
+If you are too lazy to cd into the docs directory and just want to get
+started try this:
+
+bin/nagcat -c docs/example.conf -t http_title -H www.w3.org -P 80
+
+
+CREDITS
+-------
+
+NagCat is maintained by Michael Marineau <mmarineau@itasoftware.com>
+with the help of fellow ITA Software employees and licensed under the
+Apache License, Version 2.0.
