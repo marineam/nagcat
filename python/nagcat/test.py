@@ -259,9 +259,9 @@ class Test(BaseTest):
         if self._priority:
             self._priority = "Priority: %s\n" % self._priority
 
-        if conf.get('query').get('type') == "compound":
+        if conf['query.type'] == "compound":
             self._compound = True
-            self._return = conf.query.get('return', None, expand=True)
+            self._return = conf.get('query.return', None, expand=True)
 
             if self._return:
                 # Convert $(subquery) to data['subquery']
@@ -269,7 +269,7 @@ class Test(BaseTest):
                         lambda m: "data['%s']" % m.group(1),
                         self._return)
 
-            for name, qconf in conf.query.iteritems():
+            for name, qconf in conf['query'].iteritems():
                 if not isinstance(qconf, struct.Struct):
                     continue
 

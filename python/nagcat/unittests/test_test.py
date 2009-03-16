@@ -34,3 +34,26 @@ class TestTestCase(unittest.TestCase):
     def endBasic(self, ignore, t):
         report = t.result
 
+    def testCompound(self):
+        config = Struct({
+                'query': {
+                    'type': "compound",
+                    'test-a': {
+                        'type': "noop",
+                        'data': "a",
+                    },
+                    'test-b': {
+                        'type': "noop",
+                        'data': "b",
+                    },
+                },
+            })
+
+        t = test.Test(config)
+        d = t.start()
+        d.addBoth(self.endBasic, t)
+        return d
+
+    def endBasic(self, ignore, t):
+        report = t.result
+
