@@ -77,8 +77,8 @@ class BaseTest(scheduler.Runnable):
     """
 
     def __init__(self, conf):
-        if isinstance(conf, struct.Struct):
-            conf.expand(recursive=False)
+        assert isinstance(conf, struct.Struct)
+        conf.expand(recursive=False)
         host = conf.get('host', None)
         repeat = conf.get('repeat', "1m")
         scheduler.Runnable.__init__(self, repeat, host)
@@ -234,7 +234,7 @@ class Test(BaseTest):
     def __init__(self, conf):
         BaseTest.__init__(self, conf)
 
-        self._test = conf.get('test')
+        self._test = conf.get('test', None)
         self._critical = conf.get('critical', None)
         self._warning = conf.get('warning', None)
         self._documentation = conf.get('documentation', "")
@@ -261,11 +261,7 @@ class Test(BaseTest):
 
         if conf.get('query').get('type') == "compound":
             self._compound = True
-
-            if isinstance(conf, struct.Struct):
-                self._return = conf.query.get('return', None, expand=True)
-            else:
-                self._return = conf.query.get('return', None)
+            self._return = conf.query.get('return', None, expand=True)
 
             if self._return:
                 # Convert $(subquery) to data['subquery']
@@ -274,7 +270,7 @@ class Test(BaseTest):
                         self._return)
 
             for name, qconf in conf.query.iteritems():
-                if name in ('type', 'return'):
+                if not isinstance(qconf, struct.Struct):
                     continue
 
                 self._addDefaults(qconf)

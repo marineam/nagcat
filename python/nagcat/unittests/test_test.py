@@ -14,16 +14,17 @@
 
 from twisted.trial import unittest
 from nagcat import query, test
+from coil.struct import Struct
 
 class TestTestCase(unittest.TestCase):
 
     def testBasic(self):
-        config = {
+        config = Struct({
                 'query': {
                     'type': "noop",
                     'data': "something",
                 },
-            }
+            })
 
         t = test.Test(config)
         d = t.start()

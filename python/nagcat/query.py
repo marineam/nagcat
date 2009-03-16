@@ -80,10 +80,10 @@ class Query(scheduler.Runnable):
     """
 
     def __init__(self, conf):
-        if isinstance(conf, struct.Struct):
-            conf.expand(recursive=False)
+        assert isinstance(conf, struct.Struct)
+        conf.expand(recursive=False)
         host = conf.get('host', None)
-        scheduler.Runnable.__init__(self, conf.get('repeat'), host)
+        scheduler.Runnable.__init__(self, conf.get('repeat', None), host)
 
         # self.conf must contain all configuration variables that
         # this object uses so identical Queries can be identified.
