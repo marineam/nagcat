@@ -66,6 +66,17 @@ class BasicTestCase(unittest.TestCase):
     def testDict(self):
         self.assertEquals(self.struct['first'].dict(), dict(self.data[0][1]))
 
+    def testSetShort(self):
+        s = struct.Struct()
+        s['new'] = True
+        self.assertEquals(s['new'], True)
+
+    def testSetLong(self):
+        s = struct.Struct()
+        s['new.sub'] = True
+        self.assertEquals(s['new.sub'], True)
+        self.assertEquals(s['new']['sub'], True)
+
 class ExpansionTestCase(unittest.TestCase):
 
     def testExpand(self):

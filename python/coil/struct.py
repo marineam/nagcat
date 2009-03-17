@@ -125,7 +125,7 @@ class Struct(tokenizer.Location, DictMixin):
             is already set, this is used by L{Struct.expand}.
         """
 
-        parent, key = self._get_path_parent(path)
+        parent, key = self._get_path_parent(path, True)
 
         if parent is self:
             if not re.match(self.KEY, key):
@@ -252,8 +252,11 @@ class Struct(tokenizer.Location, DictMixin):
                  for key, val in self.iteritems()]
         return "%s({%s})" % (self.__class__.__name__, ", ".join(attrs))
 
-    def _get_path_parent(self, path):
-        """Returns the second to last Struct and last key in the path."""
+    def _get_path_parent(self, path, add_parents=False):
+        """Returns the second to last Struct and last key in the path.
+
+        If add_parents is true then create parent Structs as needed.
+        """
 
         # TODO: This function (and its users) should probably be recursive.
 
@@ -287,7 +290,12 @@ class Struct(tokenizer.Location, DictMixin):
                 try:
                     struct = struct[key]
                 except KeyError:
-                    raise errors.KeyMissingError(self, key, path)
+                    if add_parents:
+                        new = struct.__class__()
+                        struct[key] = new
+                        struct = new
+                    else:
+                        raise errors.KeyMissingError(self, key, path)
 
                 if not isinstance(struct, Struct):
                     raise errors.CoilStructError(self,
