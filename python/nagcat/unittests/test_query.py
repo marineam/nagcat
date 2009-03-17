@@ -15,11 +15,12 @@
 from twisted.trial import unittest
 from nagcat.unittests import dummy_server
 from nagcat import query
+from coil.struct import Struct
 
 class NoOpQueryTestCase(unittest.TestCase):
 
     def testBasic(self):
-        q = query.Query_noop({'data': "bogus data"})
+        q = query.Query_noop(Struct({'data': "bogus data"}))
         d = q.start()
         d.addBoth(self.endBasic, q)
 
@@ -30,7 +31,7 @@ class HTTPQueryTestCase(unittest.TestCase):
 
     def setUp(self):
         self.server = dummy_server.randomTCP(dummy_server.HTTP())
-        self.config = {'host': "localhost", 'port': self.server.port}
+        self.config = Struct({'host': "localhost", 'port': self.server.port})
 
     def testBasic(self):
         q = query.Query_http(self.config)
@@ -60,7 +61,7 @@ class TCPQueryTestCase(unittest.TestCase):
 
     def setUp(self):
         self.server = dummy_server.randomTCP(dummy_server.TCP())
-        self.config = {'host': "localhost", 'port': self.server.port}
+        self.config = Struct({'host': "localhost", 'port': self.server.port})
 
     def testBasic(self):
         q = query.Query_tcp(self.config)
@@ -88,7 +89,7 @@ class TCPQueryTestCase(unittest.TestCase):
 class SubprocessQueryTestCase(unittest.TestCase):
 
     def testBasic(self):
-        q = query.Query_subprocess({'command': "echo hello"})
+        q = query.Query_subprocess(Struct({'command': "echo hello"}))
         d = q.start()
         d.addBoth(self.endBasic, q)
         return d
