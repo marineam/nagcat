@@ -362,6 +362,10 @@ class Struct(tokenizer.Location, DictMixin):
                     raise
         elif isinstance(orig, basestring):
             value = self.EXPAND.sub(expand_one, orig)
+        elif isinstance(orig, list):
+            value = []
+            for item in orig:
+                value.append(self._expand_item(key, item, expand, ignore))
         else:
             value = orig
 

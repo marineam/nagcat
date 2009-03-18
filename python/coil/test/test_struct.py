@@ -140,3 +140,11 @@ class ExpansionTestCase(unittest.TestCase):
         self.assertRaises(KeyError, root.get, 'bar', expand=True)
         self.assertEquals(root.get('bar'), "omgwtf${foo}")
 
+    def testExpandInList(self):
+        root = struct.Struct()
+        root["foo"] = "bbq"
+        root["bar"] = [ "omgwtf${foo}" ]
+        self.assertEquals(root['bar'][0], "omgwtf${foo}")
+        root.expand()
+        self.assertEquals(root['bar'][0], "omgwtfbbq")
+
