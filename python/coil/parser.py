@@ -267,7 +267,7 @@ class Parser(object):
         """some.path"""
 
         token = self._tokenizer.next('PATH')
-        link = struct.Link(token.value, container)
+        link = struct.Link(token.value)
         container._set(name, link, location=token)
 
     def _parse_plain(self, container, name):

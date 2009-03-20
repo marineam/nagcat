@@ -17,8 +17,22 @@ from __future__ import division
 """Exceptions and configuration bits that are used everywhere"""
 
 import re
+from coil import struct
 
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
+
+def applyTreeDefaults(struct, defaults):
+    """Recursively add the attributes in defaults to each Struct.
+
+    The root node has the values set in it while child nodes will
+    simply link back to their parent. That way the defaults can
+    be overridden on a per-subtree basis.
+    """
+
+    def childDefaults(struct):
+        for key in defaultspy:
+            struct.setdefault(key, struct.Link("..%s" % key, struct)
+
 
 class Repeat(object):
     """Store a repeat time interval.

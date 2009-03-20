@@ -15,22 +15,14 @@ from UserDict import DictMixin
 
 from coil import tokenizer, errors
 
-class Link(tokenizer.Location):
+class Link(object):
     """A temporary symbolic link to another item"""
 
-    def __init__(self, path, container, location=None):
+    def __init__(self, path):
         """
-        @param path: A path or the original Token defining the path.
-        @type path: L{tokenizer.Token} or str
-        @param container: The parent L{Struct} object.
-        @type container: L{Struct}
-        @param location: Description of where the link is defined.
-        @type location L{str}
+        @param path: A path to point at.
+        @type path: string
         """
-
-        assert isinstance(container, Struct)
-        assert isinstance(path, basestring)
-        tokenizer.Location.__init__(self, location)
         self.path = path
 
 class Struct(tokenizer.Location, DictMixin):

@@ -172,8 +172,7 @@ def main():
     # start writing to the log file, stdio is left alone for now
     logger.start()
 
-    # host and port are generally special
-    config = coil.parse_file(options.config, ignore=('host', 'port'))
+    config = coil.parse_file(options.config, expand=False)
 
     try:
         if options.test:
