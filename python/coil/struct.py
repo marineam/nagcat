@@ -185,7 +185,7 @@ class Struct(tokenizer.Location, DictMixin):
         for key in self:
             yield key, self[key]
 
-    def expand(self, defaults=(), ignore=(), block=()):
+    def expand(self, defaults=(), ignore=(), recursive=True, block=()):
         """Expand all L{Link}s and string variable substitutions in
         this and all child L{Struct}s. Useful when expansion must be
         or partially ignored during parse-time and then finished later.
@@ -197,6 +197,8 @@ class Struct(tokenizer.Location, DictMixin):
         @param ignore: a set of keys that are ignored if undefined
             and not in defaults. Otherwise raise L{KeyMissingError}.
         @type ignore: any container
+        @param recursive: recursively expand sub-structs
+        @type recursive: bool
         @param block: a set of absolute paths that cannot be expanded.
             This is used internally to avoid circular references.
         @type block: any container
@@ -212,8 +214,8 @@ class Struct(tokenizer.Location, DictMixin):
         for key in self:
             value = self.expanditem(key, defaults, ignore, block)
             self.set(key, value, self._keep)
-            if isinstance(value, Struct):
-                value.expand(defaults, ignore, block)
+            if recursive and isinstance(value, Struct):
+                value.expand(defaults, ignore, True, block)
 
     def expanditem(self, path, defaults=(), ignore=(), block=()):
         """Expand L{Link}s and string variable substitutions in an item.
