@@ -261,7 +261,8 @@ class Test(BaseTest):
 
         if conf['query.type'] == "compound":
             self._compound = True
-            self._return = conf.get('query.return', None, expand=True)
+            conf.expand(recursive=False)
+            self._return = conf.get('query.return', None)
 
             if self._return:
                 # Convert $(subquery) to data['subquery']
