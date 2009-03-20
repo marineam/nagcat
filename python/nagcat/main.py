@@ -45,11 +45,11 @@ def simple(options, config):
         raise util.InitError("Test '%s' not found in config file!"
                 % options.test)
 
-    config.setdefault('test', options.test)
     config.setdefault('host', options.host)
     config.setdefault('addr', options.host)
     config.setdefault('port', options.port)
     config['repeat'] = None # single run
+    config['test'] = options.test
 
     try:
         testobj = test.Test(config)
