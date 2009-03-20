@@ -34,19 +34,16 @@ class Struct(tokenizer.Location, DictMixin):
 
     #: Signal L{Struct.get} to raise an error if key is not found
     _raise = object()
-    #: Signal L{Struct._set} to preserve location data for key
+    #: Signal L{Struct.set} to preserve location data for key
     _keep = object()
 
     # These first methods likely would need to be overridden by subclasses
 
-    def __init__(self, base=(), container=None, name=None,
-            recursive=True, location=None):
+    def __init__(self, base=(), container=None, name=None, location=None):
         """
         @param base: A C{dict} or C{Struct} to initilize this one with.
         @param container: the parent C{Struct} if there is one.
         @param name: The name of this C{Struct} in C{container}.
-        @param recursive: Recursively convert all mapping objects in
-            C{base} to C{Struct} objects.
         @param location: The where this C{Struct} is defined.
         """
 
@@ -65,93 +62,24 @@ class Struct(tokenizer.Location, DictMixin):
             base_iter = base.iteritems()
 
         for key, value in base_iter:
-            if recursive and isinstance(value, (dict, DictMixin)):
+            if isinstance(value, (dict, DictMixin)):
                 value = self.__class__(value, self, key)
             self[key] = value
 
-    def get(self, path, default=_raise, expand=False, ignore=False):
-        """Get a value from any Struct in the tree.
+    def _get(self, key):
+        return self._values[key]
 
-        @param path: key or arbitrary path to fetch.
-        @param default: return this value if item is missing.
-            Note that the behavior here differs from a C{dict}. If
-            C{default} is unspecified and missing a L{KeyMissingError}
-            will be raised as __getitem__ does, not return C{None}.
-        @param expand: Set to True or a mapping object (dict or
-            Struct) to enable string variable expansion (ie ${var}
-            values are expanded). If a mapping object is given it
-            will be used for checked for values not found in C{Struct}.
-            Set to False to disable all expansion.
-        @param ignore: Set to True (to ignore all) or a list of names
-            that are allowed to be missing during expansion.
-            If expansion is enabled and a key is not found and also
-            not ignored then a L{KeyMissingError} is raised.
+    def _set(self, key, value):
+        self._values[key] = value
+        if key not in self._order:
+            self._order.append(key)
 
-        @return: The fetched item or the value of C{default}.
-        """
-
-        parent, key = self._get_path_parent(path)
-
-        if parent is self:
-            try:
-                value = self._values[key]
-            except KeyError:
-                if default == self._raise:
-                    raise errors.KeyMissingError(self, key)
-                else:
-                    value = default
-
-            value = self._expand_item(key, value, expand, ignore)
-        else:
-            value = parent.get(key, default, expand, ignore)
-
-        return value
-
-    def _set(self, path, value, location=None):
-        """Set a value in any Struct in the tree.
-
-        @param path: key or arbitrary path to set.
-        @param value: value to save.
-        @param location: defines where this option was defined.
-            Set to L{Struct._keep} to not modify the location if it
-            is already set, this is used by L{Struct.expand}.
-        """
-
-        parent, key = self._get_path_parent(path, True)
-
-        if parent is self:
-            if not re.match(self.KEY, key):
-                raise errors.KeyValueError(self, key)
-
-            if isinstance(value, Struct) and not value.container:
-                value.container = self
-                value.name = key
-
-            if key not in self:
-                self._order.append(key)
-
-            self._values[key] = value
-        else:
-            parent._set(key, value, location)
-
-    def __delitem__(self, path):
-        parent, key = self._get_path_parent(path)
-
-        if parent is self:
-            if not re.match(self.KEY, key):
-                raise errors.KeyValueError(self, key)
-
-            try:
-                self._order.remove(key)
-            except ValueError:
-                raise errors.KeyMissingError(self, key)
-
-            try:
-                del self._values[key]
-            except KeyError:
-                raise errors.KeyMissingError(self, key)
-        else:
-            del parent[key]
+    def _del(self, key):
+        del self._values[key]
+        try:
+            self._order.remove(key)
+        except ValueError:
+            raise KeyError
 
     def __contains__(self, key):
         return key in self._values
@@ -166,8 +94,76 @@ class Struct(tokenizer.Location, DictMixin):
     def __getitem__(self, path):
         return self.get(path)
 
+    def get(self, path, default=_raise):
+        """Get a value from any Struct in the tree.
+
+        @param path: key or arbitrary path to fetch.
+        @param default: return this value if item is missing.
+            Note that the behavior here differs from a C{dict}. If
+            C{default} is unspecified and missing a L{KeyMissingError}
+            will be raised as __getitem__ does, not return C{None}.
+
+        @return: The fetched item or the value of C{default}.
+        """
+
+        parent, key = self._get_next_parent(path)
+
+        if parent is self:
+            if not key:
+                value = self
+            else:
+                try:
+                    value = self._get(key)
+                except KeyError:
+                    if default is self._raise:
+                        raise errors.KeyMissingError(self, key)
+                    else:
+                        value = default
+        else:
+            value = parent.get(key, default)
+
+        return value
+
     def __setitem__(self, path, value):
-        return self._set(path, value)
+        return self.set(path, value)
+
+    def set(self, path, value, location=None):
+        """Set a value in any Struct in the tree.
+
+        @param path: key or arbitrary path to set.
+        @param value: value to save.
+        @param location: defines where this value was defined.
+            Set to L{Struct._keep} to not modify the location if it
+            is already set, this is used by L{Struct.expand_item}.
+        """
+
+        parent, key = self._get_next_parent(path, True)
+
+        if parent is self:
+            if not key or not self.KEY.match(key):
+                raise errors.KeyValueError(self, key)
+
+            if isinstance(value, Struct) and not value.container:
+                value.container = self
+                value.name = key
+
+            self._set(key, value)
+        else:
+            parent.set(key, value, location)
+
+    def __delitem__(self, path):
+        parent, key = self._get_next_parent(path)
+
+        if parent is self:
+            if not key:
+                raise errors.KeyValueError(path)
+
+            try:
+                self._del(path)
+            except KeyError:
+                raise errors.KeyMissingError(self, key)
+        else:
+            del parent[key]
 
     def keys(self):
         """Get an ordered list of keys."""
@@ -189,22 +185,116 @@ class Struct(tokenizer.Location, DictMixin):
         for key in self:
             yield key, self[key]
 
-    def expand(self, expand=True, ignore=False, recursive=False):
-        """Expand all Links and string variable substitutions.
+    def expand(self, defaults=(), ignore=(), block=()):
+        """Expand all L{Link}s and string variable substitutions in
+        this and all child L{Struct}s. Useful when expansion must be
+        or partially ignored during parse-time and then finished later.
 
-        This is useful when disabling expansion during parsing,
-        adding some extra values to the tree, then expanding.
+        This modifies the tree!
+
+        @param defaults: default values to use if undefined.
+        @type defaults: dict
+        @param ignore: a set of keys that are ignored if undefined
+            and not in defaults. Otherwise raise L{KeyMissingError}.
+        @type ignore: any container
+        @param block: a set of absolute paths that cannot be expanded.
+            This is used internally to avoid circular references.
+        @type block: any container
         """
 
-        if expand is False or expand is None:
-            return
+        abspath = self.path()
+        if abspath in block:
+            raise errors.StructError(self, "Circular reference to %s" % abspath)
+
+        block = list(block)
+        block.append(abspath)
 
         for key in self:
-            value = self.get(key, expand=expand, ignore=ignore)
-            if recursive and isinstance(value, Struct):
-                value.expand(expand, ignore, True)
-            else:
-                self._set(key, value, self._keep)
+            value = self.expanditem(key, defaults, ignore, block)
+            self.set(key, value, self._keep)
+            if isinstance(value, Struct):
+                value.expand(defaults, ignore, block)
+
+    def expanditem(self, path, defaults=(), ignore=(), block=()):
+        """Expand L{Link}s and string variable substitutions in an item.
+
+        This does not make any changes to the tree.
+        
+        @param defaults: default values to use if undefined.
+        @type defaults: dict
+        @param ignore: a set of keys that are ignored if undefined
+            and not in defaults. If simply set to True then all
+            are ignored. Otherwise raise L{KeyMissingError}.
+        @type ignore: True any container
+        @param block: a set of absolute paths that cannot be expanded.
+            This is used internally to avoid circular references.
+        @type block: any container
+        """
+
+        def expand_substr(match):
+            subkey = match.group(1)
+            try:
+                subval = self.expanditem(subkey, defaults, ignore, block)
+            except errors.KeyMissingError, ex:
+                if ex.key in defaults:
+                    subval = defaults[ex.key]
+                elif ignore is True or ex.key in ignore:
+                    subval = match.group(0)
+                else:
+                    raise
+
+            return str(subval)
+
+        def expand_link(link):
+            try:
+                subval = self.expanditem(link.path, defaults, ignore, block)
+            except errors.KeyMissingError, ex:
+                if ex.key in defaults:
+                    subval = defaults[ex.key]
+                elif ignore is True or ex.key in ignore:
+                    subval = match.group(0)
+                else:
+                    raise
+
+            # Structs and lists must be copied
+            if isinstance(subval, Struct):
+                subval = self.__class__(subval)
+            if isinstance(subval, list):
+                subval = list(subval)
+
+            return subval
+
+        # defaults should only contain simple keys, not paths.
+        for key in defaults:
+            assert "." not in key
+
+        parent, key = self._get_next_parent(path)
+
+        if parent is self:
+            abspath = self.path()
+            if key:
+                abspath = "%s.%s" % (self.path(), key)
+            if abspath in block:
+                raise errors.StructError(self,
+                        "Circular reference to %s" % abspath)
+
+            block = list(block)
+            block.append(abspath)
+
+            value = self.get(key)
+
+            if isinstance(value, basestring):
+                value = self.EXPAND.sub(expand_substr, value)
+            elif isinstance(value, Link):
+                value = expand_link(value)
+            elif isinstance(value, list):
+                for i in xrange(len(value)):
+                    if isinstance(value[i], basestring):
+                        value[i] = self.EXPAND.sub(expand_substr, value[i])
+
+            return value
+        else:
+            return parent.expanditem(key, defaults, ignore, block)
 
     def copy(self):
         """Recursively copy this C{Struct}"""
@@ -244,124 +334,63 @@ class Struct(tokenizer.Location, DictMixin):
                  for key, val in self.iteritems()]
         return "%s({%s})" % (self.__class__.__name__, ", ".join(attrs))
 
-    def _get_path_parent(self, path, add_parents=False):
-        """Returns the second to last Struct and last key in the path.
+    def _get_next_parent(self, path, add_parents=False):
+        """Returns the next Struct in a path and the remaining path.
 
+        If the path is a single key just return self and the key.
         If add_parents is true then create parent Structs as needed.
         """
-
-        # TODO: This function (and its users) should probably be recursive.
 
         if not isinstance(path, basestring):
             raise errors.KeyTypeError(self, path)
 
-        split = path.split('.')
-        lastkey = split.pop()
-        struct = self
-
-        if not re.match(self.KEY, lastkey) or not re.match(self.PATH, path):
-            raise errors.KeyValueError(self, path)
-
-        # Relative path's start with .. which adds one extra blank string 
-        if split and not split[0]:
-            del split[0]
-
-        # Walk the path if there is one
-        for key in split:
-            if key == '@root':
-                while struct.container:
-                    struct = struct.container
-                    assert isinstance(struct, Struct)
-            elif not key:
-                struct = struct.container
-                if struct is None:
-                    raise errors.CoilStructError(self,
-                            "reference past tree root: %s" % path)
-                assert isinstance(struct, Struct)
+        if path.startswith("@root"):
+            if self.container:
+                parent = self.container
             else:
-                try:
-                    struct = struct[key]
-                except KeyError:
-                    if add_parents:
-                        new = struct.__class__()
-                        struct[key] = new
-                        struct = new
-                    else:
-                        raise errors.KeyMissingError(self, key, path)
-
-                if not isinstance(struct, Struct):
-                    raise errors.CoilStructError(self,
-                            "key %s in path %s is not a Struct"
-                            % (repr(key), repr(path)))
-
-        return struct, lastkey
-
-    def _expand_item(self, key, orig, expand, ignore):
-        """Expand Links and all ${var} values inside a string.
-        
-        @param key: Name of item we are expanding
-        @param orig: Value of the item
-        @param expand: Extra mapping object to use for expansion values
-            if expand is None or False then this function is a no-op.
-        @param ignore: True or a list of variables to ignore if missing,
-            otherwise raise L{KeyMissingError}
-        """
-
-        # TODO: catch all circular references!
-
-        def expand_one(match):
-            name = match.group(1)
-
-            if name == key:
-                raise errors.CoilStructError(self,
-                        "A path inside %s is itself" % name)
-            try:
-                value = self.get(name, expand=expand, ignore=ignore)
-            except errors.KeyMissingError, ex:
-                if expand is not True and name in expand:
-                    value = expand[name]
-                elif ignore is True or ignore and name in ignore:
-                    value = match.group(0)
-                else:
-                    #ex.location(
-                    raise ex
-
-            if isinstance(value, (Struct, list)):
-                raise errors.CoilStructError(self,
-                        "Attempted to expand %s of type %s in item %s"
-                        % (name, type(value), key))
-            elif not isinstance(value, basestring):
-                return str(value)
+                parent = self
+                path = path[5:]
+        elif path.startswith(".."):
+            if self.container:
+                parent = self.container
             else:
-                return value
-
-        if expand is None or expand is False:
-            return orig
-
-        if isinstance(orig, Link):
-            if key == orig.path:
-                raise errors.CoilStructError(self,
-                        "Item %s is a link that points to itself" % key)
-            try:
-                value = self.get(orig.path, expand=expand, ignore=ignore)
-            except KeyError, ex:
-                if expand is not True and value.path in expand:
-                    value = expand[orig.path]
-                elif ignore is True or ignore and orig.path in ignore:
-                    pass
-                else:
-                    #ex.location(
-                    raise
-        elif isinstance(orig, basestring):
-            value = self.EXPAND.sub(expand_one, orig)
-        elif isinstance(orig, list):
-            value = []
-            for item in orig:
-                value.append(self._expand_item(key, item, expand, ignore))
+                raise errors.StructError(self, "Reference past root")
+            path = path[1:]
+        elif path.startswith("."):
+            parent = self
+            path = path[1:]
+        elif "." not in path:
+            parent = self
         else:
-            value = orig
+            # check for mid-path parent references
+            if ".." in path:
+                raise errors.KeyValueError(self, path)
 
-        return value
+            split = path.split(".", 1)
+            key = split.pop(0)
+            if split:
+                path = split[0]
+            else:
+                path = ""
+
+            try:
+                parent = self.get(key)
+            except errors.KeyMissingError:
+                if add_parents:
+                    parent = self.__class__()
+                    self.set(key, parent)
+                else:
+                    raise
+
+            if not isinstance(parent, Struct):
+                raise errors.ValueTypeError(self, key, type(parent), Struct)
+
+        if parent is self and "." in path:
+            # Great, we went nowhere but there is still somewhere to go
+            parent, path = self._get_next_parent(path, add_parents)
+
+        return parent, path
+
 
 #: For compatibility with Coil <= 0.2.2, use C{KeyError} or L{KeyMissingError}
 StructAttributeError = errors.KeyMissingError

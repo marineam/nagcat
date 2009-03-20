@@ -11,8 +11,8 @@ class CoilError(Exception):
 
     def location(self, location):
         """Update the parser location for this exception.
-        This is useful for properly tagging L{CoilStructErrors}
-        that are raised during parse time.
+        This is useful for properly tagging L{StructError}s that are
+        raised during parse time.
         """
 
         self.filePath = location.filePath
@@ -25,8 +25,8 @@ class CoilError(Exception):
         else:
             return self.reason
 
-class CoilStructError(CoilError):
-    """Generic error for Coil Struct objects, used by various Key errors"""
+class StructError(CoilError):
+    """Generic error for L{Struct} objects, used by various Key errors"""
 
     def __init__(self, struct, reason):
         self.structPath = struct.path()
@@ -39,30 +39,35 @@ class CoilStructError(CoilError):
         else:
             return "<%s> %s" % (self.structPath, self.reason)
 
-class KeyMissingError(CoilStructError, KeyError):
+class KeyMissingError(StructError, KeyError):
     """The given key was not found"""
 
-    def __init__(self, struct, key, path=None):
-        if path:
-            msg = "The key %s (in %s) was not found" % (repr(key), repr(path))
-        else:
-            msg = "The key %s was not found" % repr(key)
+    def __init__(self, struct, key):
+        msg = "The key %s was not found" % repr(key)
+        self.key = key
+        StructError.__init__(self, struct, msg)
 
-        CoilStructError.__init__(self, struct, msg)
-
-class KeyTypeError(CoilStructError, TypeError):
+class KeyTypeError(StructError, TypeError):
     """The given key was not a string"""
 
     def __init__(self, struct, key):
         msg = "Keys must be strings, got %s" % type(key)
-        CoilStructError.__init__(self, struct, msg)
+        StructError.__init__(self, struct, msg)
 
-class KeyValueError(CoilStructError, ValueError):
+class KeyValueError(StructError, ValueError):
     """The given key contained invalid characters"""
 
     def __init__(self, struct, key):
         msg = "The key %s contains invalid characters" % repr(key)
-        CoilStructError.__init__(self, struct, msg)
+        StructError.__init__(self, struct, msg)
+
+class ValueTypeError(StructError):
+    """The given item in a path was not the correct type"""
+
+    def __init__(self, struct, key, item_type, need_type):
+        msg = "the item at %s is a %s, expected %s" % (
+                repr(key), item_type.__name__, need_type.__name__)
+        StructError.__init__(self, struct, msg)
 
 class CoilParseError(CoilError):
     """General error during parsing"""

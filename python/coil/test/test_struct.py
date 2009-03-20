@@ -59,9 +59,10 @@ class BasicTestCase(unittest.TestCase):
         self.assertRaises(errors.KeyTypeError, self.struct.get, None)
 
     def testKeyValue(self):
-        self.assertRaises(errors.KeyValueError, lambda: self.struct['first#'])
         self.assertRaises(errors.KeyValueError,
-                self.struct.get, 'first..second')
+                self.struct.set, 'first#', '')
+        self.assertRaises(errors.KeyValueError,
+                self.struct.set, 'first..second', '')
 
     def testDict(self):
         self.assertEquals(self.struct['first'].dict(), dict(self.data[0][1]))
@@ -86,12 +87,12 @@ class ExpansionTestCase(unittest.TestCase):
         root.expand()
         self.assertEquals(root.get('bar'), "omgwtfbbq")
 
-    def testExpandGet(self):
+    def testExpandItem(self):
         root = struct.Struct()
         root["foo"] = "bbq"
         root["bar"] = "omgwtf${foo}"
         self.assertEquals(root.get('bar'), "omgwtf${foo}")
-        self.assertEquals(root.get('bar', expand=True), "omgwtfbbq")
+        self.assertEquals(root.expanditem('bar'), "omgwtfbbq")
 
     def testExpandDefault(self):
         root = struct.Struct()
@@ -100,13 +101,13 @@ class ExpansionTestCase(unittest.TestCase):
         root.expand({'foo':"123",'baz':"456"})
         self.assertEquals(root.get('bar'), "omgwtfbbq456")
 
-    def testExpandGetDefault(self):
+    def testExpandItemDefault(self):
         root = struct.Struct()
         root["foo"] = "bbq"
         root["bar"] = "omgwtf${foo}${baz}"
         self.assertEquals(root.get('bar'), "omgwtf${foo}${baz}")
-        self.assertEquals(root.get('bar', expand={'foo':"123",'baz':"456"}),
-                "omgwtfbbq456")
+        self.assertEquals(root.expanditem('bar',
+            defaults={'foo':"123",'baz':"456"}), "omgwtfbbq456")
 
     def testExpandIgnore(self):
         root = struct.Struct()
@@ -117,14 +118,12 @@ class ExpansionTestCase(unittest.TestCase):
         root.expand(ignore=('baz',))
         self.assertEquals(root.get('bar'), "omgwtfbbq${baz}")
 
-    def testExpandGetIgnore(self):
+    def testExpandItemIgnore(self):
         root = struct.Struct()
         root["foo"] = "bbq"
         root["bar"] = "omgwtf${foo}${baz}"
         self.assertEquals(root.get('bar'), "omgwtf${foo}${baz}")
-        self.assertEquals(root.get('bar', expand=True, ignore=True),
-                "omgwtfbbq${baz}")
-        self.assertEquals(root.get('bar', expand=True, ignore=('baz',)),
+        self.assertEquals(root.expanditem('bar', ignore=('baz',)),
                 "omgwtfbbq${baz}")
 
     def testExpandError(self):
@@ -133,11 +132,11 @@ class ExpansionTestCase(unittest.TestCase):
         self.assertRaises(KeyError, root.expand)
         self.assertEquals(root.get('bar'), "omgwtf${foo}")
 
-    def testExpandGetError(self):
+    def testExpandItemError(self):
         root = struct.Struct()
         root["bar"] = "omgwtf${foo}"
         self.assertEquals(root.get('bar'), "omgwtf${foo}")
-        self.assertRaises(KeyError, root.get, 'bar', expand=True)
+        self.assertRaises(KeyError, root.expanditem, 'bar')
         self.assertEquals(root.get('bar'), "omgwtf${foo}")
 
     def testExpandInList(self):
@@ -147,4 +146,11 @@ class ExpansionTestCase(unittest.TestCase):
         self.assertEquals(root['bar'][0], "omgwtf${foo}")
         root.expand()
         self.assertEquals(root['bar'][0], "omgwtfbbq")
+
+    def testExpandMixed(self):
+        root = struct.Struct()
+        root["foo"] = "${bar}"
+        self.assertEquals(root.expanditem("foo", {'bar': "a"}), "a")
+        root["bar"] = "b"
+        self.assertEquals(root.expanditem("foo", {'bar': "a"}), "b")
 

@@ -29,57 +29,36 @@ class StructPrototype(struct.Struct):
         # but have been removed from this Struct by ~foo tokens.
         self._deleted = []
 
-    def get(self, path, default=struct.Struct._raise,
-            expand=False, ignore=False):
-        parent, key = self._get_path_parent(path)
+    def _get(self, key):
+        try:
+            return self._values[key]
+        except KeyError:
+            return self._secondary_values[key]
 
-        if parent is self:
-            try:
-                return struct.Struct.get(self, key, self._raise,
-                        expand=expand, ignore=ignore)
-            except KeyError:
-                value = self._secondary_values.get(key, self._raise)
+    def _set(self, key, value):
+        self._validate_doubleset(key)
 
-                if value is not self._raise:
-                    return self._expand_item(key, value, expand, ignore)
-                elif default is not self._raise:
-                    return default
-                else:
-                    raise
+        self._values[key] = value
+
+        if key in self._secondary_values:
+            del self._secondary_values[key]
+        elif key not in self._order:
+            self._order.append(key)
+
+    def _del(self, key):
+        self._validate_doubleset(key)
+
+        if key in self._values:
+            del self._values[key]
+            if key in self._order:
+                self._order.remove(key)
+            else:
+                self._secondary_order.remove(key)
+        elif key in self._secondary_values:
+            del self._secondary_values[key]
+            self._secondary_order.remove(key)
         else:
-            return parent.get(key, default, expand, ignore)
-
-    def _set(self, path, value, location=None):
-        parent, key = self._get_path_parent(path)
-
-        if parent is self:
-            self._validate_doubleset(key)
-
-            if path in self._secondary_values:
-                del self._secondary_values[key]
-
-            struct.Struct._set(self, key, value, location)
-        else:
-            parent._set(key, value, location)
-
-    def __delitem__(self, path):
-        parent, key = self._get_path_parent(path)
-
-        if parent is self:
-            self._validate_doubleset(key)
-
-            try:
-                struct.Struct.__delitem__(self, key)
-            except KeyError:
-                if path in self._secondary_values:
-                    del self._secondary_values[key]
-                    self._secondary_order.remove(key)
-                else:
-                    raise
-
-            self._deleted.append(key)
-        else:
-            del parent[key]
+            raise KeyError
 
     def __contains__(self, key):
         return key in self._values or key in self._secondary_values
@@ -126,7 +105,7 @@ class StructPrototype(struct.Struct):
         """Private: check that key has not been used (excluding parents)"""
 
         if key in self._deleted or key in self._values:
-            raise errors.CoilStructError(self,
+            raise errors.StructError(self,
                     "Setting/deleting '%s' twice" % repr(key))
 
 
@@ -134,22 +113,16 @@ class Parser(object):
     """The standard coil parser"""
 
     def __init__(self, input_, path=None, encoding=None,
-            expand=True, ignore=False):
+            expand=True, defaults=(), ignore=()):
         """
         @param input_: An iterator over lines of input.
             Typically a C{file} object or list of strings.
         @param path: Path to input file, used for errors and @file imports.
         @param encoding: Read strings using the given encoding. All
             string values will be C{unicode} objects rather than C{str}.
-        @param expand: Set to True or a mapping object (dict or
-            Struct) to enable string variable expansion (ie ${var}
-            values are expanded). If a mapping object is given it
-            will be checked for the value before this C{Struct}.
-            Set to False to disable all expansion.
-        @param ignore: Set to True (to ignore all) or a list of names
-            that are allowed to be missing during expansion.
-            If expansion is enabled and a key is not found and also
-            not ignored then a L{KeyMissingError} is raised.
+        @param expand: Enables/disables expansion of the parsed tree.
+        @param defaults: See L{struct.Struct.expand}
+        @param ignore: See L{struct.Struct.expand}
         """
 
         if path:
@@ -168,7 +141,8 @@ class Parser(object):
 
         self._tokenizer.next('EOF')
         self._root = struct.Struct(self._prototype)
-        self._root.expand(expand, ignore, True)
+        if expand:
+            self._root.expand(defaults, ignore)
 
     def root(self):
         """Get the root Struct"""
@@ -194,7 +168,7 @@ class Parser(object):
 
             try:
                 del container[token.value]
-            except errors.CoilStructError, ex:
+            except errors.StructError, ex:
                 ex.location(token)
                 raise ex
         else:
@@ -240,7 +214,7 @@ class Parser(object):
         try:
             new = StructPrototype()
             container[name] = new
-        except errors.CoilStructError, ex:
+        except errors.StructError, ex:
             ex.location(token)
             raise ex
 
@@ -268,13 +242,13 @@ class Parser(object):
 
         token = self._tokenizer.next('PATH')
         link = struct.Link(token.value)
-        container._set(name, link, location=token)
+        container.set(name, link, location=token)
 
     def _parse_plain(self, container, name):
         """number, string, bool, or None"""
 
         token = self._tokenizer.next('VALUE')
-        container._set(name, token.value, location=token)
+        container.set(name, token.value, location=token)
 
     def _special_extends(self, container):
         """Handle @extends: some.struct"""
@@ -283,9 +257,9 @@ class Parser(object):
 
         try:
             parent = container.get(token.value)
-        except errors.CoilStructError, ex:
+        except errors.StructError, ex:
             ex.location(token)
-            raise ex
+            raise
 
         container.extends(parent)
 
