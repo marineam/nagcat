@@ -41,14 +41,17 @@ class Struct(tokenizer.Location, DictMixin):
 
     def __init__(self, base=(), container=None, name=None, location=None):
         """
-        @param base: A C{dict} or C{Struct} to initilize this one with.
+        @param base: A L{dict}, L{Struct}, or a list of (key, value)
+            tuples to initialize with. Any child C{dict} or C{Struct}
+            will be recursively copied as a new child C{Struct}
+            If order is important a list of key, value tuples may also
         @param container: the parent C{Struct} if there is one.
         @param name: The name of this C{Struct} in C{container}.
         @param location: The where this C{Struct} is defined.
+            This is normally only used by the L{Parser}.
         """
 
-        assert isinstance(container, Struct) or container is None
-        assert isinstance(base, (list, tuple, dict, DictMixin))
+        assert isinstance(base, (list, tuple, dict, Struct))
 
         tokenizer.Location.__init__(self, location)
         self.container = container
@@ -62,8 +65,10 @@ class Struct(tokenizer.Location, DictMixin):
             base_iter = base.iteritems()
 
         for key, value in base_iter:
-            if isinstance(value, (dict, DictMixin)):
-                value = self.__class__(value, self, key)
+            if isinstance(value, (Struct, dict)):
+                value = self.__class__(value)
+            elif isinstance(value, list):
+                value = list(value)
             self[key] = value
 
     def _get(self, key):
@@ -134,7 +139,7 @@ class Struct(tokenizer.Location, DictMixin):
         @param value: value to save.
         @param location: defines where this value was defined.
             Set to L{Struct._keep} to not modify the location if it
-            is already set, this is used by L{Struct.expand_item}.
+            is already set, this is used by L{Struct.expanditem}.
         """
 
         parent, key = self._get_next_parent(path, True)
@@ -308,8 +313,12 @@ class Struct(tokenizer.Location, DictMixin):
 
         new = {}
         for key, value in self.iteritems():
-            if value and isinstance(value, Struct):
+            if isinstance(value, Struct):
                 value = value.dict()
+            elif isinstance(value, dict):
+                value = value.copy()
+            elif isinstance(value, list):
+                value = list(value)
             new[key] = value
 
         return new

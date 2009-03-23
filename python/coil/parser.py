@@ -17,8 +17,8 @@ class StructPrototype(struct.Struct):
     parse-time rather than run-time.
     """
 
-    def __init__(self, base=(), container=None, name=None):
-        struct.Struct.__init__(self, base, container, name)
+    def __init__(self, base=(), container=None, name=None, location=None):
+        struct.Struct.__init__(self, base, container, name, location)
 
         # Secondary items are ones that are inherited via @extends or @file
         # They must be tracked separately so we can raise errors on

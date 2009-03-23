@@ -31,7 +31,7 @@ class Token(Location):
         @param location: A L{Location} object that defines where this
             token was found, typically this is the L{Tokenizer}.
         @param type_: A string defining the type of token.
-            Must be one of the types listed in L{Tokenizer.TYPES}.
+            Must be one of the types listed in L{Token.TYPES}.
         @param value: The string value of this token.
         """
         assert type_ in self.TYPES
