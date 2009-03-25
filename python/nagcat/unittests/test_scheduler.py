@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat.unittests import dummy_server
+#from nagcat.unittests import dummy_server
 from nagcat import scheduler
 
 class RunnableTestCase(unittest.TestCase):

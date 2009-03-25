@@ -17,7 +17,6 @@ from __future__ import division
 """Exceptions and configuration bits that are used everywhere"""
 
 import re
-from coil import struct
 
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 

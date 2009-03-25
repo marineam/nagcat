@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import query, test
+from nagcat import test
 from coil.struct import Struct
 
 class TestTestCase(unittest.TestCase):
@@ -51,9 +51,9 @@ class TestTestCase(unittest.TestCase):
 
         t = test.Test(config)
         d = t.start()
-        d.addBoth(self.endBasic, t)
+        d.addBoth(self.endCompound, t)
         return d
 
-    def endBasic(self, ignore, t):
+    def endCompound(self, ignore, t):
         report = t.result
 
