@@ -22,23 +22,20 @@ Tests handle all data processing, error checking, and reporting.
 import re
 import time
 
-# Gracefully disable xml/xpath support if not found
-try:
-    from lxml import etree
-except ImportError:
-    etree = None
-
 from twisted.internet import defer, reactor
 from twisted.python import failure
 from coil import struct
 
-from nagcat import scheduler, query, util, log
+from nagcat import scheduler, query, filters, util, log
 
 TEMPLATE_OK = """%(test)s %(state)s: %(summary)s
 NagCat report for test %(test)s on %(host)s:%(port)s
 
 Full Output:
 %(output)s
+
+Extra Output:
+%(extra)s
 
 Documentation:
 %(documentation)s
@@ -54,6 +51,9 @@ NagCat report for test %(test)s on %(host)s:%(port)s
 %(priority)s
 Full Output:
 %(output)s
+
+Extra Output:
+%(extra)s
 
 Error:
 %(error)s
@@ -71,10 +71,7 @@ Investigation:
 
 
 class BaseTest(scheduler.Runnable):
-    """Shared base between SimpleTest and Test
-
-    All filters (self._filter_* methods) must expect and return a str
-    """
+    """Shared base between SimpleTest and Test"""
 
     def __init__(self, conf):
         assert isinstance(conf, struct.Struct)
@@ -82,128 +79,26 @@ class BaseTest(scheduler.Runnable):
         host = conf.get('host', None)
         repeat = conf.get('repeat', "1m")
         scheduler.Runnable.__init__(self, repeat, host)
-        # special variable for the captureoutput filter to save result at a particular point in the filter chain
-        self.savedresult = None
 
         self._port = conf.get('port', None)
-        self._filters = conf.get('filters', [])
+
+        # Used by the save filter and report
+        self.saved = {}
+
+        filter_list = conf.get('filters', [])
+        # There is an implicit save filter to aid reporting
+        filter_list.append("save")
+
+        self._filters = [filters.Filter(self, x) for x in filter_list]
 
     def _createDeferred(self):
         """Create a Deferred object, should be returned by _start()"""
         deferred = defer.Deferred()
 
-        # Add filters to callback chain
-        for filterstr in self._filters:
-            assert isinstance(filterstr, str)
-
-            if ":" not in filterstr:
-                ftype = filterstr
-                fvalue = None
-            else:
-                (ftype, fvalue) = filterstr.split(":", 1)
-
-            method = "_filter_%s" % ftype
-            if hasattr(self, method):
-                deferred.addCallback(getattr(self, method), fvalue)
-            else:
-                deferred.addCallback(self._unknownFilter, ftype)
+        for filter in self._filters:
+            deferred.addCallback(filter.filter)
 
         return deferred
-
-    def _unknownFilter(self, result, ftype):
-        raise util.KnownError("Unknown filter type '%s'" % ftype)
-
-    def _filter_regex(self, result, regex):
-        """Match the first occurrence of a regex.
-
-        TODO: somehow support matching later occurrences?
-        """
-
-        log.debug("Matching regex '%s'" % regex)
-
-        match = re.search(regex, result, re.DOTALL | re.MULTILINE)
-        if match:
-            if match.groups():
-                return match.group(1)
-            else:
-                return match.group(0)
-        else:
-            raise util.KnownError("Failed to match regex '%s'"
-                    % regex, result, "CRITICAL")
-
-    def _filter_date2epoch(self, result, format):
-        """Convert a date to seconds for doing math"""
-
-        log.debug("Converting date using format '%s'" % format)
-
-        try:
-            seconds = time.mktime(time.strptime(result, format))
-        except ValueError:
-            raise util.KnownError(
-                    "Failed to parse date with format '%s'"
-                    % format, result, "CRITICAL")
-
-        return str(seconds)
-
-    def _filter_xpath(self, result, expr):
-        """Fetch something out of an XML document using XPath.
-
-        Note: if the XPath expression returns more than one item then
-        only the first will be used! If this isn't what you want you
-        better formulate the expression to return only one thing.
-        """
-
-        def format(data):
-            if etree.iselement(data):
-                ret = etree.tostring(data)
-            else:
-                ret = str(data)
-            return ret.strip()
-
-        log.debug("Fetching XML element '%s'" % expr)
-
-        if not etree:
-            raise util.KnownError("XPath support requires lxml!")
-
-        try:
-            root = etree.fromstring(result)
-        except etree.XMLSyntaxError, ex:
-            raise util.KnownError("Invalid XML", result, "CRITICAL", ex)
-
-        # TODO: use a cached XPathEvaluator for performace
-        try:
-            data = root.xpath(expr)
-        except etree.XPathSyntaxError, ex:
-            raise util.KnownError("Invalid XPath query", result, "UNKNOWN", ex)
-
-        if isinstance(data, list) and data:
-            return "\n".join([format(x) for x in data])
-        elif isinstance(data, list):
-            # return an empty string if we have an empty list
-            # this means that if we don't match anything, we simply 
-            # return the empty string, even if that's not what we wanted
-            return ""
-        else:
-            return format(data)
-
-    def _filter_captureoutput(self, result, throwaway):
-        """Set the point where we caputure full output to include in the report.
-
-        This filter takes the current filtered result and stuffs it into a variable on
-        the test object so that we can return it as part of an error report to nagios.
-        This is incredibly useful when you have a bunch of output surrounding a particular
-        value that you wish to test. You can keep the warning and critical threshold tests
-        simple and avoid parsing XML in a regular expression, while still reporting all the
-        relevant details up to nagios for purposes of operator alerting.
-
-        Note that if this filter is invoked more than once in a given test (or subtest) the
-        final one will win. However, in compound tests we do the right thing and combine the
-        result from each subquery.
-        """
-
-        log.debug("Capturing this result to the test object: '%s'" % result)
-        self.savedresult = result
-        return result
 
 class SimpleTest(BaseTest):
     """Used only as sub-tests"""
@@ -217,6 +112,7 @@ class SimpleTest(BaseTest):
         self.addDependency(self._query)
 
     def _start(self):
+        self.saved.clear()
         deferred = self._createDeferred()
         deferred.callback(self._query.result)
         return deferred
@@ -292,6 +188,8 @@ class Test(BaseTest):
         conf.setdefault('repeat', str(self.repeat))
 
     def _start(self):
+        self.saved.clear()
+
         # All sub-tests are now complete, if this was a compound query
         # compute return will put the pieces together.
         try:
@@ -411,22 +309,14 @@ class Test(BaseTest):
         def getstate(test, result):
             # Pull values and error messages out of any failures
             if not isinstance(result, failure.Failure):
-                # we might want to apply the if on captureoutput here as well
-                # for now i'll skip it, operators don't care about more information
-                # unless a test is warning/critical
                 output = str(result)
                 error = ""
                 state = "OK"
                 summary = output
-            # warning/critical tests result in a KnownError as well as other issues where we can give a decent error message
+            # warning/critical tests result in a KnownError as well as 
+            # other issues where we can give a decent error message
             elif (isinstance(result.value, util.KnownError)):
-                # this if will work during a compound query
-                if test.savedresult is None:
-                    log.debug("No special captured value for subquery error output.")
-                    output = str(result.value.result)
-                else:
-                    log.debug("Found special captured value for subquery error output or we aren't doing a compound query.")
-                    output = str(test.savedresult)
+                output = str(result.value.result)
                 error = str(result.value.error)
                 state = result.value.state
                 summary = str(result.value)
@@ -451,23 +341,16 @@ class Test(BaseTest):
             summary = "Something failed but I don't know what."
 
             for subtest in self._subtests.itervalues():
-                subsum, subout, suberr, substat = getstate(subtest, subtest.result)
+                subsum, subout, suberr, substat = \
+                        getstate(subtest, subtest.result)
                 if util.STATES.index(substat) > util.STATES.index(state):
                     state = substat
                     summary = subsum
-                    if not self._compound:
-                        # In compound queries the state of all sub-tests
-                        # will be included by the loop below instead.
-                        output = subout
-                        error = suberr
-
+                    output = subout
+                    error = suberr
         elif isinstance(result, failure.Failure):
             # Failed in return or threshold
             summary, output, error, state = getstate(self, result)
-            # TODO: make this suck less. ugly hack alert.
-            if not self._compound:
-                if self._subtests['query'].savedresult is not None:
-                    output = self._subtests['query'].savedresult
         else:
             # All is well!
             output = str(result)
@@ -479,22 +362,19 @@ class Test(BaseTest):
         if summary:
             summary = summary.splitlines()[0][:40]
 
-        # Append subtest results to the output
-        if self._compound:
-            for subname, subtest in self._subtests.iteritems():
-                subsum, subout, suberr, substat = getstate(subtest, subtest.result)
-                if subout and output:
-                    output += "\n%s: %s" % (subname, subout)
-                elif subout:
-                    output = "%s: %s" % (subname, subout)
-                if suberr and error:
-                    error += "\n%s: %s" % (subname, suberr)
-                elif suberr:
-                    error = "%s: %s" % (subname, suberr)
-                subtest.savedresult = None
+        # Fill in the Extra Output area
+        for subname, subtest in self._subtests.iteritems():
+            for savedname, savedval in subtest.saved.iteritems():
+                if savedname is None:
+                    savedname = subname
+                self.saved.setdefault(savedname, savedval)
 
-        # this is a weird place to unset savedresult, but we can't do it in getstate above
-        self.savedresult = None
+        extra = ""
+        for savedname, savedval in self.saved.iteritems():
+            # Skip the default extra output for this top level test,
+            # it likely does not include anything new
+            if savedname is not None:
+                extra += "%s: %s\n" % (savedname, savedval)
 
         assert state in util.STATES
         if state == "OK":
@@ -508,6 +388,7 @@ class Test(BaseTest):
                 'summary': summary,
                 'output': output,
                 'error': error,
+                'extra': extra,
                 'host': self.host,
                 #'addr': self._addr,
                 'port': self._port,
