@@ -26,7 +26,7 @@ from twisted.internet import defer, reactor
 from twisted.python import failure
 from coil import struct
 
-from nagcat import scheduler, query, filters, util, log
+from nagcat import scheduler, query, trend, filters, util, log
 
 TEMPLATE_OK = """%(test)s %(state)s: %(summary)s
 NagCat report for test %(test)s on %(host)s:%(port)s
@@ -139,6 +139,11 @@ class Test(BaseTest):
         self._url = conf.get('url', "")
         self._subtests = {}
 
+        if 'trend' in conf:
+            self._trend = trend.Trend(self.host, "blah", conf['trend'])
+        else:
+            self._trend = None
+
         # If self._documentation is a list convert it to a string
         if isinstance(self._documentation, list):
             doc = ""
@@ -199,6 +204,7 @@ class Test(BaseTest):
 
         deferred = self._createDeferred()
         deferred.callback(result)
+        deferred.addCallback(self._checkTrendData)
         deferred.addCallback(self._checkAllThresholds)
         deferred.addBoth(self._report)
 
@@ -299,6 +305,11 @@ class Test(BaseTest):
             self._checkThreshold(result, self._critical, "CRITICAL")
         if self._warning:
             self._checkThreshold(result, self._warning, "WARNING")
+        return result
+
+    def _checkTrendData(self, result):
+        if self._trend:
+            self._trend.update(self._now, result)
         return result
 
     def _report(self, result):

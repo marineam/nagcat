@@ -29,7 +29,7 @@ from optparse import OptionParser
 from twisted.internet import reactor
 import coil
 
-from nagcat import scheduler, nagios, test, util, log
+from nagcat import scheduler, nagios, test, trend, util, log
 
 def simpleReport(report):
     log.info("REPORT:\n%s" % report['text'])
@@ -123,6 +123,8 @@ def parse_options():
     parser.add_option("-d", "--daemon", dest="daemon",
             action="store_true", default=False,
             help="run as a daemon")
+    parser.add_option("-r", "--rradir", dest="rradir",
+            help="directory used to store rrdtool archives")
     parser.add_option("-t", "--test", dest="test",
             help="only run a single test")
     parser.add_option("-H", "--host", dest="host",
@@ -175,6 +177,9 @@ def main():
     config = coil.parse_file(options.config, expand=False)
 
     try:
+        if options.rradir:
+            trend.init(options.rradir)
+
         if options.test:
             tests = simple(options, config)
         elif options.nagios:
