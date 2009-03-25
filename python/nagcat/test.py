@@ -373,7 +373,7 @@ class Test(BaseTest):
         for savedname, savedval in self.saved.iteritems():
             # Skip the default extra output for this top level test,
             # it likely does not include anything new
-            if savedname is not None:
+            if savedname is not None and savedval != output:
                 extra += "%s: %s\n" % (savedname, savedval)
 
         assert state in util.STATES
