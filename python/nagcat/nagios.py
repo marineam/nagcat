@@ -119,7 +119,7 @@ class NagiosTests(object):
             test_defaults = {
                     'host': service['host_name'],
                     'addr': hosts[service['host_name']]['address'],
-                    'service_description': service['service_description']}
+                    'name': service['service_description']}
 
             test_overrides = {}
 
@@ -164,7 +164,7 @@ class NagiosTests(object):
                 raise util.InitError("Error in test %s: %s"
                         % (test_overrides['test'], ex))
             testobj.addReportCallback(self._sendReportInThread,
-                    test_defaults['host'], test_defaults['service_description'])
+                    test_defaults['host'], test_defaults['name'])
             tests.append(testobj)
 
         return tests

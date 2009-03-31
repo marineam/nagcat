@@ -48,8 +48,9 @@ def simple(options, config):
     config.setdefault('host', options.host)
     config.setdefault('addr', options.host)
     config.setdefault('port', options.port)
+    config.setdefault('test', options.test)
+    config.setdefault('name', options.test)
     config['repeat'] = None # single run
-    config['test'] = options.test
 
     try:
         testobj = test.Test(config)
