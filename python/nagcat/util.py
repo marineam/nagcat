@@ -20,10 +20,11 @@ import re
 
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 
-class Repeat(object):
-    """Store a repeat time interval.
+class Interval(object):
+    """Store the duration of time interval.
 
-    A if initialized with None or '0 seconds' there is no repeat.
+    A if initialized with None or '0 seconds' this the object
+    will evaluate to False in boolean contexts.
     """
     # TODO: support absolute times
 
@@ -50,6 +51,12 @@ class Repeat(object):
 
     def __str__(self):
         return "%s seconds" % self.seconds
+
+    def __float__(self):
+        return self.seconds
+
+    def __int__(self):
+        return int(self.seconds)
 
     def __nonzero__(self):
         return bool(self.seconds)

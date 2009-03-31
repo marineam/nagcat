@@ -188,7 +188,7 @@ class Runnable(object):
         self.lastrun = 0
         self.result = None
         self.deferred = None
-        self.repeat = util.Repeat(repeat)
+        self.repeat = util.Interval(repeat)
         # Used to distribute load during startup
         self.host = host
 

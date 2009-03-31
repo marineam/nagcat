@@ -17,47 +17,47 @@ from __future__ import division
 from twisted.trial import unittest
 from nagcat import util
 
-class RepeatTestcase(unittest.TestCase):
+class IntervalTestcase(unittest.TestCase):
 
     def testSeconds(self):
-        a = util.Repeat("5 Seconds")
+        a = util.Interval("5 Seconds")
         self.assertEquals(a.seconds, 5)
-        a = util.Repeat("5.5sec")
+        a = util.Interval("5.5sec")
         self.assertEquals(a.seconds, 5.5)
-        a = util.Repeat("5 s")
+        a = util.Interval("5 s")
         self.assertEquals(a.seconds, 5)
 
     def testMinutes(self):
-        a = util.Repeat("5 Minutes")
+        a = util.Interval("5 Minutes")
         self.assertEquals(a.seconds, 300)
-        a = util.Repeat("5.5min")
+        a = util.Interval("5.5min")
         self.assertEquals(a.seconds, 330)
-        a = util.Repeat("5 m")
+        a = util.Interval("5 m")
         self.assertEquals(a.seconds, 300)
 
     def testHours(self):
-        a = util.Repeat("5 Hours")
+        a = util.Interval("5 Hours")
         self.assertEquals(a.seconds, 18000)
-        a = util.Repeat("5.5 hour")
+        a = util.Interval("5.5 hour")
         self.assertEquals(a.seconds, 19800)
-        a = util.Repeat("5 h")
+        a = util.Interval("5 h")
         self.assertEquals(a.seconds, 18000)
 
     def testEq(self):
-        a = util.Repeat("300 seconds")
-        b = util.Repeat("5 minutes")
+        a = util.Interval("300 seconds")
+        b = util.Interval("5 minutes")
         self.assertEquals(a, b)
 
     def testBool(self):
-        a = util.Repeat("")
-        b = util.Repeat("0s")
-        c = util.Repeat("5s")
+        a = util.Interval("")
+        b = util.Interval("0s")
+        c = util.Interval("5s")
         self.assertEquals(bool(a), False)
         self.assertEquals(bool(b), False)
         self.assertEquals(bool(c), True)
 
     def testStr(self):
-        a = util.Repeat("1hour")
+        a = util.Interval("1hour")
         self.assertEquals(str(a), "3600.0 seconds")
 
 class MathStringTestCase(unittest.TestCase):
