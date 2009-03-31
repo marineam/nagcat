@@ -35,10 +35,10 @@ class Interval(object):
             return
 
         match = re.match("^\s*(\d+(\.\d+)?)\s*"
-                "(s|sec|seconds?|m|min|minutes?|h|hours?)\s*$",
+                "(s|sec|seconds?|m|min|minutes?|h|hours?|d|days?)\s*$",
                 str(value), re.IGNORECASE)
         if not match:
-            raise KnownError("Invalid repeat interval '%s'" % str(value))
+            raise KnownError("Invalid time interval '%s'" % str(value))
 
         if match.group(3)[0].lower() == 's':
             self.seconds = float(match.group(1))
@@ -46,6 +46,8 @@ class Interval(object):
             self.seconds = float(match.group(1)) * 60
         elif match.group(3)[0].lower() == 'h':
             self.seconds = float(match.group(1)) * 3600
+        elif match.group(3)[0].lower() == 'd':
+            self.seconds = float(match.group(1)) * 86400
         else:
             assert(0)
 

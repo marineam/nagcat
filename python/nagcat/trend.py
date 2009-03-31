@@ -35,66 +35,96 @@ def init(dir):
 
     _rradir = dir
 
-class Trend(object):
+
+def Trend(config):
+    """Generator for Trend objects, will return either a true trending
+    object or None depending on if trending is enabled.
+    """
+
+    if _rradir:
+        return _Trend(config)
+    else:
+        return None
+
+class _Trend(object):
 
     #: Valid rrdtool data source types
     TYPES = ("GAUGE", "COUNTER", "DERIVE", "ABSOLUTE")
 
-    def __init__(self, host, description, config):
-        self.file = self.mkfile(host, description)
+    #: RRAs required for graphing, (period, interval) in seconds
+    RRAS = ((1440, 60),         # 4 hours of 1 minute intervals
+            (86400, 300),       # 1 day of 5 minute intervals
+            (604800, 1800),     # 7 days of 30 minute intervals
+            (2678400, 7200),    # 31 days of 2 hour intervals
+            (31622400, 86400))  # 366 days of 1 day intervals
+
+    def __init__(self, config):
         self.conf = config
-        self.conf['type'] = self.conf.get('type', "").upper()
+        self.conf.expand()
+        self.type = self.conf.get('type', "").upper()
+        self.step = int(self.conf.get('repeat'))
+        self.alerts = bool(self.conf.get('alerts', False))
+        self.season = int(util.Interval(self.conf.get('season', '1d')))
+        self.alpha = float(self.conf.get('alpha', 0.5))
+        self.beta = float(self.conf.get('beta', 0.5))
+        self.gamma = float(self.conf.get('gamma', 0.5))
 
-        if self.conf['type'] not in self.TYPES:
-            raise util.KnownError(
-                    "Invalid data source type: %s" % self.conf['type'])
+        filebase = os.path.join(_rradir, "%s-%s" % (
+                re.sub("[^a-z0-9_\.]", "", self.conf['host'].lower()),
+                re.sub("[^a-z0-9_\.]", "", self.conf['name'].lower())))
+        self.rrdfile = "%s.rrd" % filebase
+        self.logfile = "%s.log" % filebase
 
-        if os.path.exists(self.file):
+        # Default to a 1 minute step when repeat is useless
+        if self.step == 0:
+            self.step = 60
+
+        if self.type not in self.TYPES:
+            raise util.KnownError("Invalid data source type: %s" % self.type)
+
+        if os.path.exists(self.rrdfile):
             self.validate()
         else:
             self.create()
 
-    @staticmethod
-    def mkfile(host, desc):
-        host = re.sub("[^a-z0-9_\.]", "", host.lower())
-        desc = re.sub("[^a-z0-9_\.]", "", desc.lower())
-        file = "%s-%s.rra" % (host, desc)
-        return os.path.join(_rradir, file)
-
     def create(self):
-        # For now just create archives identical to how Cacti
-        # does since it will be displaying the graphs.
-        log.info("Creating RRA: %s" % self.file)
-        rrdtool.create(self.file, "--step", "300",
-                "DS:default:%s:600:U:U" % self.conf['type'],
-                "RRA:AVERAGE:0.5:1:600",
-                "RRA:AVERAGE:0.5:6:700",
-                "RRA:AVERAGE:0.5:24:755",
-                "RRA:AVERAGE:0.5:288:797",
-                "RRA:MAX:0.5:1:600",
-                "RRA:MAX:0.5:6:700",
-                "RRA:MAX:0.5:24:755",
-                "RRA:MAX:0.5:288:797")
+        # For now just create archives with the minimal data required
+        # to generate cacti graphs since that's where the data will be
+        # displayed. More options can be added later...
+        log.info("Creating RRA: %s" % self.rrdfile)
+
+        args = ["--step", str(self.step)]
+
+        # Don't allow more than 1 missed update
+        # TODO: support more than one data source
+        args.append("DS:default:%s:%d:U:U" % (self.type, self.step*2))
+
+        for period, interval in self.RRAS:
+            if interval < self.step:
+                continue
+            steps = interval // self.step
+            rows = period // steps
+            args.append("RRA:MAX:0.5:%d:%d" % (steps, rows))
+            args.append("RRA:AVERAGE:0.5:%d:%d" % (steps, rows))
+
+        # The seasonal period is defined in terms of data points.
+        # Save 5 seasons of data for now, not sure what the best value is...
+        season_rows = self.season // self.step
+        record_rows = season_rows * 5
+        args.append("RRA:HWPREDICT:%d:%f:%f:%d" %
+                (record_rows, self.alpha, self.beta, season_rows))
+
+        rrdtool.create(self.rrdfile, *args)
         self.validate()
 
     def validate(self):
-        info = rrdtool.info(self.file)
-        assert info['step'] == 300
+        info = rrdtool.info(self.rrdfile)
+        assert info['step'] == self.step
         assert info['ds']['default']['type'] == self.conf['type']
-        assert info['ds']['default']['minimal_heartbeat'] == 600
+        assert info['ds']['default']['minimal_heartbeat'] == self.step*2
         for rra in info['rra']:
-            assert rra['cf'] in ('AVERAGE', 'MAX')
-            assert rra['xff'] == 0.5
-            if rra['pdp_per_row'] == 1:
-                assert rra['rows'] == 600
-            elif rra['pdp_per_row'] == 6:
-                assert rra['rows'] == 700
-            elif rra['pdp_per_row'] == 24:
-                assert rra['rows'] == 755
-            elif rra['pdp_per_row'] == 288:
-                assert rra['rows'] == 797
-            else:
-                assert 0
+            if rra['cf'] in ('AVERAGE', 'MAX'):
+                assert rra['xff'] == 0.5
 
     def update(self, time, value):
         try:
@@ -102,5 +132,5 @@ class Trend(object):
         except ValueError:
             # Value is not a number so mark it unknown.
             value = "U"
-        log.info("Updating %s with %s" % (self.file, value))
-        rrdtool.update(self.file, "%s:%s" % (time, value))
+        log.debug("Updating %s with %s" % (self.rrdfile, value))
+        rrdtool.update(self.rrdfile, "%s:%s" % (time, value))

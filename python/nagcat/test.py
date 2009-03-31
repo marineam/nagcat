@@ -130,7 +130,7 @@ class Test(BaseTest):
     def __init__(self, conf):
         BaseTest.__init__(self, conf)
 
-        self._test = conf.get('test', None)
+        self._test = conf.get('test', "")
         self._critical = conf.get('critical', None)
         self._warning = conf.get('warning', None)
         self._documentation = conf.get('documentation', "")
@@ -140,7 +140,10 @@ class Test(BaseTest):
         self._subtests = {}
 
         if 'trend' in conf:
-            self._trend = trend.Trend(self.host, "blah", conf['trend'])
+            conf['trend.repeat'] = int(self.repeat)
+            conf['trend.host'] = self.host
+            conf['trend.name'] = conf.get('name', self._test)
+            self._trend = trend.Trend(conf['trend'])
         else:
             self._trend = None
 
