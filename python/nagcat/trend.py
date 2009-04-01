@@ -35,14 +35,13 @@ def init(dir):
 
     _rradir = dir
 
-
 def Trend(config):
-    """Generator for Trend objects, will return either a true trending
+    """Generator for Trend objects, will return either a trending
     object or None depending on if trending is enabled.
     """
 
     if _rradir:
-        return _Trend(config)
+        return _Trend(config, _rradir)
     else:
         return None
 
@@ -58,18 +57,19 @@ class _Trend(object):
             (2678400, 7200),    # 31 days of 2 hour intervals
             (31622400, 86400))  # 366 days of 1 day intervals
 
-    def __init__(self, config):
+    def __init__(self, config, rradir, start=None):
         self.conf = config
         self.conf.expand()
         self.type = self.conf.get('type', "").upper()
         self.step = int(self.conf.get('repeat'))
         self.alerts = bool(self.conf.get('alerts', False))
         self.season = int(util.Interval(self.conf.get('season', '1d')))
-        self.alpha = float(self.conf.get('alpha', 0.5))
-        self.beta = float(self.conf.get('beta', 0.5))
-        self.gamma = float(self.conf.get('gamma', 0.5))
+        self.alpha = float(self.conf.get('alpha', 0.01))
+        self.beta = float(self.conf.get('beta', 0.01))
+        self.gamma = float(self.conf.get('gamma', 0.2))
+        self.start = start
 
-        filebase = os.path.join(_rradir, "%s-%s" % (
+        filebase = os.path.join(rradir, "%s-%s" % (
                 re.sub("[^a-z0-9_\.]", "", self.conf['host'].lower()),
                 re.sub("[^a-z0-9_\.]", "", self.conf['name'].lower())))
         self.rrdfile = "%s.rrd" % filebase
@@ -95,6 +95,9 @@ class _Trend(object):
 
         args = ["--step", str(self.step)]
 
+        if self.start:
+            args += ["--start", str(self.start)]
+
         # Don't allow more than 1 missed update
         # TODO: support more than one data source
         args.append("DS:default:%s:%d:U:U" % (self.type, self.step*2))
@@ -115,12 +118,14 @@ class _Trend(object):
                 (record_rows, self.alpha, self.beta, season_rows))
 
         rrdtool.create(self.rrdfile, *args)
+        rrdtool.tune(self.rrdfile, "--gamma", str(self.gamma),
+                "--gamma-deviation", str(self.gamma))
         self.validate()
 
     def validate(self):
         info = rrdtool.info(self.rrdfile)
         assert info['step'] == self.step
-        assert info['ds']['default']['type'] == self.conf['type']
+        assert info['ds']['default']['type'] == self.type
         assert info['ds']['default']['minimal_heartbeat'] == self.step*2
         for rra in info['rra']:
             if rra['cf'] in ('AVERAGE', 'MAX'):
