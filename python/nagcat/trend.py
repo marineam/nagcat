@@ -65,8 +65,8 @@ class _Trend(object):
         self.step = int(self.conf.get('repeat'))
         self.alerts = bool(self.conf.get('alerts', False))
         self.season = int(util.Interval(self.conf.get('season', '1d')))
-        self.alpha = float(self.conf.get('alpha', 0.01))
-        self.beta = float(self.conf.get('beta', 0.01))
+        self.alpha = float(self.conf.get('alpha', 0.001))
+        self.beta = float(self.conf.get('beta', 0.0001))
         self.gamma = float(self.conf.get('gamma', 0.2))
         self.start = start
 

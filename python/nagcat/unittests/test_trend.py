@@ -48,7 +48,6 @@ class TrendData1TestCase(unittest.TestCase):
             trendobj.update(end_time, value)
             self.assertEquals(trendlog.readline(), line)
 
-
         graph_start = ((end_time - start_time) / 2) + start_time
         rrdtool.graph(os.path.join(self.tmpdir, "%s.png" % self.dataset),
                 "--start", str(graph_start), "--end", str(end_time),
@@ -69,3 +68,10 @@ class TrendData1TestCase(unittest.TestCase):
 
 class TrendData2TestCase(TrendData1TestCase):
     dataset = "trend_data2"
+
+class TrendDiskTestCase(TrendData1TestCase):
+    dataset = "trend_disk"
+
+    def setUp(self):
+        TrendData1TestCase.setUp(self)
+        self.conf['type'] = "derive"
