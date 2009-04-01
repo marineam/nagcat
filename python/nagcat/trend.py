@@ -17,6 +17,7 @@
 import os
 import re
 
+from twisted.python import logfile
 import rrdtool
 
 from nagcat import log, util
@@ -57,7 +58,7 @@ class _Trend(object):
             (2678400, 7200),    # 31 days of 2 hour intervals
             (31622400, 86400))  # 366 days of 1 day intervals
 
-    def __init__(self, config, rradir, start=None):
+    def __init__(self, config, dirname, start=None):
         self.conf = config
         self.conf.expand()
         self.type = self.conf.get('type', "").upper()
@@ -69,11 +70,13 @@ class _Trend(object):
         self.gamma = float(self.conf.get('gamma', 0.2))
         self.start = start
 
-        filebase = os.path.join(rradir, "%s-%s" % (
+        self.dirname = dirname
+        self.basename = "%s-%s" % (
                 re.sub("[^a-z0-9_\.]", "", self.conf['host'].lower()),
-                re.sub("[^a-z0-9_\.]", "", self.conf['name'].lower())))
-        self.rrdfile = "%s.rrd" % filebase
-        self.logfile = "%s.log" % filebase
+                re.sub("[^a-z0-9_\.]", "", self.conf['name'].lower()))
+        self.rrdfile = os.path.join(self.dirname, "%s.rrd" % self.basename)
+        self.logfile = logfile.LogFile("%s.log" % self.basename, self.dirname,
+                rotateLength=1024*1024, maxRotatedFiles=2)
 
         # Default to a 1 minute step when repeat is useless
         if self.step == 0:
@@ -138,4 +141,5 @@ class _Trend(object):
             # Value is not a number so mark it unknown.
             value = "U"
         log.debug("Updating %s with %s" % (self.rrdfile, value))
+        self.logfile.write("%s %s\n" % (time, value))
         rrdtool.update(self.rrdfile, "%s:%s" % (time, value))

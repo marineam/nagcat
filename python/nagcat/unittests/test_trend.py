@@ -37,10 +37,17 @@ class TrendData1TestCase(unittest.TestCase):
         trendobj = trend._Trend(self.conf, self.tmpdir, start_time-10)
         trendobj.update(start_time, value)
 
+        trendlog = open(os.path.join(trendobj.dirname,
+                "%s.log" % trendobj.basename))
+        self.assertEquals(trendlog.readline(),
+                "%s %s\n" % (start_time, value))
+
         for line in self.data:
             end_time, value = line.split()
             end_time = int(end_time)
             trendobj.update(end_time, value)
+            self.assertEquals(trendlog.readline(), line)
+
 
         graph_start = ((end_time - start_time) / 2) + start_time
         rrdtool.graph(os.path.join(self.tmpdir, "%s.png" % self.dataset),
