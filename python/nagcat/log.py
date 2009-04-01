@@ -39,7 +39,8 @@ class LogLevelObserver(object):
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
 
-            self.log_file = logfile.LogFile(basename, dirname, 1024*1024*20)
+            self.log_file = logfile.LogFile(basename, dirname,
+                    rotateLength=1024*1024*20, maxRotatedFiles=20)
 
             # If it already exists and contains data rotate.
             if os.path.getsize(log_name):
