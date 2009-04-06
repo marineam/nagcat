@@ -27,7 +27,7 @@ from nagcat import util, log
 
 # Accept filter specs in the format "name[default]:arguments"
 # where [default] and :arguments are optional
-_SPEC = re.compile(r'^([a-z][a-z0-9]*)(\[([^\]]*)\])?(:(.*))?$')
+_SPEC = re.compile(r'^([a-z][a-z0-9]*)(\[([^\]]*)\])?(:)?')
 
 def Filter(test, spec):
     """Generator that create a Filter class from the spec"""
@@ -40,11 +40,11 @@ def Filter(test, spec):
 
     name = match.group(1)
     default = match.group(3)
-    arguments = match.group(5)
 
-    # make "name:" act the same way as "name"
-    if not default:
-        default = None
+    if match.group(4):
+        arguments = spec[match.end():]
+    else:
+        arguments = ""
 
     filter_class = globals().get("Filter_%s" % name, None)
     if filter_class:
