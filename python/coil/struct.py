@@ -190,23 +190,19 @@ class Struct(tokenizer.Location, DictMixin):
         for key in self:
             yield key, self[key]
 
-    def expand(self, defaults=(), ignore=(), recursive=True, block=()):
-        """Expand all L{Link}s and string variable substitutions in
-        this and all child L{Struct}s. Useful when expansion must be
-        or partially ignored during parse-time and then finished later.
+    def expand(self, defaults=(), ignore_missing=(), recursive=True, block=()):
+        """Expand all L{Link}s and sub-string variables in this and,
+        if recursion is enabled, all child L{Struct} objects. This is
+        normally called during parsing but may be useful if more
+        control is required.
 
-        This modifies the tree!
+        This method modifies the tree!
 
-        @param defaults: default values to use if undefined.
-        @type defaults: dict
-        @param ignore: a set of keys that are ignored if undefined
-            and not in defaults. Otherwise raise L{KeyMissingError}.
-        @type ignore: any container
+        @param defaults: See L{Struct.expandvalue}
+        @param ignore_missing: See L{Struct.expandvalue}
         @param recursive: recursively expand sub-structs
         @type recursive: bool
-        @param block: a set of absolute paths that cannot be expanded.
-            This is used internally to avoid circular references.
-        @type block: any container
+        @param block: See L{Struct.expandvalue}
         """
 
         abspath = self.path()
@@ -217,22 +213,63 @@ class Struct(tokenizer.Location, DictMixin):
         block.append(abspath)
 
         for key in self:
-            value = self.expanditem(key, defaults, ignore, block)
+            value = self.expanditem(key, defaults, ignore_missing, block)
             self.set(key, value, self._keep)
             if recursive and isinstance(value, Struct):
-                value.expand(defaults, ignore, True, block)
+                value.expand(defaults, ignore_missing, True, block)
 
-    def expanditem(self, path, defaults=(), ignore=(), block=()):
-        """Expand L{Link}s and string variable substitutions in an item.
+    def expanditem(self, path, defaults=(), ignore_missing=(), block=()):
+        """Fetch and expand an item at the given path. All L{Link}
+        and sub-string variables will be followed in the process.
+        This method is a no-op if value is a L{Struct}, use the
+        L{Struct.expand} method instead.
 
-        This does not make any changes to the tree.
-        
+        This method does not make any changes to the tree.
+
+        @param path: A key or arbitrary path to get.
+        @param defaults: See L{Struct.expandvalue}
+        @param ignore_missing: See L{Struct.expandvalue}
+        @param block: See L{Struct.expandvalue}
+        """
+
+        parent, key = self._get_next_parent(path)
+
+        if parent is self:
+            abspath = self.path(key)
+            if abspath in block:
+                raise errors.StructError(self,
+                        "Circular reference to %s" % abspath)
+
+            block = list(block)
+            block.append(abspath)
+
+            try:
+                value = self[key]
+            except errors.KeyMissingError:
+                if key in defaults:
+                    return defaults[key]
+                else:
+                    raise
+
+            return self.expandvalue(value, defaults, ignore_missing, block)
+        else:
+            return parent.expanditem(key, defaults, ignore_missing, block)
+
+    def expandvalue(self, value, defaults=(), ignore_missing=(), block=()):
+        """Use this L{Struct} to expand the given value. All L{Link}
+        and sub-string variables will be followed in the process.
+        This method is a no-op if value is a L{Struct}, use the
+        L{Struct.expand} method instead.
+
+        This method does not make any changes to the tree.
+
+        @param value: Any value to expand, typically a L{Link} or string.
         @param defaults: default values to use if undefined.
         @type defaults: dict
-        @param ignore: a set of keys that are ignored if undefined
-            and not in defaults. If simply set to True then all
-            are ignored. Otherwise raise L{KeyMissingError}.
-        @type ignore: True any container
+        @param ignore_missing: a set of keys that are ignored if
+            undefined and not in defaults. If simply set to True
+            then all are ignored. Otherwise raise L{KeyMissingError}.
+        @type ignore_missing: True any container
         @param block: a set of absolute paths that cannot be expanded.
             This is used internally to avoid circular references.
         @type block: any container
@@ -241,12 +278,11 @@ class Struct(tokenizer.Location, DictMixin):
         def expand_substr(match):
             subkey = match.group(1)
             try:
-                subval = self.expanditem(subkey, defaults, ignore, block)
+                subval = self.expanditem(subkey,
+                        defaults, ignore_missing, block)
             except errors.KeyMissingError, ex:
-                if ex.key in defaults:
-                    subval = defaults[ex.key]
-                elif ignore is True or ex.key in ignore:
-                    subval = match.group(0)
+                if ignore_missing is True or ex.key in ignore_missing:
+                    return match.group(0)
                 else:
                     raise
 
@@ -254,54 +290,87 @@ class Struct(tokenizer.Location, DictMixin):
 
         def expand_link(link):
             try:
-                subval = self.expanditem(link.path, defaults, ignore, block)
+                subval = self.expanditem(link.path,
+                        defaults, ignore_missing, block)
             except errors.KeyMissingError, ex:
-                if ex.key in defaults:
-                    subval = defaults[ex.key]
-                elif ignore is True or ex.key in ignore:
-                    subval = match.group(0)
+                if ignore_missing is True or ex.key in ignore_missing:
+                    return link
                 else:
                     raise
 
             # Structs and lists must be copied
             if isinstance(subval, Struct):
-                subval = self.__class__(subval)
+                subval = subval.copy()
             if isinstance(subval, list):
                 subval = list(subval)
 
             return subval
 
+        def expand_list(list_):
+            for i in xrange(len(list_)):
+                if isinstance(list_[i], basestring):
+                    list_[i] = self.EXPAND.sub(expand_substr, list_[i])
+                elif isinstance(list_[i], list):
+                    expand_list(list_[i])
+
         # defaults should only contain simple keys, not paths.
         for key in defaults:
             assert "." not in key
 
-        parent, key = self._get_next_parent(path)
+        if isinstance(value, Struct):
+            pass
+        elif isinstance(value, basestring):
+            value = self.EXPAND.sub(expand_substr, value)
+        elif isinstance(value, Link):
+            value = expand_link(value)
+        elif isinstance(value, list):
+            expand_list(value)
 
-        if parent is self:
-            abspath = self.path()
-            if key:
-                abspath = "%s.%s" % (self.path(), key)
-            if abspath in block:
-                raise errors.StructError(self,
-                        "Circular reference to %s" % abspath)
+        return value
 
-            block = list(block)
-            block.append(abspath)
+    def unexpanded(self, absolute=False, recursive=True):
+        """Find a set of all keys that have not been expanded.
+        This is generally only useful if L{Struct.expand} was
+        run with the ignore_missing parameter was set to see got
+        missed.
 
-            value = self.get(key)
+        Normally only the short key name is given as it would be
+        provided in defaults or ignore_missing parameters for the
+        various expansion methods. Set absolute=True to return the
+        full path for each key instead.
 
-            if isinstance(value, basestring):
-                value = self.EXPAND.sub(expand_substr, value)
-            elif isinstance(value, Link):
-                value = expand_link(value)
-            elif isinstance(value, list):
-                for i in xrange(len(value)):
-                    if isinstance(value[i], basestring):
-                        value[i] = self.EXPAND.sub(expand_substr, value[i])
+        @param absolute: Enables absolute paths.
+        @type absolute: bool
+        @param recursive: recursively search sub-structs
+        @type recursive: bool
 
-            return value
-        else:
-            return parent.expanditem(key, defaults, ignore, block)
+        @return: unexpanded keys
+        @rtype: set
+        """
+
+        def normalize_key(key):
+            if absolute:
+                return self.path(key)
+            else:
+                return key.rsplit('.', 1).pop()
+
+        def unexpanded_list(list_):
+            keys = set()
+
+            for item in list_:
+                if isinstance(item, basestring):
+                    for match in self.EXPAND.finditer(item):
+                        keys.add(normalize_key(match.group(1)))
+                elif isinstance(item, Link):
+                    keys.add(normalize_key(item.path))
+                elif isinstance(item, (list, tuple)):
+                    keys += unexpanded_list(item)
+                elif recursive and isinstance(item, Struct):
+                    keys += item.unexpanded(absolute)
+
+            return keys
+
+        return unexpanded_list(self.values())
 
     def copy(self):
         """Recursively copy this C{Struct}"""
@@ -323,27 +392,97 @@ class Struct(tokenizer.Location, DictMixin):
 
         return new
 
-    def path(self):
-        """Get the absolute path of this C{Struct} in the tree"""
+    def path(self, path=None):
+        """Get the absolute path of this C{Struct} or a relative path"""
 
-        if not self.container:
-            return "@root"
+        if path:
+            parent, key = self._get_next_parent(path)
+
+            if parent is self:
+                return "%s.%s" % (self.path(), key)
+            else:
+                return parent.path(path)
         else:
-            return "%s.%s" % (self.container.path(), self.name)
+            if not self.container:
+                return "@root"
+            else:
+                return "%s.%s" % (self.container.path(), self.name)
+
+    def string(self, strict=True, prefix=''):
+        """Convert this C{Struct} tree to the coil text format.
+
+        Note that if any value is a unicode string then this
+        will return a unicode object rather than a str.
+
+        @param strict: If True then fail if the tree contains any
+            values that cannot be represented in the coil text format.
+        @type strict: bool
+        @param prefix: Start each line with the given prefix.
+            Used internally to properly intend sub-structs.
+        @type prefix: string
+        """
+
+        def stritem(item):
+            # FIXME: unicode breaks this, we need to handle encodings
+            # explicitly in Structs rather than just in Parser
+            if isinstance(item, basestring):
+                # Should we use """ for multi-line strings?
+                item = item.replace('\\', '\\\\')
+                item = item.replace('\n', '\\n')
+                item = item.replace('"', '\\"')
+                return '"%s"' % item
+            elif isinstance(item, (list, tuple)):
+                return "[%s]" % " ".join([stritem(x) for x in item])
+            elif (isinstance(item, (int, long, float)) or
+                    item in (True, False, None)):
+                return str(item)
+            else:
+                raise errors.StructError(self,
+                    "%s cannot be represented in the coil text format" % item)
+
+        result = ""
+        next_prefix = "%s    " % prefix
+
+        for key, val in self.iteritems():
+            # This should never happen, but might as well be safe
+            assert self.KEY.match(key)
+
+            result = "%s%s%s: " % (result, prefix, key)
+
+            if isinstance(val, Struct):
+                child = val.string(strict, "%s    " % prefix)
+                if child:
+                    result = "%s{\n%s\n%s}\n" % (result, child, prefix)
+                else:
+                    result += "{}"
+            else:
+                result = "%s%s\n" % (result, stritem(val))
+
+        return result.rstrip()
 
     def __str__(self):
-        attrs = []
-        for key, val in self.iteritems():
-            if isinstance(val, Struct):
-                attrs.append("%s: %s" % (repr(key), str(val)))
-            else:
-                attrs.append("%s: %s" % (repr(key), repr(val)))
-        return "{%s}" % " ".join(attrs)
+        return self.string()
 
     def __repr__(self):
         attrs = ["%s: %s" % (repr(key), repr(val))
                  for key, val in self.iteritems()]
         return "%s({%s})" % (self.__class__.__name__, ", ".join(attrs))
+
+    @classmethod
+    def validate_key(cls, key):
+        """Check if the given key is valid.
+
+        @rtype: bool
+        """
+        return bool(cls.KEY.match(key))
+
+    @classmethod
+    def validate_path(cls, path):
+        """Check if the given path is valid.
+
+        @rtype: bool
+        """
+        return bool(cls.PATH.match(path))
 
     def _get_next_parent(self, path, add_parents=False):
         """Returns the next Struct in a path and the remaining path.

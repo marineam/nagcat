@@ -113,7 +113,7 @@ class Parser(object):
     """The standard coil parser"""
 
     def __init__(self, input_, path=None, encoding=None,
-            expand=True, defaults=(), ignore=()):
+            expand=True, defaults=(), ignore_missing=()):
         """
         @param input_: An iterator over lines of input.
             Typically a C{file} object or list of strings.
@@ -121,8 +121,8 @@ class Parser(object):
         @param encoding: Read strings using the given encoding. All
             string values will be C{unicode} objects rather than C{str}.
         @param expand: Enables/disables expansion of the parsed tree.
-        @param defaults: See L{struct.Struct.expand}
-        @param ignore: See L{struct.Struct.expand}
+        @param defaults: See L{struct.Struct.expanditem}
+        @param ignore_missing: See L{struct.Struct.expanditem}
         """
 
         if path:
@@ -142,7 +142,7 @@ class Parser(object):
         self._tokenizer.next('EOF')
         self._root = struct.Struct(self._prototype)
         if expand:
-            self._root.expand(defaults, ignore)
+            self._root.expand(defaults, ignore_missing)
 
     def root(self):
         """Get the root Struct"""
@@ -224,16 +224,27 @@ class Parser(object):
         self._tokenizer.next('}')
 
     def _parse_list(self, container, name):
-        """[ number or string ... ]"""
-
-        token = self._tokenizer.next('[')
+        """[ number or string or list ... ]"""
 
         new = list()
         container[name] = new
+        self._parse_list_values(new)
 
-        while self._tokenizer.peek(']', 'VALUE').type != ']':
-            item = self._tokenizer.next('VALUE')
-            new.append(item.value)
+    def _parse_list_values(self, container):
+        """[ number or string or list ... ]"""
+
+        self._tokenizer.next('[')
+        token = self._tokenizer.peek('[', ']', 'VALUE')
+
+        while token.type != ']':
+            if token.type == '[':
+                new = list()
+                container.append(new)
+                self._parse_list_values(new)
+            else:
+                container.append(self._tokenizer.next('VALUE').value)
+
+            token = self._tokenizer.peek('[', ']', 'VALUE')
 
         self._tokenizer.next(']')
 
@@ -290,6 +301,9 @@ class Parser(object):
             file_path = token.value
             struct_path = ""
 
+        file_path = container.expandvalue(file_path)
+        struct_path = container.expandvalue(struct_path)
+
         if (not isinstance(file_path, basestring) or
                 not isinstance(struct_path, basestring)):
             raise errors.CoilParseError(token, "@file value must be a string")
@@ -311,12 +325,14 @@ class Parser(object):
 
         token = self._tokenizer.next('VALUE')
 
-        if not isinstance(token.value, basestring):
+        value = container.expandvalue(token.value)
+
+        if not isinstance(value, basestring):
             raise errors.CoilParseError(token,
                     "@package value must be a string")
 
         try:
-            package, path = token.value.split(":", 1)
+            package, path = value.split(":", 1)
         except ValueError:
             errors.CoilParseError(token,
                     '@package value must be "package:path"')
