@@ -28,6 +28,12 @@ def init(dir):
     global _rradir
     assert dir
 
+    if not os.path.exists(dir):
+        try:
+            os.makedirs(dir)
+        except OSError, ex:
+            raise util.InitError("Cannot create %s: %s" % (repr(dir), ex))
+
     if not os.path.isdir(dir):
         raise util.InitError("%s is not a directory!" % repr(dir))
 
