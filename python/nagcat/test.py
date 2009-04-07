@@ -374,7 +374,7 @@ class Test(BaseTest):
 
         # Grab the first 40 characters of the first line
         if summary:
-            summary = summary.splitlines()[0][:40]
+            summary = summary.split('\n', 1)[0][:40].rstrip('\\')
 
         # Fill in the Extra Output area
         for subname, subtest in self._subtests.iteritems():
