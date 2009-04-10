@@ -174,11 +174,7 @@ def main():
         raise Exception("Coil >= 0.3.0 is required!")
 
     options = parse_options()
-
-    logger = log.LogLevelObserver(options.logfile, options.loglevel)
-    # start writing to the log file, stdio is left alone for now
-    logger.start()
-
+    log.init(options.logfile, options.loglevel)
     config = coil.parse_file(options.config, expand=False)
 
     try:
@@ -200,7 +196,7 @@ def main():
         daemonize(options.pidfile)
 
     # redirect stdio to log
-    logger.stdio()
+    log.init_stdio()
 
     reactor.callWhenRunning(start, tests)
 

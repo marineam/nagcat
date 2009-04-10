@@ -21,7 +21,15 @@ import time
 from twisted.python import log, logfile, failure, util
 
 # Log levels:
-LEVELS = [ "ERROR", "WARN", "INFO", "DEBUG", "TRACE" ]
+LEVELS = (
+        "ERROR", # 0
+        "WARN",  # 1
+        "INFO",  # 2
+        "DEBUG", # 3
+        "TRACE", # 4
+        )
+
+_logger = None
 
 class LogLevelObserver(object):
     """A file log observer with log levels and rotation"""
@@ -30,7 +38,7 @@ class LogLevelObserver(object):
 
     def __init__(self, log_name=None, log_level="INFO"):
         assert log_level in LEVELS
-        self.log_level = LEVELS.index(log_level)
+        self.log_level = list(LEVELS).index(log_level)
         self.log_fallback = sys.stderr
 
         if log_name:
@@ -41,11 +49,6 @@ class LogLevelObserver(object):
 
             self.log_file = logfile.LogFile(basename, dirname,
                     rotateLength=1024*1024*20, maxRotatedFiles=20)
-
-            # If it already exists and contains data rotate.
-            if os.path.getsize(log_name):
-                self.log_file.rotate()
-
             self.log_stderr = sys.stderr
         else:
             self.log_file = sys.stdout
@@ -68,13 +71,11 @@ class LogLevelObserver(object):
         # any problems to the original stderr in hopes that it is visible
         try:
             if event.get('isError', False):
-                default = 'ERROR'
+                level = 0 # ERROR
             else:
-                default = 'INFO'
+                level = event.get('log_level', 2) # INFO
 
-            level = event.get('log_level', default)
-
-            if level in LEVELS and self.log_level < LEVELS.index(level):
+            if self.log_level < level:
                 return
 
             # Use the smarter function if available
@@ -88,34 +89,49 @@ class LogLevelObserver(object):
             text = text.replace("\n", "\n    ")
             date = time.strftime(self.time_format,
                     time.localtime(event.get('time', None)))
-            line = "%s [%s] %s\n" % (date, level, text)
+            line = "%s [%s] %s\n" % (date, LEVELS[level], text)
             util.untilConcludes(self.log_file.write, line)
             util.untilConcludes(self.log_file.flush)
 
             # During init stderr is used to provide loud errors to the
             # console in addition to the log file to make things obvious.
-            if self.log_stderr and level in ('ERROR', 'WARN'):
+            if self.log_stderr and level <= 1:
                 util.untilConcludes(self.log_stderr.write, line)
                 util.untilConcludes(self.log_stderr.flush)
         except:
             self.log_fallback.write("%s" % failure.Failure())
 
+def init(log_name, log_level):
+    global _logger
+
+    assert _logger is None
+    _logger = LogLevelObserver(log_name, log_level)
+    _logger.start()
+
+def init_stdio():
+    _logger.stdio()
+
 def error(text, **kw):
     """Log text at level ERROR"""
-    log.msg(text, log_level='ERROR', **kw)
+    if _logger.log_level >= 0:
+        log.msg(text, log_level=0, **kw)
 
 def warn(text, **kw):
     """Log text at level WARN"""
-    log.msg(text, log_level='WARN', **kw)
+    if _logger.log_level >= 1:
+        log.msg(text, log_level=1, **kw)
 
 def info(text, **kw):
     """Log text at level INFO"""
-    log.msg(text, log_level='INFO', **kw)
+    if _logger.log_level >= 2:
+        log.msg(text, log_level=2, **kw)
 
 def debug(text, **kw):
     """Log text at level DEBUG"""
-    log.msg(text, log_level='DEBUG', **kw)
+    if _logger.log_level >= 3:
+        log.msg(text, log_level=3, **kw)
 
 def trace(text, **kw):
     """Log text at level TRACE"""
-    log.msg(text, log_level='TRACE', **kw)
+    if _logger.log_level >= 4:
+        log.msg(text, log_level=4, **kw)
