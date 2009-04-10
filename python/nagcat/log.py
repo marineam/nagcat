@@ -111,27 +111,32 @@ def init(log_name, log_level):
 def init_stdio():
     _logger.stdio()
 
-def error(text, **kw):
+def error(text, *args):
     """Log text at level ERROR"""
-    if _logger.log_level >= 0:
-        log.msg(text, log_level=0, **kw)
+    if _logger and _logger.log_level < 0:
+        return
+    log.msg(text % args, log_level=0)
 
-def warn(text, **kw):
+def warn(text, *args):
     """Log text at level WARN"""
-    if _logger.log_level >= 1:
-        log.msg(text, log_level=1, **kw)
+    if _logger and _logger.log_level < 1:
+        return
+    log.msg(text % args, log_level=1)
 
-def info(text, **kw):
+def info(text, *args):
     """Log text at level INFO"""
-    if _logger.log_level >= 2:
-        log.msg(text, log_level=2, **kw)
+    if _logger and _logger.log_level < 2:
+        return
+    log.msg(text % args, log_level=2)
 
-def debug(text, **kw):
+def debug(text, *args):
     """Log text at level DEBUG"""
-    if _logger.log_level >= 3:
-        log.msg(text, log_level=3, **kw)
+    if _logger and _logger.log_level < 3:
+        return
+    log.msg(text % args, log_level=3)
 
-def trace(text, **kw):
+def trace(text, *args):
     """Log text at level TRACE"""
-    if _logger.log_level >= 4:
-        log.msg(text, log_level=4, **kw)
+    if _logger and _logger.log_level < 4:
+        return
+    log.msg(text % args, log_level=4)

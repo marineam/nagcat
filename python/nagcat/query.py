@@ -57,10 +57,10 @@ def addQuery(conf):
 
     key = repr(qobj)
     if key in _queries:
-        log.debug("Reusing query '%s'" % key)
+        log.debug("Reusing query '%s'", key)
         qobj = _queries[key]
     else:
-        log.debug("Adding query '%s'" % key)
+        log.debug("Adding query '%s'", key)
         _queries[key] = qobj
 
     return qobj
@@ -351,7 +351,7 @@ class SubprocessProtocol(protocol.ProcessProtocol):
         try:
             os.kill(-int(self.transport.pid), signal.SIGTERM)
         except OSError, ex:
-            log.warn("Failed to send TERM to a subprocess: %s" % ex)
+            log.warn("Failed to send TERM to a subprocess: %s", ex)
 
     def processEnded(self, reason):
         if isinstance(reason.value, neterror.ProcessDone):
@@ -386,7 +386,7 @@ class SubprocessFactory(process.Process):
 
     def _startProcess(self, command):
         command = [str(x) for x in command]
-        log.debug("Running process: %s" % " ".join(command))
+        log.debug("Running process: %s", command)
 
         proto = SubprocessProtocol()
         proto.factory = self

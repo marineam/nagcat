@@ -80,7 +80,7 @@ class Filter_regex(_Filter):
                     % (repr(self.arguments), ex))
 
     def filter(self, result):
-        log.debug("Matching regex '%s'" % self.arguments)
+        log.debug("Matching regex '%s'", self.arguments)
 
         match = self.regex.search(result)
         if match:
@@ -108,7 +108,7 @@ class Filter_date2epoch(_Filter):
             raise util.KnownError("Invalid date format: %s" % self.arguments)
 
     def filter(self, result):
-        log.debug("Converting date using format '%s'" % self.arguments)
+        log.debug("Converting date using format '%s'", self.arguments)
 
         try:
             return str(time.mktime(time.strptime(result, self.arguments)))
@@ -142,7 +142,7 @@ class Filter_xpath(_Filter):
                 ret = str(data)
             return ret.strip()
 
-        log.debug("Fetching XML element %s" % repr(self.arguments))
+        log.debug("Fetching XML element %s", self.arguments)
 
         try:
             root = etree.fromstring(result)

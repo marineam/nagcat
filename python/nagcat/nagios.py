@@ -76,8 +76,8 @@ class NagiosTests(object):
         except IOError, ex:
             raise util.InitError("Failed to open Nagios command file: %s" % ex)
 
-        log.info("Using Nagios object cache: %s" % self._nagios_obj)
-        log.info("Using Nagios command file: %s" % self._nagios_cmd)
+        log.info("Using Nagios object cache: %s", self._nagios_obj)
+        log.info("Using Nagios command file: %s", self._nagios_cmd)
 
     def _parse_tests(self):
         """Get the list of NagCat services in the object cache"""
@@ -131,8 +131,8 @@ class NagiosTests(object):
                 # coil is normally in lower case and Nagios is case insensitive
                 test_overrides[key[1:].lower()] = service[key]
 
-            log.debug("Found Nagios service: %s" % str(test_defaults))
-            log.debug("Service overrides: %s" % str(test_overrides))
+            log.debug("Found Nagios service: %s", test_defaults)
+            log.debug("Service overrides: %s", test_overrides)
             tests.append((test_defaults, test_overrides))
 
         return tests
@@ -174,8 +174,8 @@ class NagiosTests(object):
 
     def _sendReport(self, report, host_name, service_description):
         # This should be run inside a thread since it may block
-        log.debug("Submitting report for %s %s to Nagios" %
-                (host_name, service_description))
+        log.debug("Submitting report for %s %s to Nagios",
+                host_name, service_description)
 
         assert report['state'] in util.STATES
         state = util.STATES.index(report['state'])
@@ -193,4 +193,4 @@ class NagiosTests(object):
             cmdfile.write(msg)
             cmdfile.close()
         except IOError, ex:
-            log.error("Failed to write to Nagios command file: %s" % ex)
+            log.error("Failed to write to Nagios command file: %s", ex)

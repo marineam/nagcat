@@ -208,8 +208,8 @@ def main():
         stats.strip_dirs()
         stats.sort_stats('time', 'cumulative')
         #stats.sort_stats('calls')
-        stats.print_stats(20)
-        #stats.print_callers(20)
+        stats.print_stats(30)
+        stats.print_callers(30)
         log.info("Profile Report:\n%s" % report.getvalue())
     else:
         reactor.run()

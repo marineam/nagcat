@@ -84,7 +84,7 @@ class Scheduler(object):
                 if dep.repeat == runnable.repeat:
                     deps.add(dep)
 
-            log.trace("Dependencies for %s: %s" % (runnable, deps))
+            log.trace("Dependencies for %s: %s", runnable, deps)
             new_group = deps.copy()
 
             # Merge any groups that share members with new_group
@@ -101,7 +101,7 @@ class Scheduler(object):
             for dep in new_group:
                 groups_by_member[id(dep)] = new_group
 
-        log.trace("All groups: %s" % groups)
+        log.trace("All groups: %s", groups)
 
         # Create a meta-runnable that will fire off all registered Runnables
         # that are in the same group at the same time.
@@ -145,7 +145,7 @@ class Scheduler(object):
                 host_groups[runnable.host] = [runnable]
 
         for host_name, host_group in host_groups.iteritems():
-            log.debug("Scheduling host %s" % host_name)
+            log.debug("Scheduling host %s", host_name)
             # The first runnable in the group will start between now and
             # the end of the slot time period. Any remaining runnables will
             # start after the number of seconds in the slot. This should
@@ -157,7 +157,7 @@ class Scheduler(object):
             delay = randint(0, slot)
 
             for runnable in host_group:
-                log.debug("Scheduling %s in %s seconds." % (runnable, delay))
+                log.debug("Scheduling %s in %s seconds.", runnable, delay)
                 reactor.callLater(delay, runnable.start)
                 delay += slot
 
@@ -202,7 +202,7 @@ class Runnable(object):
 
     def __startDependencies(self):
         if self.__depends:
-            log.debug("Starting dependencies for %s" % self)
+            log.debug("Starting dependencies for %s", self)
             deferlist = []
             for dep in self.__depends:
                 deferlist.append(dep.start())
@@ -211,7 +211,7 @@ class Runnable(object):
             return defer.succeed(None)
 
     def __startSelf(self, results):
-        log.debug("Starting %s" % self)
+        log.debug("Starting %s", self)
 
         deferred = self._start()
         deferred.chainDeferred(self.deferred)
@@ -225,7 +225,7 @@ class Runnable(object):
 
         # Reuse old results if our time isn't up yet
         if self.lastrun + self.repeat.seconds > time.time():
-            log.debug("Skipping start of %s" % self)
+            log.debug("Skipping start of %s", self)
             if self.scheduler:
                 log.warn("Top level task got scheduled too soon! "
                         "Scheduling in %s" % self.repeat)
@@ -243,17 +243,17 @@ class Runnable(object):
         return deferred
 
     def __done(self, result):
-        log.debug("Stopping %s" % self)
-        log.debug("Result: %s" % result)
+        log.debug("Stopping %s", self)
+        log.debug("Result: %s", result)
         self.result = result
         self.lastrun = time.time()
         self.deferred = None
 
         if self.scheduler and self.repeat:
-            log.debug("Scheduling %s in %s." % (self, self.repeat))
+            log.debug("Scheduling %s in %s.", self, self.repeat)
             reactor.callLater(self.repeat.seconds, self.start)
         elif self.scheduler and not self.repeat:
-            log.debug("Unregistering %s, it is not scheduled to run again." % self)
+            log.debug("Unregistering %s, it is not scheduled to run again.", self)
             self.scheduler.unregister(self)
 
         # Pass along unknown errors so they get logged

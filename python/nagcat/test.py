@@ -224,8 +224,8 @@ class Test(BaseTest):
                     raise ChildError()
                 data[name] = util.MathString(subtest.result)
 
-            log.debug("Evaluating return '%s' with data = %s"
-                        % (self._return, data))
+            log.debug("Evaluating return '%s' with data = %s",
+                    self._return, data)
 
             try:
                 result = str(eval(self._return, {'data': data}))

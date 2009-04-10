@@ -100,7 +100,7 @@ class _Trend(object):
         # For now just create archives with the minimal data required
         # to generate cacti graphs since that's where the data will be
         # displayed. More options can be added later...
-        log.info("Creating RRA: %s" % self.rrdfile)
+        log.info("Creating RRA: %s", self.rrdfile)
 
         args = ["--step", str(self.step)]
 
@@ -146,6 +146,6 @@ class _Trend(object):
         except ValueError:
             # Value is not a number so mark it unknown.
             value = "U"
-        log.debug("Updating %s with %s" % (self.rrdfile, value))
+        log.debug("Updating %s with %s", self.rrdfile, value)
         self.logfile.write("%s %s\n" % (time, value))
         rrdtool.update(self.rrdfile, "%s:%s" % (time, value))
