@@ -26,6 +26,10 @@ from UserDict import DictMixin
 from StringIO import StringIO
 from optparse import OptionParser
 
+# Install the epoll reactor for better performance
+from twisted.internet import epollreactor
+epollreactor.install()
+
 from twisted.internet import reactor
 import coil
 
