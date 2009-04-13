@@ -111,6 +111,11 @@ class Query(scheduler.Runnable):
             result = failure.Failure(util.KnownError(
                 "TCP connection refused", state="CRITICAL", error=result.value))
 
+        elif isinstance(result.value, neterror.ConnectError):
+            # ConnectError sometimes is used to wrap up various other errors.
+            result = failure.Failure(util.KnownError(
+                "TCP connection error", state="CRITICAL", error=result.value))
+
         return result
 
     def __repr__(self):
