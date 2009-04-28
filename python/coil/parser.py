@@ -278,8 +278,8 @@ class Parser(object):
         """Parse another coil file and merge it into the tree"""
 
         coil_file = open(file_path)
-        parent = self.__class__(coil_file, file_path,
-                self._encoding).prototype()
+        parent = self.__class__(coil_file, path=file_path,
+                encoding=self._encoding, expand=False).prototype()
 
         if struct_path:
             parent = parent.get(struct_path)
