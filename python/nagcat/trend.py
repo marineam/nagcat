@@ -18,7 +18,10 @@ import os
 import re
 
 from twisted.python import logfile
-import rrdtool
+try:
+    import rrdtool
+except ImportError:
+    rrdtool = None
 
 from nagcat import log, util
 
@@ -27,6 +30,9 @@ _rradir = None
 def init(dir):
     global _rradir
     assert dir
+
+    if rrdtool is None:
+        raise util.InitError("The python module 'rrdtool' is not installed")
 
     if not os.path.exists(dir):
         try:
