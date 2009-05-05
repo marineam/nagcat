@@ -153,6 +153,13 @@ class _Trend(object):
         except ValueError:
             # Value is not a number so mark it unknown.
             value = "U"
+
+        if value != "U" and self.type == "COUNTER":
+            value = int(value)
+
         log.debug("Updating %s with %s", self.rrdfile, value)
         self.logfile.write("%s %s\n" % (time, value))
-        rrdtool.update(self.rrdfile, "%s:%s" % (time, value))
+        try:
+            rrdtool.update(self.rrdfile, "%s:%s" % (time, value))
+        except Exception, ex:
+            raise util.KnownError("rrdtool update failed: %s" % ex)
