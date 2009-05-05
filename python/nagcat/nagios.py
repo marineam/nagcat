@@ -107,8 +107,11 @@ class NagiosTests(object):
                 current = {}
                 isservice = False
             elif isservice or ishost:
-                (key, val) = line.split(None, 1)
-                current[key] = val
+                split = line.split(None, 1)
+                if len(split) == 2:
+                    current[split[0]] = split[1]
+                else:
+                    current[split[0]] = ""
 
         obj.close()
 
