@@ -171,7 +171,7 @@ class Trend(object):
 
             try:
                 value = float(value)
-            except ValueError:
+            except:
                 # Value is not a number so mark it unknown.
                 value = "U"
 
