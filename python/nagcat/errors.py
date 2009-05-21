@@ -33,7 +33,10 @@ class Failure(failure.Failure):
         if file is None:
             file = logerr
 
-        file.write("Current result: %s\n" % self.result)
+        file.write("Current result:\n")
+        for line in str(self.result).splitlines():
+            file.write("    %s\n" % line)
+
         return failure.Failure.printTraceback(self, file, *args, **kwargs)
 
 def callback(method):

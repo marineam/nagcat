@@ -37,6 +37,7 @@ import time
 from random import randint
 
 from twisted.internet import defer, reactor
+from twisted.python import failure
 
 from nagcat import errors, util, log
 
@@ -251,7 +252,9 @@ class Runnable(object):
             log.debug("Unregistering %s, it is not scheduled to run again.", self)
             self.scheduler.unregister(self)
 
-        return result
+        if (isinstance(result, failure.Failure) and
+                not isinstance(result.value, errors.TestError)):
+            log.error("Unhandled error:\n%s" % result)
 
     def addDependency(self, dep):
         """Declare that self depends on another Runnable"""

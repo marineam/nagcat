@@ -31,9 +31,9 @@ class TestTestCase(unittest.TestCase):
         d.addBoth(self.endBasic, t)
         return d
 
-    def endBasic(self, report, t):
-        self.assertEquals(report, t.result)
-        self.assertEquals(report['output'], "something")
+    def endBasic(self, result, t):
+        self.assertEquals(result, None)
+        self.assertEquals(t.result['output'], "something")
 
     def testCompound(self):
         config = Struct({
@@ -56,6 +56,6 @@ class TestTestCase(unittest.TestCase):
         d.addBoth(self.endCompound, t)
         return d
 
-    def endCompound(self, report, t):
-        self.assertEquals(report, t.result)
-        self.assertEquals(report['output'], "3")
+    def endCompound(self, result, t):
+        self.assertEquals(result, None)
+        self.assertEquals(t.result['output'], "3")
