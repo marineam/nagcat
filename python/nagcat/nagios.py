@@ -14,7 +14,7 @@
 
 """NagCat->Nagios connector"""
 
-from twisted.internet import reactor
+import os
 
 from coil.errors import CoilError
 from nagcat import errors, log, test, trend
@@ -27,6 +27,7 @@ class NagiosTests(object):
 
         self._nagios_obj = None
         self._nagios_cmd = None
+        self._nagios_cmd_fd = None
 
         try:
             self._parse_cfg(nagios_cfg)
@@ -72,13 +73,7 @@ class NagiosTests(object):
             raise errors.InitError(
                     "Failed to find command_file in %s" % nagios_cfg)
 
-        # Sanity check that we have access to the command file
-        try:
-            open(self._nagios_cmd, "a").close()
-        except IOError, ex:
-            raise errors.InitError(
-                    "Failed to open Nagios command file: %s" % ex)
-
+        self._open_command_file()
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", self._nagios_cmd)
 
@@ -180,17 +175,32 @@ class NagiosTests(object):
                 raise errors.InitError(
                         "Error in test %s" % test_overrides['test'])
 
-            testobj.addReportCallback(self._sendReportInThread,
+            testobj.addReportCallback(self._send_report,
                     test_defaults['host'], test_defaults['name'])
             tests.append(testobj)
 
         return tests
 
-    def _sendReportInThread(self, *args, **kwargs):
-        reactor.callInThread(self._sendReport, *args, **kwargs)
+    def _open_command_file(self):
+        try:
+            self._nagios_cmd_fd = os.open(self._nagios_cmd,
+                    os.O_WRONLY | os.O_APPEND | os.O_NONBLOCK)
+        except OSError, ex:
+            raise errors.InitError("Failed to open command file %s: %s"
+                    % (self._nagios_cmd, ex))
 
-    def _sendReport(self, report, host_name, service_description):
-        # This should be run inside a thread since it may block
+    def _write_command(self, data):
+        try:
+            os.write(self._nagios_cmd_fd, data)
+        except (OSError, IOError):
+            self._open_command_file()
+            try:
+                os.write(self._nagios_cmd_fd, data)
+            except (OSError, IOError), ex:
+                raise errors.InitError("Failed to write command to %s: %s"
+                        % (self._nagios_cmd, ex))
+
+    def _send_report(self, report, host_name, service_description):
         log.debug("Submitting report for %s %s to Nagios",
                 host_name, service_description)
 
@@ -203,8 +213,7 @@ class NagiosTests(object):
         msg = msg.replace('|', '_')
 
         try:
-            cmdfile = open(self._nagios_cmd, "a")
-            cmdfile.write(msg)
-            cmdfile.close()
-        except IOError, ex:
-            log.error("Failed to write to Nagios command file: %s", ex)
+            self._write_command(msg)
+        except errors.InitError, ex:
+            log.error("Error while writing report for %s/%s: %s",
+                    host_name, service_description, ex)
