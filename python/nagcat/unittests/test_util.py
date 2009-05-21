@@ -241,3 +241,16 @@ class MathStringTestCase(unittest.TestCase):
         self.assertEquals(2 != a, False)
         self.assertEquals(b != a, True)
 
+    def testEqStr(self):
+        a = util.MathString("this")
+        b = util.MathString("that")
+        self.assertEquals(a == b, False)
+        self.assertEquals(a == "this", True)
+        self.assertEquals(a == "that", False)
+
+    def testNeStr(self):
+        a = util.MathString("this")
+        b = util.MathString("that")
+        self.assertEquals(a != b, True)
+        self.assertEquals(a != "this", False)
+        self.assertEquals(a != "that", True)

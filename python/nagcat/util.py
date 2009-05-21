@@ -113,7 +113,7 @@ class MathString(str):
                 try:
                     arg = numtype(arg)
                 except ValueError:
-                    raise MathError("The value '%s' is not a number" % arg)
+                    raise MathError("The value '%s' is not a number" % str(arg))
 
             numbers.append(arg)
 
