@@ -17,7 +17,6 @@
 import os
 import re
 
-from twisted.python import logfile
 try:
     import rrdtool
 except ImportError:
@@ -82,13 +81,8 @@ class _Trend(object):
         self.gamma = float(self.conf.get('gamma', 0.2))
         self.start = start
 
-        self.dirname = dirname
-        self.basename = "%s-%s" % (
-                re.sub("[^a-z0-9_\.]", "", self.conf['host'].lower()),
-                re.sub("[^a-z0-9_\.]", "", self.conf['name'].lower()))
-        self.rrdfile = os.path.join(self.dirname, "%s.rrd" % self.basename)
-        self.logfile = logfile.LogFile("%s.log" % self.basename, self.dirname,
-                rotateLength=1024*1024, maxRotatedFiles=2)
+        self.dirname = os.path.join(dirname, self.conf['host'])
+        self.rrdfile = os.path.join(self.dirname, "%s.rrd" % self.conf['name'])
 
         # Default to a 1 minute step when repeat is useless
         if self.step == 0:
@@ -96,6 +90,13 @@ class _Trend(object):
 
         if self.type not in self.TYPES:
             raise util.KnownError("Invalid data source type: %s" % self.type)
+
+        if not os.path.exists(self.dirname):
+            try:
+                os.makedirs(self.dirname)
+            except OSError, ex:
+                raise util.KnownError("Cannot create %s: %s" %
+                        (repr(self.dirname), ex))
 
         if os.path.exists(self.rrdfile):
             self.validate()
@@ -149,16 +150,15 @@ class _Trend(object):
 
     def update(self, time, value):
         try:
-            float(value)
+            value = float(value)
         except ValueError:
             # Value is not a number so mark it unknown.
             value = "U"
 
-        if value != "U" and self.type == "COUNTER":
+        if value != "U" and self.type in ("COUNTER", "DERIVE"):
             value = int(value)
 
         log.debug("Updating %s with %s", self.rrdfile, value)
-        self.logfile.write("%s %s\n" % (time, value))
         try:
             rrdtool.update(self.rrdfile, "%s:%s" % (time, value))
         except Exception, ex:
