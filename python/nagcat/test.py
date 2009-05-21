@@ -106,7 +106,6 @@ class BaseTest(scheduler.Runnable):
     def _start(self):
         # Subclasses must override this and fire the deferred!
         self.saved.clear()
-        self.final = None
 
         deferred = defer.Deferred()
 
@@ -132,6 +131,11 @@ class SimpleTest(BaseTest):
 
     def _start(self):
         deferred = BaseTest._start(self)
+
+        # Save the request id so it will appear in reports
+        if self._query.request_id:
+            self.saved['Request ID'] = self._query.request_id
+
         deferred.callback(self._query.result)
         return deferred
 
@@ -324,14 +328,17 @@ class Test(BaseTest):
             subextra = ""
             for savedname, savedval in subtest.saved.iteritems():
                 subextra += "    %s:\n" % savedname
-                subextra += indent(savedval, "        ")
+                subextra += indent(savedval, " "*8)
                 subextra += "\n"
 
             subout = str(subtest.result)
             if subout != output:
                 subextra += "    Result:\n"
-                subextra += indent(subout, "        ")
+                subextra += indent(subout, " "*8)
                 subextra += "\n"
+
+            if subextra:
+                extra += indent("%s:\n%s\n" % (subname, subextra))
 
             if isinstance(subtest.result, failure.Failure):
                 results[subname] = ""

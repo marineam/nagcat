@@ -21,6 +21,11 @@ import os
 import re
 import signal
 
+try:
+    import uuid
+except ImportError:
+    uuid = None
+
 from twisted.internet import reactor, defer, protocol, process
 from twisted.internet import error as neterror
 from twisted.web import error as weberror
@@ -90,6 +95,10 @@ class Query(scheduler.Runnable):
         # self.conf must contain all configuration variables that
         # this object uses so identical Queries can be identified.
         self.conf = {}
+
+        # Used by queries that can send a unique request id,
+        # currently only HTTP...
+        self.request_id = None
 
         # All queries should handle timeouts
         try:
@@ -175,6 +184,11 @@ class Query_http(Query):
             self.method = "GET"
 
     def _start(self):
+        # Generate a request id if possible
+        if uuid:
+            self.request_id = str(uuid.uuid1())
+            self.headers['X-Request-Id'] = self.request_id
+
         factory = HTTPClientFactory(url=self.conf['path'],
                 method=self.method, postdata=self.conf['data'],
                 headers=self.headers, agent=self.agent,
