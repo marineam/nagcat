@@ -277,10 +277,7 @@ query: {
     #   "save:<some name>"
     #       Saved the current result as the given name and will be
     #       included with that name in the 'Extra Output' section of the
-    #       report. The name may be omitted, in which case the name will
-    #       default to the query's name. By default queries always
-    #       implicitly a default save rule at the end but it may be
-    #       useful to save at a different point instead.
+    #       report.
 
     filters: [ "somefilter:arguments" ]
 
