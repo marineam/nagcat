@@ -58,8 +58,18 @@ class LogLevelObserver(object):
         """Setup logging using this observer"""
         log.startLoggingWithObserver(self.emit, setStdout=0)
 
-    def stdio(self):
-        """Steal stdout/err and log them"""
+    def stdio(self, close=False):
+        """Steal stdout/err and log them, also optionally close them"""
+
+        if close:
+            assert self.log_file != sys.stdin
+            sys.stdin.close()
+            sys.stdout.close()
+            sys.stderr.close()
+            os.close(0)
+            os.close(1)
+            os.close(3)
+
         self.log_stderr = None
         sys.stdout = log.logfile
         sys.stderr = log.logerr
@@ -108,8 +118,8 @@ def init(log_name, log_level):
     _logger = LogLevelObserver(log_name, log_level)
     _logger.start()
 
-def init_stdio():
-    _logger.stdio()
+def init_stdio(close=False):
+    _logger.stdio(close)
 
 def error(text, *args):
     """Log text at level ERROR"""

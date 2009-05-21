@@ -187,11 +187,12 @@ def main():
         log.error(str(ex))
         sys.exit(1)
 
+    # daemonize and redirect stdio to log
     if options.daemon:
         daemonize(options.pidfile)
-
-    # redirect stdio to log
-    log.init_stdio()
+        log.init_stdio(close=True)
+    else:
+        log.init_stdio()
 
     reactor.callWhenRunning(start, tests)
 
