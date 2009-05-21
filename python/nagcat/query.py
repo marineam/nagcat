@@ -26,7 +26,6 @@ from twisted.internet import error as neterror
 from twisted.web import error as weberror
 from twisted.web.client import HTTPClientFactory
 from twisted.python.util import InsensitiveDict
-from twisted.python import failure
 from coil import struct
 
 # SSL support is screwy
@@ -39,7 +38,7 @@ if ssl and not ssl.supported:
    # happens second and later times
    ssl = None
 
-from nagcat import scheduler, util, log
+from nagcat import errors, log, scheduler, util
 
 _queries = {}
 
@@ -53,7 +52,7 @@ def addQuery(conf):
     if qclass is not None:
         qobj = qclass(conf)
     else:
-        raise Exception("Unknown query type '%s'" % qtype)
+        raise errors.ConfigError(conf, "Unknown query type '%s'" % qtype)
 
     key = repr(qobj)
     if key in _queries:
@@ -83,7 +82,10 @@ class Query(scheduler.Runnable):
         assert isinstance(conf, struct.Struct)
         conf.expand(recursive=False)
         host = conf.get('host', None)
-        scheduler.Runnable.__init__(self, conf.get('repeat', None), host)
+        try:
+            scheduler.Runnable.__init__(self, conf.get('repeat', None), host)
+        except util.IntervalError:
+            raise errors.ConfigError(conf, "Invalid repeat value.")
 
         # self.conf must contain all configuration variables that
         # this object uses so identical Queries can be identified.
@@ -93,28 +95,26 @@ class Query(scheduler.Runnable):
         try:
             self.conf['timeout'] = float(conf.get('timeout', 15))
         except ValueError:
-            raise util.KnownError("Invalid timeout value '%s'" %
-                    conf.get('timeout'))
+            raise errors.ConfigError(conf,
+                    "Invalid timeout value '%s'" % conf.get('timeout'))
 
         if self.conf['timeout'] <= 0:
-            raise util.KnownError("Non-positive timeout value '%s'" %
-                    conf.get('timeout'))
+            raise errors.ConfigError(conf,
+                    "Invalid timeout value '%s'" % conf.get('timeout'))
 
+    @errors.callback
     def _failure_tcp(self, result):
-        """Catch common TCP failures and convert them to a KnownError"""
+        """Catch common TCP failures and convert them to a TestError"""
 
         if isinstance(result.value, neterror.TimeoutError):
-            result = failure.Failure(util.KnownError(
-                "TCP handshake timeout", state="CRITICAL", error=result.value))
+            raise errors.TestCritical("TCP handshake timeout")
 
         elif isinstance(result.value, neterror.ConnectionRefusedError):
-            result = failure.Failure(util.KnownError(
-                "TCP connection refused", state="CRITICAL", error=result.value))
+            raise errors.TestCritical("TCP connection refused")
 
         elif isinstance(result.value, neterror.ConnectError):
             # ConnectError sometimes is used to wrap up various other errors.
-            result = failure.Failure(util.KnownError(
-                "TCP connection error", state="CRITICAL", error=result.value))
+            raise errors.TestCritical("TCP error: %s" % result.value)
 
         return result
 
@@ -186,22 +186,19 @@ class Query_http(Query):
         self._connect(factory)
         return factory.deferred
 
+    @errors.callback
     def _failure_http(self, result):
-        """Convert HTTP specific failures to a KnownError"""
+        """Convert HTTP specific failures to a TestError"""
 
         if isinstance(result.value, defer.TimeoutError):
-            result = failure.Failure(util.KnownError(
-                "Timeout waiting on HTTP response",
-                state="CRITICAL", error=result.value))
+            raise errors.TestCritical("Timeout waiting on HTTP response")
 
         elif isinstance(result.value, weberror.PageRedirect):
             # Redirects aren't actually an error :-)
             result = "%s\n%s" % (result.value, result.value.location)
 
         elif isinstance(result.value, weberror.Error):
-            result = failure.Failure(util.KnownError(
-                "HTTP Error %s" % result.value,
-                state="CRITICAL", error=result.value))
+            raise errors.TestCritical("HTTP error: %s" % result.value)
 
         return result
 
@@ -220,9 +217,7 @@ class Query_https(Query_http):
 
     def __init__(self, conf):
         if ssl is None:
-            raise util.KnownError("Attempted to create an HTTPS test but "
-                    "the system does not support SSL. Try installing the "
-                    "OpenSSL python module.")
+            raise errors.InitError("pyOpenSSL is required for HTTPS support.")
         Query_http.__init__(self, conf)
 
     def _connect(self, factory):
@@ -240,27 +235,27 @@ class RawProtocol(protocol.Protocol):
 
     def connectionMade(self):
         self.result = ""
+        self.timedout = False
         if self.factory.conf['data']:
             self.transport.write(self.factory.conf['data'])
-        # TODO: add other shutdown methods?
         self.transport.loseWriteConnection()
 
     def dataReceived(self, data):
         self.result += data
-        self.expected_loss = True
 
     def timeout(self):
-        self.factory.failed(failure.Failure(util.KnownError(
-            "Timeout waiting for data", self.result, "CRITICAL")))
-        self.expected_loss = True
+        self.timedout = True
         self.transport.loseConnection()
 
     def connectionLost(self, reason):
-        if self.expected_loss:
+        if self.timedout:
+            self.factory.result(errors.Failure(
+                errors.CriticalError("Timeout waiting for connection close."),
+                result=self.result))
+        elif self.result:
             self.factory.result(self.result)
         else:
-            self.factory.failed(reason)
-
+            self.factory.result(reason)
 
 class RawFactory(protocol.ClientFactory):
     """Handle raw TCP/SSL queries"""
@@ -270,7 +265,6 @@ class RawFactory(protocol.ClientFactory):
 
     def __init__(self, conf):
         self.conf = conf
-        self.waiting = True
         self.deferred = defer.Deferred()
 
     def buildProtocol(self, addr):
@@ -288,17 +282,10 @@ class RawFactory(protocol.ClientFactory):
         return result
 
     def clientConnectionFailed(self, connector, reason):
-        self.failed(reason)
-
-    def failed(self, reason):
-        if self.waiting:
-            self.waiting = False
-            self.deferred.errback(reason)
+        self.result(reason)
 
     def result(self, result):
-        if self.waiting:
-            self.waiting = False
-            self.deferred.callback(result)
+        self.deferred.callback(result)
 
 class Query_tcp(Query):
     """Send and receive data over a raw TCP socket"""
@@ -325,9 +312,7 @@ class Query_ssl(Query_tcp):
 
     def __init__(self, conf):
         if ssl is None:
-            raise util.KnownError("Attempted to create a SSL test but "
-                    "the system does not support SSL. Try installing the "
-                    "OpenSSL python module.")
+            raise errors.InitError("pyOpenSSL is required for SSL support.")
         Query_tcp.__init__(self, conf)
 
     def _connect(self, factory):
@@ -338,7 +323,7 @@ class Query_ssl(Query_tcp):
 class SubprocessProtocol(protocol.ProcessProtocol):
     """Handle input/output for subprocess queries"""
 
-    timeout = False
+    timedout = False
 
     def connectionMade(self):
         self.result = ""
@@ -350,7 +335,7 @@ class SubprocessProtocol(protocol.ProcessProtocol):
         self.result += data
 
     def timeout(self):
-        self.timeout = True
+        self.timedout = True
         self.transport.loseConnection()
         # Kill all processes in the child's process group
         try:
@@ -361,21 +346,17 @@ class SubprocessProtocol(protocol.ProcessProtocol):
     def processEnded(self, reason):
         if isinstance(reason.value, neterror.ProcessDone):
             result = self.result
-
         elif isinstance(reason.value, neterror.ProcessTerminated):
-            if self.timeout:
-                result = failure.Failure(util.KnownError(
-                    "timeout waiting for command to finish",
-                    self.result, "CRITICAL", reason.value))
+            if self.timedout:
+                result = errors.Failure(errors.TestCritical(
+                    "Timeout waiting for command to finish."),
+                    result=self.result)
             elif reason.value.exitCode == 127:
-                result = failure.Failure(util.KnownError(
-                    "command not found",
-                    self.result, "CRITICAL", reason.value))
+                result = errors.Failure(errors.TestCritical(
+                    "Command not found."))
             else:
-                result = failure.Failure(util.KnownError(
-                    reason.value.args[0],
-                    self.result, "CRITICAL", reason.value))
-
+                result = errors.Failure(errors.TestCritical(
+                    reason.value.args[0]), result=self.result)
         else:
             result = reason
 
@@ -478,8 +459,8 @@ class Query_snmp(Query):
         self.conf['community'] = conf.get('community')
 
         if self.conf['version'] not in ('1', '2c'):
-            raise util.KnownError("Invalid SNMP version '%s'" %
-                    self.conf['version'])
+            raise errors.ConfigError(conf,
+                    "Invalid SNMP version '%s'" % conf['version'])
 
     def _start(self):
         proc = NetSnmpFactory(self.conf)

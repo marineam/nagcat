@@ -13,14 +13,14 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import filters, util
+from nagcat import errors, filters
 
 class RegexTestCase(unittest.TestCase):
 
     def testBasic(self):
         f = filters.Filter(object(), "regex:^foo$")
         self.assertEquals(f.filter("foo"), "foo")
-        self.assertRaises(util.KnownError, f.filter, "bar")
+        self.assertIsInstance(f.filter("bar"), errors.Failure)
 
     def testDefault(self):
         f = filters.Filter(object(), "regex[def]:^foo$")
@@ -51,7 +51,7 @@ class XPathTestCase(unittest.TestCase):
 
     def testMissing(self):
         f = filters.Filter(object(), "xpath://span/text()")
-        self.assertRaises(util.KnownError, f.filter, self.example)
+        self.assertIsInstance(f.filter(self.example), errors.Failure)
 
     def testDefault(self):
         f = filters.Filter(object(), "xpath[none]://span/text()")
@@ -59,7 +59,7 @@ class XPathTestCase(unittest.TestCase):
 
     def testBad(self):
         f = filters.Filter(object(), "xpath://span/text()")
-        self.assertRaises(util.KnownError, f.filter, "<foo></bar>")
+        self.assertIsInstance(f.filter("<foo></bar>"), errors.Failure)
 
     def testXML(self):
         f = filters.Filter(object(), "xpath://title")
@@ -78,7 +78,7 @@ class DateTestCase(unittest.TestCase):
 
     def testBad(self):
         f = filters.Filter(object(), "date2epoch:%Y%m%d")
-        self.assertRaises(util.KnownError, f.filter, "2005-05-05")
+        self.assertIsInstance(f.filter("2005-05-05"), errors.Failure)
 
     def testDefault(self):
         # Default to 1/1/1900

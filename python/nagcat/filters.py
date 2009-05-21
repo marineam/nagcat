@@ -23,7 +23,9 @@ try:
 except ImportError:
     etree = None
 
-from nagcat import util, log
+from twisted.python import failure
+
+from nagcat import errors, log, util
 
 # Accept filter specs in the format "name[default]:arguments"
 # where [default] and :arguments are optional
@@ -36,7 +38,7 @@ def Filter(test, spec):
 
     match = _SPEC.match(spec)
     if not match:
-        raise util.KnownError("Invalid filter spec: %s" % repr(spec))
+        raise errors.InitError("Invalid filter spec: '%s'" % spec)
 
     name = match.group(1)
     default = match.group(3)
@@ -51,16 +53,27 @@ def Filter(test, spec):
         assert issubclass(filter_class, _Filter)
         return filter_class(test, default, arguments)
     else:
-        raise util.KnownError("Invalid filter type %s" % repr(name))
+        raise errors.InitError("Invalid filter type '%s'" % name)
 
 class _Filter(object):
     """Filter class template"""
+
+    # Set weather this filter allows default values
+    handle_default = True
+    # Set weather this filter should be on the errorback chain
+    # in addition to the normal callback chain.
+    handle_errors = False
 
     def __init__(self, test, default, arguments):
         self.test = test
         self.default = default
         self.arguments = arguments
 
+        if not self.handle_default and self.default is not None:
+            raise errors.InitError("'%s' filters cannot take default values"
+                    % self.__class__.__name__.replace("Filter_",""))
+
+    @errors.callback
     def filter(self, result):
         """Run the filter on the given input.
 
@@ -76,9 +89,10 @@ class Filter_regex(_Filter):
         try:
             self.regex = re.compile(self.arguments, re.MULTILINE | re.DOTALL)
         except re.error, ex:
-            raise util.KnownError("Invalid regex %s: %s"
-                    % (repr(self.arguments), ex))
+            raise errors.InitError(
+                    "Invalid regex '%s': %s" % (self.arguments, ex))
 
+    @errors.callback
     def filter(self, result):
         log.debug("Matching regex '%s'", self.arguments)
 
@@ -92,8 +106,8 @@ class Filter_regex(_Filter):
             if self.default is not None:
                 return self.default
             else:
-                raise util.KnownError("Failed to match regex %s"
-                        % repr(self.arguments), result, "CRITICAL")
+                raise errors.TestCritical(
+                        "Failed to match regex '%s'" % self.arguments)
 
 class Filter_date2epoch(_Filter):
     """Transform a string into the time in seconds since epoch"""
@@ -105,8 +119,9 @@ class Filter_date2epoch(_Filter):
         # Test for bogus patterns
         testing = time.strftime(self.arguments)
         if testing == self.arguments:
-            raise util.KnownError("Invalid date format: %s" % self.arguments)
+            raise errors.InitError("Invalid date format: %s" % self.arguments)
 
+    @errors.callback
     def filter(self, result):
         log.debug("Converting date using format '%s'", self.arguments)
 
@@ -116,8 +131,8 @@ class Filter_date2epoch(_Filter):
             if self.default is not None:
                 return self.default
             else:
-               raise util.KnownError("Failed to parse date with format '%s'"
-                       % self.arguments, result, "CRITICAL")
+                raise errors.TestCritical(
+                    "Failed to parse date with format '%s'" % self.arguments)
 
 class Filter_xpath(_Filter):
     """Fetch something out of an XML document using XPath."""
@@ -126,14 +141,15 @@ class Filter_xpath(_Filter):
         _Filter.__init__(self, test, default, arguments)
 
         if not etree:
-            raise util.KnownError("XPath support requires lxml!")
+            raise errors.InitError("lxml is required for XPath support.")
 
         try:
             self.xpath = etree.XPath(self.arguments)
         except etree.XPathSyntaxError, ex:
-            raise util.KnownError("Invalid XPath query %s: %s"
-                    % (repr(self.arguments), ex))
+            raise errors.InitError(
+                    "Invalid XPath query '%s': %s"  % (self.arguments, ex))
 
+    @errors.callback
     def filter(self, result):
         def format(data):
             if etree.iselement(data):
@@ -147,7 +163,7 @@ class Filter_xpath(_Filter):
         try:
             root = etree.fromstring(result)
         except etree.XMLSyntaxError, ex:
-            raise util.KnownError("Invalid XML", result, "CRITICAL", ex)
+            raise errors.TestCritical("Invalid XML: %s" % ex)
 
         data = self.xpath(root)
 
@@ -157,20 +173,101 @@ class Filter_xpath(_Filter):
             if self.default is not None:
                 return self.default
             else:
-                raise util.KnownError("Failed to find xml element %s"
-                        % repr(self.arguments), result, "CRITICAL")
+                raise errors.TestCritical(
+                        "Failed to find xml element %s" % self.arguments)
         else:
             return format(data)
 
 class Filter_save(_Filter):
     """Save the current result for use in the test report"""
 
+    handle_default = False
+    handle_errors = True
+
     def __init__(self, test, default, arguments):
         _Filter.__init__(self, test, default, arguments)
 
-        if self.default is not None:
-            raise util.KnownError("'save' filters cannot take default values")
+        if not arguments:
+            raise errors.InitError("save filters must provide an identifier")
 
+    @errors.callback
     def filter(self, result):
-        self.test.saved.setdefault(self.arguments, result)
+        # Pull the value out of the error if needed
+        if isinstance(result, failure.Failure):
+            if isinstance(result, errors.Failure):
+                value = result.result
+            else:
+                value = None
+        else:
+            value = result
+
+        self.test.saved[self.arguments] = value
+
         return result
+
+class Filter_critical(_Filter):
+    """Mark the test as CRITICAL if the given test fails."""
+
+    handle_default = False
+
+    # Supported operators
+    ops = ('>','<','=','==','>=','<=','<>','!=','=~','!~')
+    # Expression format
+    format = re.compile("([<>=!~]{1,2})\s*(\S+.*)")
+
+    # Error to raise, overridden in Filter_warning
+    error = errors.TestCritical
+
+    def __init__(self, test, default, arguments):
+        _Filter.__init__(self, test, default, arguments)
+
+        match = self.format.match(arguments)
+        if not match:
+            raise errors.InitError("Invalid %s test: %s"
+                    % (self.error.state.lower(), arguments))
+
+        self.test_op = match.group(1)
+        self.test_val = match.group(2)
+
+        if self.test_op not in self.ops:
+            raise errors.InitError("Invalid %s test operator: %s"
+                    % (self.error.state.lower(), self.test_op))
+
+        if '~' in self.test_op:
+            # Check for a valid regular expression
+            try:
+                self.test_regex = re.compile(self.test_val)
+            except re.error, ex:
+                raise errors.InitError("Invalid %s test regex '%s': %s"
+                        % (self.error.state.lower(), self.test_val, ex))
+        else:
+            # not a regular expression, let MathString do its magic.
+            self.test_val = util.MathString(self.test_val)
+            self.test_regex = None
+
+        # Convert non-python operator
+        if self.test_op == '=':
+            self.test_op = '=='
+
+    @errors.callback
+    def filter(self, result):
+        if self.test_op == '=~':
+            if re.search(self.test_regex, result, re.MULTILINE):
+                raise self.error(
+                        "Failed to match regex '%s'" % self.test_val)
+        elif self.test_op == '!~':
+            if not re.search(self.test_regex, result, re.MULTILINE):
+                raise self.error(
+                        "Matched regex '%s'" % self.test_val)
+        else:
+            eval_dict = {'a':util.MathString(result), 'b':self.test_val}
+
+            if eval("a %s b" % self.test_op, eval_dict):
+                raise self.error("Test failed: %s %s"
+                        % (self.test_op, self.test_val))
+
+class Filter_warning(Filter_critical):
+    """Mark the test as CRITICAL if the given test fails."""
+
+    error = errors.TestWarning
+

@@ -16,7 +16,8 @@
 
 from twisted.internet import reactor
 
-from nagcat import test, util, log
+from coil.errors import CoilError
+from nagcat import errors, log, test, trend
 
 class NagiosTests(object):
     """Setup tests defined by Nagios and report back"""
@@ -30,12 +31,13 @@ class NagiosTests(object):
         try:
             self._parse_cfg(nagios_cfg)
         except IOError, ex:
-            raise util.InitError("Failed to open Nagios config: %s" % ex)
+            raise errors.InitError("Failed to open Nagios config: %s" % ex)
 
         try:
             test_skels = self._parse_tests()
         except IOError, ex:
-            raise util.InitError("Failed to read Nagios object cache: %s" % ex)
+            raise errors.InitError(
+                    "Failed to read Nagios object cache: %s" % ex)
 
         self._tests = self._fill_templates(templates, test_skels)
 
@@ -64,17 +66,18 @@ class NagiosTests(object):
         cfg.close()
 
         if self._nagios_obj is None:
-            raise util.InitError("Failed to find object_cache_file in %s"
-                    % nagios_cfg)
+            raise errors.InitError(
+                    "Failed to find object_cache_file in %s" % nagios_cfg)
         if self._nagios_cmd is None:
-            raise util.InitError("Failed to find command_file in %s"
-                    % nagios_cfg)
+            raise errors.InitError(
+                    "Failed to find command_file in %s" % nagios_cfg)
 
         # Sanity check that we have access to the command file
         try:
             open(self._nagios_cmd, "a").close()
         except IOError, ex:
-            raise util.InitError("Failed to open Nagios command file: %s" % ex)
+            raise errors.InitError(
+                    "Failed to open Nagios command file: %s" % ex)
 
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", self._nagios_cmd)
@@ -148,7 +151,8 @@ class NagiosTests(object):
         for test_defaults, test_overrides in skels:
             testconf = templates.get(test_overrides['test'], None)
             if testconf is None:
-                raise util.InitError("Test template '%s' not found in config!"
+                raise errors.InitError(
+                        "Test template '%s' not found in config!"
                         % test_overrides['test'])
 
             # Copy the config so we can add instance specific values
@@ -163,9 +167,19 @@ class NagiosTests(object):
 
             try:
                 testobj = test.Test(testconf)
-            except util.KnownError, ex:
-                raise util.InitError("Error in test %s: %s"
-                        % (test_overrides['test'], ex))
+                if trend.enabled():
+                    trendobj = trend.Trend(testconf)
+                    testobj.addReportCallback(trendobj.update)
+            except (errors.InitError, CoilError), ex:
+                raise errors.InitError(
+                        "Error in test %s: %s" % (test_overrides['test'], ex))
+            except Exception:
+                log.error("Unknown error while loading test.")
+                log.error("Test config: %s" % repr(testconf))
+                log.error(str(errors.Failure()))
+                raise errors.InitError(
+                        "Error in test %s" % test_overrides['test'])
+
             testobj.addReportCallback(self._sendReportInThread,
                     test_defaults['host'], test_defaults['name'])
             tests.append(testobj)
@@ -180,12 +194,9 @@ class NagiosTests(object):
         log.debug("Submitting report for %s %s to Nagios",
                 host_name, service_description)
 
-        assert report['state'] in util.STATES
-        state = util.STATES.index(report['state'])
-
         msg = "[%s] PROCESS_SERVICE_CHECK_RESULT;%s;%s;%s;%s\n" % (
                 int(report['time']), host_name, service_description,
-                state, report['text'].replace("\n","\\n") )
+                report['state_id'], report['text'].replace("\n","\\n") )
 
         # The | character is special in nagios output :-(
         # It would be nice to escape it instead so reports are correct

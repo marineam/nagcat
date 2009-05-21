@@ -15,14 +15,14 @@
 """RRDTool Trending"""
 
 import os
-import re
 
 try:
     import rrdtool
 except ImportError:
     rrdtool = None
 
-from nagcat import log, util
+import coil
+from nagcat import errors, log, util
 
 _rradir = None
 
@@ -31,33 +31,27 @@ def init(dir):
     assert dir
 
     if rrdtool is None:
-        raise util.InitError("The python module 'rrdtool' is not installed")
+        raise errors.InitError("The python module 'rrdtool' is not installed")
 
     if not os.path.exists(dir):
         try:
             os.makedirs(dir)
         except OSError, ex:
-            raise util.InitError("Cannot create %s: %s" % (repr(dir), ex))
+            raise errors.InitError("Cannot create %s: %s" % (repr(dir), ex))
 
     if not os.path.isdir(dir):
-        raise util.InitError("%s is not a directory!" % repr(dir))
+        raise errors.InitError("%s is not a directory!" % repr(dir))
 
     if not os.access(dir, os.R_OK | os.W_OK | os.X_OK):
-        raise util.InitError("%s is not readable and/or writeable!" % repr(dir))
+        raise errors.InitError(
+                "%s is not readable and/or writeable!" % repr(dir))
 
     _rradir = dir
 
-def Trend(config):
-    """Generator for Trend objects, will return either a trending
-    object or None depending on if trending is enabled.
-    """
+def enabled():
+    return bool(_rradir)
 
-    if _rradir:
-        return _Trend(config, _rradir)
-    else:
-        return None
-
-class _Trend(object):
+class Trend(object):
 
     #: Valid rrdtool data source types
     TYPES = ("GAUGE", "COUNTER", "DERIVE", "ABSOLUTE")
@@ -69,36 +63,51 @@ class _Trend(object):
             (2678400, 7200),    # 31 days of 2 hour intervals
             (31622400, 86400))  # 366 days of 1 day intervals
 
-    def __init__(self, config, dirname, start=None):
-        self.conf = config
-        self.conf.expand()
-        self.type = self.conf.get('type', "").upper()
-        self.step = int(self.conf.get('repeat'))
-        self.alerts = bool(self.conf.get('alerts', False))
-        self.season = int(util.Interval(self.conf.get('season', '1d')))
-        self.alpha = float(self.conf.get('alpha', 0.001))
-        self.beta = float(self.conf.get('beta', 0.0001))
-        self.gamma = float(self.conf.get('gamma', 0.2))
-        self.start = start
+    def __init__(self, conf, rradir=None, start=None):
+        self._step = util.Interval(conf.get("repeat", "1m")).seconds
+        self._ds_list = {'_state': {'type': "GAUGE"}}
+        self._start = start
 
-        self.dirname = os.path.join(dirname, self.conf['host'])
-        self.rrdfile = os.path.join(self.dirname, "%s.rrd" % self.conf['name'])
+        def parse_ds(ds_name, ds_conf):
+            if 'trend' not in ds_conf:
+                return
+
+            # Only type supported right now
+            new = { 'type': ds_conf['trend.type'].upper() }
+
+            if new['type'] not in self.TYPES:
+                raise errors.ConfigError(ds_conf['trend'],
+                        "Invalid type: %s" % new['type'])
+
+            self._ds_list[ds_name] = new
+
+        parse_ds('_result', conf)
+
+        if conf['query.type'] == "compound":
+            for subname, subconf in conf['query']:
+                if not isinstance(subconf, coil.struct.Struct):
+                    continue
+                parse_ds(subname, subconf)
+        else:
+            parse_ds('query', conf['query'])
 
         # Default to a 1 minute step when repeat is useless
-        if self.step == 0:
-            self.step = 60
+        if self._step == 0:
+            self._step = 60
 
-        if self.type not in self.TYPES:
-            raise util.KnownError("Invalid data source type: %s" % self.type)
+        if rradir is None:
+            rradir = _rradir
+        self._rradir = os.path.join(rradir, conf['host'])
+        self._rrafile = os.path.join(self._rradir, "%s.rrd" % conf['name'])
 
-        if not os.path.exists(self.dirname):
+        if not os.path.exists(self._rradir):
             try:
-                os.makedirs(self.dirname)
+                os.makedirs(self._rradir)
             except OSError, ex:
-                raise util.KnownError("Cannot create %s: %s" %
-                        (repr(self.dirname), ex))
+                raise errors.InitError("Cannot create directory %s: %s" %
+                        (self._rradir, ex))
 
-        if os.path.exists(self.rrdfile):
+        if os.path.exists(self._rrafile):
             self.validate()
         else:
             self.create()
@@ -107,40 +116,41 @@ class _Trend(object):
         # For now just create archives with the minimal data required
         # to generate cacti graphs since that's where the data will be
         # displayed. More options can be added later...
-        log.info("Creating RRA: %s", self.rrdfile)
+        log.info("Creating RRA: %s", self._rrafile)
 
-        args = ["--step", str(self.step)]
+        args = ["--step", str(self._step)]
 
-        if self.start:
-            args += ["--start", str(self.start)]
+        if self._start:
+            args += ["--start", str(self._start)]
 
-        # Don't allow more than 1 missed update
-        # TODO: support more than one data source
-        args.append("DS:default:%s:%d:U:U" % (self.type, self.step*2))
+        for ds_name, ds_conf in self._ds_list.iteritems():
+            args.append("DS:%s:%s:%d:U:U"
+                    % (ds_name, ds_conf['type'], self._step*2))
 
         for period, interval in self.RRAS:
-            if interval < self.step:
+            if interval < self._step:
                 continue
-            steps = interval // self.step
+            steps = interval // self._step
             rows = period // steps
             args.append("RRA:MAX:0.5:%d:%d" % (steps, rows))
             args.append("RRA:AVERAGE:0.5:%d:%d" % (steps, rows))
 
         # The seasonal period is defined in terms of data points.
         # Save 5 seasons of data for now, not sure what the best value is...
-        season_rows = self.season // self.step
-        record_rows = season_rows * 5
-        args.append("RRA:HWPREDICT:%d:%f:%f:%d" %
-                (record_rows, self.alpha, self.beta, season_rows))
+        # XXX: Disabled for now...
+        #season_rows = self.season // self.step
+        #record_rows = season_rows * 5
+        #args.append("RRA:HWPREDICT:%d:%f:%f:%d" %
+        #        (record_rows, self.alpha, self.beta, season_rows))
 
-        rrdtool.create(self.rrdfile, *args)
-        rrdtool.tune(self.rrdfile, "--gamma", str(self.gamma),
-                "--gamma-deviation", str(self.gamma))
+        rrdtool.create(self._rrafile, *args)
+        #rrdtool.tune(self.rradir, "--gamma", str(self.gamma),
+        #        "--gamma-deviation", str(self.gamma))
         self.validate()
 
     def validate(self):
-        info = rrdtool.info(self.rrdfile)
-        assert info['step'] == self.step
+        info = rrdtool.info(self._rrafile)
+        assert info['step'] == self._step
         # This interface changed between versions of rrdtool... lame :-(
         #assert info['ds']['default']['type'] == self.type
         #assert info['ds']['default']['minimal_heartbeat'] == self.step*2
@@ -148,18 +158,35 @@ class _Trend(object):
         #    if rra['cf'] in ('AVERAGE', 'MAX'):
         #        assert rra['xff'] == 0.5
 
-    def update(self, time, value):
-        try:
-            value = float(value)
-        except ValueError:
-            # Value is not a number so mark it unknown.
-            value = "U"
+    def update(self, report):
+        ds_values = {}
 
-        if value != "U" and self.type in ("COUNTER", "DERIVE"):
-            value = int(value)
+        for ds_name, ds_conf in self._ds_list.iteritems():
+            if ds_name == "_state":
+                value = report['state_id']
+            elif ds_name == "_result":
+                value = report['output']
+            else:
+                value = report['results'][ds_name]
 
-        log.debug("Updating %s with %s", self.rrdfile, value)
+            try:
+                value = float(value)
+            except ValueError:
+                # Value is not a number so mark it unknown.
+                value = "U"
+
+            if value != "U" and ds_conf['type'] in ("COUNTER", "DERIVE"):
+                value = int(value)
+
+            ds_values[ds_name] = str(value)
+
+        assert ds_values
+        names = ":".join(ds_values.iterkeys())
+        values = ":".join(ds_values.itervalues())
+
+        log.debug("Updating %s with %s %s", self._rrafile, names, values)
         try:
-            rrdtool.update(self.rrdfile, "%s:%s" % (time, value))
+            rrdtool.update(self._rrafile, "-t", names,
+                    "%s:%s" % (report['time'], values))
         except Exception, ex:
-            raise util.KnownError("rrdtool update failed: %s" % ex)
+            log.error("rrdupdate failed: %s" % ex)

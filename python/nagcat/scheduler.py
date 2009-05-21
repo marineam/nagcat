@@ -37,9 +37,8 @@ import time
 from random import randint
 
 from twisted.internet import defer, reactor
-from twisted.python import failure
 
-from nagcat import util, log
+from nagcat import errors, util, log
 
 class Scheduler(object):
     """Run things!"""
@@ -212,9 +211,7 @@ class Runnable(object):
 
     def __startSelf(self, results):
         log.debug("Starting %s", self)
-
-        deferred = self._start()
-        deferred.chainDeferred(self.deferred)
+        return self._start()
 
     def start(self):
         """Start a Runnable object"""
@@ -232,16 +229,14 @@ class Runnable(object):
                 reactor.callLater(self.repeat.seconds, self.start)
             return defer.succeed(self.result)
 
-        self.deferred = deferred = defer.Deferred()
-        self.deferred.addBoth(self.__done)
-
-        depdeferred = self.__startDependencies()
-        depdeferred.addBoth(self.__startSelf)
-
-        # Return deferred instead of self.deferred because
+        # use deferred instead of self.deferred because
         # __done could have been called already
+        self.deferred = deferred = self.__startDependencies()
+        deferred.addBoth(self.__startSelf)
+        deferred.addBoth(self.__done)
         return deferred
 
+    @errors.callback
     def __done(self, result):
         log.debug("Stopping %s", self)
         log.debug("Result: %s", result)
@@ -256,12 +251,7 @@ class Runnable(object):
             log.debug("Unregistering %s, it is not scheduled to run again.", self)
             self.scheduler.unregister(self)
 
-        # Pass along unknown errors so they get logged
-        if (isinstance(result, failure.Failure) and
-                not isinstance(result.value, util.KnownError)):
-            return result
-
-        return None
+        return result
 
     def addDependency(self, dep):
         """Declare that self depends on another Runnable"""

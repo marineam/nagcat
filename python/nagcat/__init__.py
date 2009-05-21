@@ -33,7 +33,7 @@ epollreactor.install()
 from twisted.internet import reactor
 import coil
 
-from nagcat import scheduler, nagios, test, trend, util, log
+from nagcat import errors, log, nagios, scheduler, test, trend
 
 def simpleReport(report):
     log.info("REPORT:\n%s" % report['text'])
@@ -46,7 +46,7 @@ def simple(options, config):
 
     config = config.get(options.test, None)
     if config is None:
-        raise util.InitError("Test '%s' not found in config file!"
+        raise errors.InitError("Test '%s' not found in config file!"
                 % options.test)
 
     config.setdefault('host', options.host)
@@ -56,11 +56,7 @@ def simple(options, config):
     config.setdefault('name', options.test)
     config['repeat'] = None # single run
 
-    try:
-        testobj = test.Test(config)
-    except util.KnownError, ex:
-        raise util.InitError("Error in test %s: %s" % (options.test, ex))
-
+    testobj = test.Test(config)
     testobj.addReportCallback(simpleReport)
 
     return [testobj]
@@ -187,8 +183,7 @@ def main():
             tests = nagios.NagiosTests(config, options.nagios)
         else:
             raise Exception("Normal mode without nagios is unimplemented")
-
-    except util.InitError, ex:
+    except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)
 

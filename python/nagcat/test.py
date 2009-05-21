@@ -26,7 +26,9 @@ from twisted.internet import defer, reactor
 from twisted.python import failure
 from coil import struct
 
-from nagcat import scheduler, query, trend, filters, util, log
+from nagcat import errors, filters, log, query, scheduler, util
+
+STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 
 TEMPLATE_OK = """%(test)s %(state)s: %(summary)s
 NagCat report for test %(test)s on %(host)s:%(port)s
@@ -52,11 +54,11 @@ NagCat report for test %(test)s on %(host)s:%(port)s
 Full Output:
 %(output)s
 
-Extra Output:
-%(extra)s
-
 Error:
 %(error)s
+
+Extra Output:
+%(extra)s
 
 Documentation:
 %(documentation)s
@@ -78,42 +80,58 @@ class BaseTest(scheduler.Runnable):
         conf.expand(recursive=False)
         host = conf.get('host', None)
         repeat = conf.get('repeat', "1m")
-        scheduler.Runnable.__init__(self, repeat, host)
+        try:
+            scheduler.Runnable.__init__(self, repeat, host)
+        except util.IntervalError:
+            raise errors.ConfigError(conf, "Invalid repeat value.")
 
         self._port = conf.get('port', None)
-
+        # used in return and report
+        self._now = time.time()
         # Used by the save filter and report
         self.saved = {}
 
+        # Create the filter objects
         filter_list = conf.get('filters', [])
-        # There is an implicit save filter to aid reporting
-        filter_list.append("save")
-
         self._filters = [filters.Filter(self, x) for x in filter_list]
 
-    def _createDeferred(self):
-        """Create a Deferred object, should be returned by _start()"""
+        # Add final critical and warning tests
+        if 'critical' in conf:
+            filter_list.append(
+                    filters.Filter_critical(self, None, conf['critical']))
+        if 'warning' in conf:
+            filter_list.append(
+                    filters.Filter_warning(self, None, conf['warning']))
+
+    def _start(self):
+        # Subclasses must override this and fire the deferred!
+        self.saved.clear()
+        self.final = None
+
         deferred = defer.Deferred()
 
         for filter in self._filters:
-            deferred.addCallback(filter.filter)
+            if filter.handle_errors:
+                deferred.addBoth(filter.filter)
+            else:
+                deferred.addCallback(filter.filter)
 
         return deferred
 
 class SimpleTest(BaseTest):
     """Used only as sub-tests"""
 
-    def __init__(self, conf):
+    def __init__(self, conf, parent):
         """conf is a coil config defining the test"""
 
         BaseTest.__init__(self, conf)
 
+        self.parent = parent
         self._query = query.addQuery(conf)
         self.addDependency(self._query)
 
     def _start(self):
-        self.saved.clear()
-        deferred = self._createDeferred()
+        deferred = BaseTest._start(self)
         deferred.callback(self._query.result)
         return deferred
 
@@ -131,34 +149,17 @@ class Test(BaseTest):
         BaseTest.__init__(self, conf)
 
         self._test = conf.get('test', "")
-        self._critical = conf.get('critical', None)
-        self._warning = conf.get('warning', None)
         self._documentation = conf.get('documentation', "")
         self._investigation = conf.get('investigation', "")
         self._priority = conf.get('priority', "")
         self._url = conf.get('url', "")
         self._subtests = {}
 
-        if 'trend' in conf:
-            conf['trend.repeat'] = int(self.repeat)
-            conf['trend.host'] = self.host
-            conf['trend.name'] = conf.get('name', self._test)
-            self._trend = trend.Trend(conf['trend'])
-        else:
-            self._trend = None
-
         # If self._documentation is a list convert it to a string
         if isinstance(self._documentation, list):
-            doc = ""
-            for line in self._documentation:
-                doc = "%s%s\n" % (doc, line)
-            self._documentation = doc.rstrip()
-
+            self._documentation = "\n".join(self._documentation)
         if isinstance(self._investigation, list):
-            inv = ""
-            for line in self._investigation:
-                inv = "%s%s\n" % (inv, line)
-            self._investigation = inv.rstrip()
+            self._investigation = "\n".join(self._documentation)
 
         if self._priority:
             self._priority = "Priority: %s\n" % self._priority
@@ -168,23 +169,44 @@ class Test(BaseTest):
             conf.expand(recursive=False)
             self._return = conf.get('query.return', None)
 
-            if self._return:
-                # Convert $(subquery) to data['subquery']
-                self._return = re.sub("\\$\\(([^\\)]+)\\)",
-                        lambda m: "data['%s']" % m.group(1),
-                        self._return)
-
             for name, qconf in conf['query'].iteritems():
                 if not isinstance(qconf, struct.Struct):
                     continue
 
                 self._addDefaults(qconf)
-                self._subtests[name] = SimpleTest(qconf)
+                self._subtests[name] = SimpleTest(qconf, self)
                 self.addDependency(self._subtests[name])
+
+            if not self._subtests:
+                raise errors.ConfigError(conf['query'],
+                        "compound query must have a sub-query")
+            if self._return or len(self._subtests) > 1:
+                if not self._return:
+                    raise errors.ConfigError(conf['query'],
+                            "return statement is required")
+
+                # Convert $(subquery) to data['subquery']
+                self._return = re.sub("\\$\\(([^\\)]+)\\)",
+                        lambda m: "data['%s']" % m.group(1), self._return)
+
+                test_values = {}
+                for name in self._subtests:
+                    #XXX this test string isn't fool-proof but will mostly work
+                    test_values[name] = util.MathString('9999')
+
+                try:
+                    eval(self._return, {'data': test_values})
+                except SyntaxError, ex:
+                    raise errors.ConfigError(conf['query'],
+                            "Syntax error in return: %s" % ex)
+                except KeyError, ex:
+                    raise errors.ConfigError(conf['query'],
+                            "Unknown sub-query in return: %s" % ex)
         else:
             self._compound = False
-            self._addDefaults(conf.get('query'))
-            self._subtests['query'] = SimpleTest(conf.get('query'))
+            qconf = conf.get('query')
+            self._addDefaults(qconf)
+            self._subtests['query'] = SimpleTest(qconf, self)
             self.addDependency(self._subtests['query'])
 
         self._report_callbacks = []
@@ -196,29 +218,24 @@ class Test(BaseTest):
         conf.setdefault('repeat', str(self.repeat))
 
     def _start(self):
-        self.saved.clear()
+        self._now = time.time()
 
-        # All sub-tests are now complete, if this was a compound query
-        # compute return will put the pieces together.
+        # All sub-tests are now complete, process them!
+        deferred = BaseTest._start(self)
+        deferred.addBoth(self._report)
+
         try:
             result = self._computeReturn()
         except:
-            result = failure.Failure()
+            result = errors.Failure()
 
-        deferred = self._createDeferred()
         deferred.callback(result)
-        deferred.addCallback(self._checkTrendData)
-        deferred.addCallback(self._checkAllThresholds)
-        deferred.addBoth(self._report)
 
         return deferred
 
     def _computeReturn(self):
-        # Time the subtests completed, used here and in _report()
-        self._now = time.time()
-
         if self._compound:
-            data = {'NOW': util.MathString(time.time())}
+            data = {'NOW': util.MathString(self._now)}
             for name, subtest in self._subtests.iteritems():
                 if isinstance(subtest.result, failure.Failure):
                     raise ChildError()
@@ -227,15 +244,7 @@ class Test(BaseTest):
             log.debug("Evaluating return '%s' with data = %s",
                     self._return, data)
 
-            try:
-                result = str(eval(self._return, {'data': data}))
-            except SyntaxError, ex:
-                raise util.KnownError(
-                        "Syntax error in return!", error=ex)
-            except KeyError, ex:
-                raise util.KnownError(
-                        "Unknown sub-query in return!", error=ex)
-
+            result = str(eval(self._return, {'data': data}))
         else:
             subtest = self._subtests['query']
             if isinstance(subtest.result, failure.Failure):
@@ -255,142 +264,82 @@ class Test(BaseTest):
         assert callable(func)
         self._report_callbacks.append((func, args, kwargs))
 
-    def _checkThreshold(self, result, threshold, state):
-        """Raise an exception if the result value matches the threshold.
-
-        This is only used by _report().
-        """
-
-        ops = ('>','<','=','==','>=','<=','<>','!=','=~','!~')
-
-        match = re.match("([<>=!~]{1,2})\s*(\S+.*)", threshold)
-        if not match:
-            raise util.KnownError("Invalid %s test: %s"
-                    % (state.lower(), threshold), result)
-
-        thresh_op = match.group(1)
-        thresh_val = match.group(2)
-
-        if thresh_op not in ops:
-            raise util.KnownError("Invalid %s test operator: %s"
-                    % (state.lower(), thresh_op), result)
-
-        if '~' in thresh_op:
-            # Check for a valid regular expression
-            try:
-                regex = re.compile(thresh_val)
-            except re.error, ex:
-                raise util.KnownError("Invalid %s test regex: '%s'"
-                        % (state.lower(), thresh_val), result, error=ex)
-
-        if thresh_op == '=~':
-            if re.search(regex, result, re.MULTILINE):
-                raise util.KnownError(threshold, result, state)
-        elif thresh_op == '!~':
-            if not re.search(regex, result, re.MULTILINE):
-                raise util.KnownError(threshold, result, state)
-        else:
-            # not a regular expression, let MathString do its magic.
-            thresh_val = util.MathString(thresh_val)
-            result = util.MathString(result)
-
-            # Convert non-python operators
-            if thresh_op == '=':
-                thresh_op = '=='
-            if thresh_op == '<>':
-                thresh_op = '!='
-
-            if eval("a %s b" % thresh_op, {'a':result, 'b':thresh_val}):
-                raise util.KnownError(threshold, result, state)
-
-    def _checkAllThresholds(self, result):
-        if self._critical:
-            self._checkThreshold(result, self._critical, "CRITICAL")
-        if self._warning:
-            self._checkThreshold(result, self._warning, "WARNING")
-        return result
-
-    def _checkTrendData(self, result):
-        if self._trend:
-            self._trend.update(self._now, result)
-        return result
 
     def _report(self, result):
         """Generate a report of the final result, pass that report off
         to all registered report callbacks. (ie nagios reporting)
         """
 
-        def getstate(test, result):
-            # Pull values and error messages out of any failures
-            if not isinstance(result, failure.Failure):
-                output = str(result)
-                error = ""
-                state = "OK"
-                summary = output
-            # warning/critical tests result in a KnownError as well as 
-            # other issues where we can give a decent error message
-            elif (isinstance(result.value, util.KnownError)):
-                output = str(result.value.result)
-                error = str(result.value.error)
-                state = result.value.state
-                summary = str(result.value)
+        def indent(string, prefix="    "):
+            return "\n".join([prefix+x for x in string.splitlines()])
+
+        # Choose what to report at the main result
+        if isinstance(result, failure.Failure):
+            if isinstance(result.value, ChildError):
+                # A child failed, find the worst failure
+                level = 0
+                failed = None
+
+                for subtest in self._subtests.itervalues():
+                    if isinstance(subtest.result, failure.Failure):
+                        if isinstance(subtest.result.value, errors.TestError):
+                            if subtest.result.value.index > level:
+                                level = subtest.result.value.index
+                                failed = subtest
+                        else:
+                            # Unknown error, just use it
+                            failed = subtest
+                            break;
+
+                assert failed is not None
+            else:
+                failed = result
+
+            if isinstance(failed.result, errors.Failure):
+                output = failed.result.result
             else:
                 output = ""
-                error = str(result.value)
+
+            if isinstance(failed.result.value, errors.TestError):
+                state = failed.result.value.state
+            else:
                 state = "UNKNOWN"
-                summary = error
 
-            return (summary, output, error, state)
-
-        # Don't generate reports during shut down
-        if not reactor.running:
-            return
-
-        if (isinstance(result, failure.Failure) and
-                isinstance(result.value, ChildError)):
-            # A child failed, find the worst failure
-            output = ""
-            error = ""
-            state = "OK"
-            summary = "Something failed but I don't know what."
-
-            for subtest in self._subtests.itervalues():
-                subsum, subout, suberr, substat = \
-                        getstate(subtest, subtest.result)
-                if util.STATES.index(substat) > util.STATES.index(state):
-                    state = substat
-                    summary = subsum
-                    output = subout
-                    error = suberr
-        elif isinstance(result, failure.Failure):
-            # Failed in return or threshold
-            summary, output, error, state = getstate(self, result)
+            error = str(failed.result.value)
+            summary = error
         else:
-            # All is well!
-            output = str(result)
-            summary = output
+            output = result
             state = "OK"
             error = ""
+            summary = result
 
         # Grab the first 40 characters of the first line
         if summary:
             summary = summary.split('\n', 1)[0][:40].rstrip('\\')
 
-        # Fill in the Extra Output area
-        for subname, subtest in self._subtests.iteritems():
-            for savedname, savedval in subtest.saved.iteritems():
-                if savedname is None:
-                    savedname = subname
-                self.saved.setdefault(savedname, savedval)
-
+        # Fill in the Extra Output area and all valid values
         extra = ""
-        for savedname, savedval in self.saved.iteritems():
-            # Skip the default extra output for this top level test,
-            # it likely does not include anything new
-            if savedname is not None and savedval != output:
-                extra += "%s: %s\n" % (savedname, savedval)
+        results = {}
+        for subname, subtest in self._subtests.iteritems():
+            subextra = ""
+            for savedname, savedval in subtest.saved.iteritems():
+                subextra += "    %s:\n" % savedname
+                subextra += indent(savedval, "        ")
+                subextra += "\n"
 
-        assert state in util.STATES
+            subout = str(subtest.result)
+            if subout != output:
+                subextra += "    Result:\n"
+                subextra += indent(subout, "        ")
+                subextra += "\n"
+
+            if isinstance(subtest.result, failure.Failure):
+                results[subname] = ""
+            else:
+                results[subname] = subtest.result
+
+        assert state in STATES
+
         if state == "OK":
             text = TEMPLATE_OK
         else:
@@ -399,6 +348,7 @@ class Test(BaseTest):
         report = {
                 'test': self._test,
                 'state': state,
+                'state_id': STATES.index(state),
                 'summary': summary,
                 'output': output,
                 'error': error,
@@ -412,12 +362,18 @@ class Test(BaseTest):
                 'investigation': self._investigation,
                 'priority': self._priority,
                 'url': self._url,
+                'results': results,
                 }
 
         text = text % report
         report['text'] = text
 
-        for (func, args, kwargs) in self._report_callbacks:
-            func(report, *args, **kwargs)
+        # Don't fire callbacks (which write out to stuff) during shutdown
+        if reactor.running:
+            for (func, args, kwargs) in self._report_callbacks:
+                try:
+                    func(report, *args, **kwargs)
+                except:
+                    log.error("Report callback failed: %s" % failure.Failure())
 
         return report

@@ -18,7 +18,8 @@ from __future__ import division
 
 import re
 
-STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
+class IntervalError(Exception):
+    """Error creating time interval object"""
 
 class Interval(object):
     """Store the duration of time interval.
@@ -38,7 +39,7 @@ class Interval(object):
                 "(s|sec|seconds?|m|min|minutes?|h|hours?|d|days?)\s*$",
                 str(value), re.IGNORECASE)
         if not match:
-            raise KnownError("Invalid time interval '%s'" % str(value))
+            raise IntervalError("Invalid time interval '%s'" % value)
 
         if match.group(3)[0].lower() == 's':
             self.seconds = float(match.group(1))
@@ -73,6 +74,8 @@ class Interval(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+class MathError(Exception):
+    """Attempted math on a non-numeric value"""
 
 class MathString(str):
     """A string that supports numeric operations.
@@ -88,7 +91,7 @@ class MathString(str):
 
         + - * / // % divmod() pow() ** < <= >= >
 
-    Use of these operators on any non-numeric value will raise a KnownError
+    Use of these operators on any non-numeric value will raise a MathError
 
     The == and != operators will do a numeric comparison if the two
     values happen to be numbers, otherwise it will compare them as
@@ -110,8 +113,7 @@ class MathString(str):
                 try:
                     arg = numtype(arg)
                 except ValueError:
-                    raise KnownError("Attempted math on a string!",
-                            arg, "CRITICAL")
+                    raise MathError("The value '%s' is not a number" % arg)
 
             numbers.append(arg)
 
@@ -228,35 +230,10 @@ class MathString(str):
         try:
             nself, nother = self.__digify_args(other)
             ret = nself == nother
-        except KnownError:
+        except MathError:
             ret = str.__eq__(self, other)
 
         return ret
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
-
-class KnownError(Exception):
-    """Records a test failure and the output at that time.
-
-    Any failure or exception that may be caused by either a bad config
-    or a failed test should be represented by this class with result and
-    state set to provide good diagnostic data in the generated report.
-    """
-
-    def __init__(self, msg, result="", state="UNKNOWN", error=""):
-        Exception.__init__(self, msg)
-        self.result = result
-
-        assert state in STATES
-        self.state = state
-
-        if error:
-            self.error = error
-        else:
-            self.error = msg
-
-class InitError(Exception):
-    """Fatal errors during startup."""
-    pass

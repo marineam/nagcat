@@ -31,8 +31,9 @@ class TestTestCase(unittest.TestCase):
         d.addBoth(self.endBasic, t)
         return d
 
-    def endBasic(self, ignore, t):
-        report = t.result
+    def endBasic(self, report, t):
+        self.assertEquals(report, t.result)
+        self.assertEquals(report['output'], "something")
 
     def testCompound(self):
         config = Struct({
@@ -40,12 +41,13 @@ class TestTestCase(unittest.TestCase):
                     'type': "compound",
                     'test-a': {
                         'type': "noop",
-                        'data': "a",
+                        'data': "1",
                     },
                     'test-b': {
                         'type': "noop",
-                        'data': "b",
+                        'data': "2",
                     },
+                    'return': "$(test-a) + $(test-b)",
                 },
             })
 
@@ -54,6 +56,6 @@ class TestTestCase(unittest.TestCase):
         d.addBoth(self.endCompound, t)
         return d
 
-    def endCompound(self, ignore, t):
-        report = t.result
-
+    def endCompound(self, report, t):
+        self.assertEquals(report, t.result)
+        self.assertEquals(report['output'], "3")
