@@ -209,11 +209,12 @@ class Filter_critical(_Filter):
     """Mark the test as CRITICAL if the given test fails."""
 
     handle_default = False
+    handle_errors = True
 
     # Supported operators
     ops = ('>','<','=','==','>=','<=','<>','!=','=~','!~')
     # Expression format
-    format = re.compile("([<>=!~]{1,2})\s*(\S+.*)")
+    format = re.compile("\s*([<>=!~]{1,2})\s*(\S+.*)")
 
     # Error to raise, overridden in Filter_warning
     error = errors.TestCritical
@@ -236,7 +237,7 @@ class Filter_critical(_Filter):
         if '~' in self.test_op:
             # Check for a valid regular expression
             try:
-                self.test_regex = re.compile(self.test_val)
+                self.test_regex = re.compile(self.test_val, re.MULTILINE)
             except re.error, ex:
                 raise errors.InitError("Invalid %s test regex '%s': %s"
                         % (self.error.state.lower(), self.test_val, ex))
@@ -249,25 +250,41 @@ class Filter_critical(_Filter):
         if self.test_op == '=':
             self.test_op = '=='
 
-    @errors.callback
     def filter(self, result):
-        if self.test_op == '=~':
-            if re.search(self.test_regex, result, re.MULTILINE):
-                raise self.error(
-                        "Failed to match regex '%s'" % self.test_val)
-        elif self.test_op == '!~':
-            if not re.search(self.test_regex, result, re.MULTILINE):
-                raise self.error(
-                        "Matched regex '%s'" % self.test_val)
+        # Allow critical to override warning
+        if (isinstance(result, errors.Failure) and
+                isinstance(result.value, errors.TestWarning)):
+            true_result = result.result
+        elif isinstance(result, failure.Failure):
+            return result
         else:
-            eval_dict = {'a':util.MathString(result), 'b':self.test_val}
+            true_result = result
 
-            if eval("a %s b" % self.test_op, eval_dict):
-                raise self.error("Test failed: %s %s"
-                        % (self.test_op, self.test_val))
+        # mimic the error.method decorator since we need to
+        # report true_result, not result.
+        try:
+            if self.test_op == '=~':
+                if self.test_regex.search(true_result):
+                    raise self.error(
+                            "Failed to match regex '%s'" % self.test_val)
+            elif self.test_op == '!~':
+                if not self.test_regex.search(true_result):
+                    raise self.error("Matched regex '%s'" % self.test_val)
+            else:
+                eval_dict = {'a':util.MathString(true_result),
+                             'b':self.test_val}
+
+                if eval("a %s b" % self.test_op, eval_dict):
+                    raise self.error("Test failed: %s %s"
+                            % (self.test_op, self.test_val))
+        except Exception, ex:
+            result = errors.Failure(result=true_result)
+
+        return result
 
 class Filter_warning(Filter_critical):
-    """Mark the test as CRITICAL if the given test fails."""
+    """Mark the test as WARNING if the given test fails."""
 
+    handle_errors = False
     error = errors.TestWarning
 

@@ -97,10 +97,10 @@ class BaseTest(scheduler.Runnable):
 
         # Add final critical and warning tests
         if 'critical' in conf:
-            filter_list.append(
+            self._filters.append(
                     filters.Filter_critical(self, None, conf['critical']))
         if 'warning' in conf:
-            filter_list.append(
+            self._filters.append(
                     filters.Filter_warning(self, None, conf['warning']))
 
     def _start(self):
@@ -288,27 +288,27 @@ class Test(BaseTest):
                         if isinstance(subtest.result.value, errors.TestError):
                             if subtest.result.value.index > level:
                                 level = subtest.result.value.index
-                                failed = subtest
+                                failed = subtest.result
                         else:
                             # Unknown error, just use it
-                            failed = subtest
+                            failed = subtest.result
                             break;
 
                 assert failed is not None
             else:
                 failed = result
 
-            if isinstance(failed.result, errors.Failure):
-                output = failed.result.result
+            if isinstance(failed, errors.Failure):
+                output = failed.result
             else:
                 output = ""
 
-            if isinstance(failed.result.value, errors.TestError):
-                state = failed.result.value.state
+            if isinstance(failed.value, errors.TestError):
+                state = failed.value.state
             else:
                 state = "UNKNOWN"
 
-            error = str(failed.result.value)
+            error = str(failed.value)
             summary = error
         else:
             output = result
@@ -330,19 +330,35 @@ class Test(BaseTest):
                 subextra += indent(savedval, " "*8)
                 subextra += "\n"
 
-            subout = str(subtest.result)
-            if subout != output:
-                subextra += "    Result:\n"
+            if isinstance(subtest.result, failure.Failure):
+                results[subname] = ""
+
+                if isinstance(subtest.result, errors.Failure):
+                    subout = str(subtest.result.result)
+                else:
+                    subout = ""
+
+                if isinstance(subtest.result.value, errors.TestError):
+                    suberr = str(subtest.result.value)
+                else:
+                    suberr = str(subtest.result)
+            else:
+                results[subname] = subtest.result
+                subout = str(subtest.result)
+                suberr = ""
+
+            if subout and subout != output:
+                subextra += "    Output:\n"
                 subextra += indent(subout, " "*8)
+                subextra += "\n"
+
+            if suberr and suberr != error:
+                subextra += "    Error:\n"
+                subextra += indent(suberr, " "*8)
                 subextra += "\n"
 
             if subextra:
                 extra += indent("%s:\n%s\n" % (subname, subextra))
-
-            if isinstance(subtest.result, failure.Failure):
-                results[subname] = ""
-            else:
-                results[subname] = subtest.result
 
         assert state in STATES
 
