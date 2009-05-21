@@ -327,7 +327,7 @@ class Test(BaseTest):
             subextra = ""
             for savedname, savedval in subtest.saved.iteritems():
                 subextra += "    %s:\n" % savedname
-                subextra += indent(savedval, " "*8)
+                subextra += indent(str(savedval), " "*8)
                 subextra += "\n"
 
             if isinstance(subtest.result, failure.Failure):
