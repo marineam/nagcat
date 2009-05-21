@@ -46,7 +46,10 @@ def callback(method):
         try:
             return method(self, result, *args, **kwargs)
         except:
-            return Failure(result=result)
+            if isinstance(result, failure.Failure):
+                return Failure(result=result)
+            else:
+                return Failure()
 
     return catcher
 
