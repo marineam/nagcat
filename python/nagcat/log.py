@@ -68,7 +68,7 @@ class LogLevelObserver(object):
             sys.stderr.close()
             os.close(0)
             os.close(1)
-            os.close(3)
+            os.close(2)
 
         self.log_stderr = None
         sys.stdout = log.logfile
