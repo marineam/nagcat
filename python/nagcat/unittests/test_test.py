@@ -16,6 +16,24 @@ from twisted.trial import unittest
 from nagcat import test
 from coil.struct import Struct
 
+class SimpleTestCase(unittest.TestCase):
+
+    def testOk(self):
+        config = Struct({
+                'type': "noop",
+                'data': "something",
+            })
+
+        t = test.SimpleTest(config)
+        d = t.start()
+        d.addBoth(self.endOk, t)
+        return d
+
+    def endOk(self, result, t):
+        self.assertEquals(result, None)
+        self.assertEquals(t.result, "something")
+
+
 class TestTestCase(unittest.TestCase):
 
     def testBasic(self):

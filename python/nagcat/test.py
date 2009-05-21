@@ -120,12 +120,11 @@ class BaseTest(scheduler.Runnable):
 class SimpleTest(BaseTest):
     """Used only as sub-tests"""
 
-    def __init__(self, conf, parent):
+    def __init__(self, conf):
         """conf is a coil config defining the test"""
 
         BaseTest.__init__(self, conf)
 
-        self.parent = parent
         self._query = query.addQuery(conf)
         self.addDependency(self._query)
 
@@ -178,7 +177,7 @@ class Test(BaseTest):
                     continue
 
                 self._addDefaults(qconf)
-                self._subtests[name] = SimpleTest(qconf, self)
+                self._subtests[name] = SimpleTest(qconf)
                 self.addDependency(self._subtests[name])
 
             if not self._subtests:
@@ -210,7 +209,7 @@ class Test(BaseTest):
             self._compound = False
             qconf = conf.get('query')
             self._addDefaults(qconf)
-            self._subtests['query'] = SimpleTest(qconf, self)
+            self._subtests['query'] = SimpleTest(qconf)
             self.addDependency(self._subtests['query'])
 
         self._report_callbacks = []
