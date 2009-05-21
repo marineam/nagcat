@@ -192,7 +192,7 @@ class Test(BaseTest):
                 self._return = re.sub("\\$\\(([^\\)]+)\\)",
                         lambda m: "data['%s']" % m.group(1), self._return)
 
-                test_values = {}
+                test_values = {'NOW': util.MathString('9999')}
                 for name in self._subtests:
                     #XXX this test string isn't fool-proof but will mostly work
                     test_values[name] = util.MathString('9999')

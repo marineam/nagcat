@@ -84,7 +84,7 @@ class Trend(object):
         parse_ds('_result', conf)
 
         if conf['query.type'] == "compound":
-            for subname, subconf in conf['query']:
+            for subname, subconf in conf['query'].iteritems():
                 if not isinstance(subconf, coil.struct.Struct):
                     continue
                 parse_ds(subname, subconf)

@@ -115,7 +115,10 @@ def error(text, *args):
     """Log text at level ERROR"""
     if _logger and _logger.log_level < 0:
         return
-    log.msg(text % args, log_level=0)
+    if args:
+        log.msg(text % args, log_level=0)
+    else:
+        log.msg(text, log_level=0)
 
 def warn(text, *args):
     """Log text at level WARN"""
