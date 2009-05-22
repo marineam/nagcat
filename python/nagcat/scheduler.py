@@ -46,10 +46,12 @@ class Scheduler(object):
 
     def __init__(self):
         self._registered = set()
+        self._startup = True
         self._running = False
 
     def register(self, runnable):
         """Register a top level Runnable to be run directly by the scheduler"""
+        assert self._startup
         assert runnable not in self._registered
         assert isinstance(runnable, Runnable)
 
@@ -120,10 +122,19 @@ class Scheduler(object):
             group_runnable = RunnableGroup(group_registered)
             self.register(group_runnable)
 
+    def prepare(self):
+        """Finish the startup process.
+
+        This must be after all register() calls and before start()
+        """
+        assert self._startup and not self._running
+
+        self._startup = False
+        self._create_groups()
+
     def start(self):
         """Start up the scheduler!"""
 
-        self._create_groups()
         self._running = True
 
         if not self._registered:

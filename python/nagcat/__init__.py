@@ -14,16 +14,10 @@
 
 """NagCat initialization and startup"""
 
-try:
-    import cProfile as profile
-except ImportError:
-    import profile
-
 import os
 import sys
 import pstats
 from UserDict import DictMixin
-from StringIO import StringIO
 from optparse import OptionParser
 
 # Install the epoll reactor for better performance
@@ -61,15 +55,6 @@ def simple(options, config):
 
     return [testobj]
 
-def start(tests):
-    """Run all configured tests"""
-
-    sch = scheduler.Scheduler()
-
-    for testobj in tests:
-        sch.register(testobj)
-
-    sch.start()
 
 def daemonize(pid_file):
     """Background the current process"""
@@ -134,9 +119,15 @@ def parse_options():
             help="port to use when only running one test")
     parser.add_option("-n", "--nagios", dest="nagios",
             help="path to nagios.cfg, enables Nagios support")
-    parser.add_option("", "--profile-all", dest="profileall",
+    parser.add_option("", "--profile-init", dest="profile_init",
             action="store_true", default=False,
-            help="run profiler and report summary on exit")
+            help="run profiler during startup")
+    parser.add_option("", "--profile-run", dest="profile_run",
+            action="store_true", default=False,
+            help="run profiler during normal operation")
+    parser.add_option("", "--profile-all", dest="profile_all",
+            action="store_true", default=False,
+            help="alias for --profile-init --profile-run")
 
     (options, args) = parser.parse_args()
 
@@ -157,19 +148,23 @@ def parse_options():
         err.append("invalid log level '%s'" % options.loglevel)
         err.append("must be one of: %s" % " ".join(log.LEVELS))
 
+    if options.profile_all:
+        options.profile_init = True
+        options.profile_run = True
+
     if err:
         parser.error("\n".join(err))
 
     return options
 
-def main():
-    """Start up NagCat"""
+
+def init(options):
+    """Prepare to start up NagCat"""
 
     # Sanity check, make sure we are using >= coil-0.3.0
     if (not issubclass(coil.struct.Struct, DictMixin)):
         raise Exception("Coil >= 0.3.0 is required!")
 
-    options = parse_options()
     log.init(options.logfile, options.loglevel)
     config = coil.parse_file(options.config, expand=False)
 
@@ -187,6 +182,12 @@ def main():
         log.error(str(ex))
         sys.exit(1)
 
+    sch = scheduler.Scheduler()
+    for testobj in tests:
+        sch.register(testobj)
+
+    reactor.callWhenRunning(sch.start)
+
     # daemonize and redirect stdio to log
     if options.daemon:
         daemonize(options.pidfile)
@@ -194,18 +195,30 @@ def main():
     else:
         log.init_stdio()
 
-    reactor.callWhenRunning(start, tests)
+def main():
+    """Start up NagCat, profiling things as requested"""
 
-    if options.profileall:
-        output = "/tmp/nagcatprofile";
-        profile.runctx("reactor.run()", globals(), locals(), output)
-        report = StringIO()
-        stats = pstats.Stats(output, stream=report)
+    options = parse_options()
+
+    if options.profile_init or options.profile_run:
+        import cProfile
+        profiler = cProfile.Profile()
+
+    if options.profile_init:
+        profiler.runcall(init, options)
+    else:
+        init(options)
+
+    if options.profile_run:
+        profiler.runcall(reactor.run)
+    else:
+        reactor.run()
+
+    if options.profile_init or options.profile_run:
+        import pstats
+        stats = pstats.Stats(profiler)
         stats.strip_dirs()
         stats.sort_stats('time', 'cumulative')
         #stats.sort_stats('calls')
         stats.print_stats(30)
         stats.print_callers(30)
-        log.info("Profile Report:\n%s" % report.getvalue())
-    else:
-        reactor.run()
