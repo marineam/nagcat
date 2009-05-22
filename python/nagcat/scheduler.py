@@ -245,12 +245,16 @@ class Runnable(object):
         self.lastrun = time.time()
         self.deferred = None
 
-        if self.scheduler and self.repeat:
+        if not self.scheduler or not reactor.running:
+            # Don't reschedule if not top-level or during shutdown
+            pass
+        elif self.repeat:
             log.debug("Scheduling %s in %s.", self, self.repeat)
             reactor.callLater(self.repeat.seconds, self.start)
-        elif self.scheduler and not self.repeat:
-            log.debug("Unregistering %s, it is not scheduled to run again.", self)
+        else:
+            log.debug("Unregistering %s, not scheduled to run again.", self)
             self.scheduler.unregister(self)
+            self.scheduler = None
 
         if (isinstance(result, failure.Failure) and
                 not isinstance(result.value, errors.TestError)):
