@@ -65,7 +65,7 @@ def addQuery(conf):
     else:
         raise errors.ConfigError(conf, "Unknown query type '%s'" % qtype)
 
-    key = repr(qobj)
+    key = str(qobj)
     if key in _queries:
         log.debug("Reusing query '%s'", key)
         qobj = _queries[key]
@@ -133,8 +133,8 @@ class Query(scheduler.Runnable):
 
         return result
 
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, self.conf)
+    def __str__(self):
+        return "<%s %r>" % (self.__class__.__name__, self.conf)
 
 
 class Query_noop(Query):
