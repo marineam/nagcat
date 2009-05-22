@@ -14,28 +14,42 @@
 
 """Various Exception classes and friends"""
 
+import sys
+
 from twisted.python import failure
 from twisted.python.log import logerr
 from coil.errors import StructError
 
+_no_result = object()
 
 class Failure(failure.Failure):
     """Custom failure class to keep the result a callback was given"""
 
     def __init__(self, exc_value=None, exc_type=None,
-            exc_tb=None, result=None):
+            exc_tb=None, result=_no_result):
         self.result = result
+
+        # Don't include the traceback for TestError, processing it
+        # has a high overhead and we don't need it for known errors.
+        if exc_value is None:
+            type_, value, tb = sys.exc_info()
+            if type_ in (TestCritical, TestWarning):
+                exc_value = value
+                exc_type = type_
+                exc_tb = None
+
         failure.Failure.__init__(self, exc_value, exc_type, exc_tb)
 
     def printTraceback(self, file=None, *args, **kwargs):
-        # Failure is odd and writes to a file like object instead
-        # of just returning a string like a sane person would...
-        if file is None:
-            file = logerr
+        if self.result is not _no_result:
+            # Failure is odd and writes to a file like object instead
+            # of just returning a string like a sane person would...
+            if file is None:
+                file = logerr
 
-        file.write("Current result:\n")
-        for line in str(self.result).splitlines():
-            file.write("    %s\n" % line)
+            file.write("Result given to callback:\n")
+            for line in str(self.result).splitlines():
+                file.write("    %s\n" % line)
 
         return failure.Failure.printTraceback(self, file, *args, **kwargs)
 
