@@ -489,7 +489,7 @@ class Query_snmp(Query_http):
     def _handle_result(self, result):
         if self.conf['oid'] not in result or result[self.conf['oid']] is None:
             raise errors.TestCritical("No value returned")
-        return result[self.conf['oid']]
+        return str(result[self.conf['oid']])
 
     @errors.callback
     def _handle_error(self, result):
