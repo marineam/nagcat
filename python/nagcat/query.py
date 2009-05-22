@@ -43,6 +43,12 @@ if ssl and not ssl.supported:
    # happens second and later times
    ssl = None
 
+# SNMP support
+try:
+    from pynetsnmp import netsnmp, twistedsnmp
+except ImportError:
+    netsnmp = None
+
 from nagcat import errors, log, scheduler, util
 
 _queries = {}
@@ -432,50 +438,63 @@ class Query_subprocess(Query):
         proc = SubprocessFactory(self.conf)
         return proc.deferred
 
-class NetSnmpFactory(SubprocessFactory):
-    """Run an SNMP query using snmpget"""
+
+class Query_snmp(Query_http):
+    """Fetch a single value via SNMP"""
+
+    OID = re.compile("^\.?\d+(\.\d+)*$")
 
     def __init__(self, conf):
-        self.conf = conf
-        self.deferred = defer.Deferred()
-
-        # Retry once per second until timeout is up
-        retry = int(conf['timeout']) - 1
-        if retry < 0:
-            retry = 0
-
-        agent = "%s:%s:%s" % (conf['protocol'], conf['host'], conf['port'])
-        cmd = ('snmpget', '-v', conf['version'], '-c', conf['community'],
-                '-t', '1', '-r', retry, agent, conf['oid'])
-
-        # Allow the process a second to die
-        self.conf['timeout'] += 1
-        # Pass nothing to stdin
-        self.conf['data'] = ""
-
-        self._startProcess(cmd)
-
-    def result(self, data):
-        # Strip off the "[oid name] = " prefix
-        if isinstance(data, str):
-            data = re.sub("^\S+ = ", "", data)
-        SubprocessFactory.result(self, data)
-
-class Query_snmp(Query):
-    def __init__(self, conf):
+        if netsnmp is None:
+            raise errors.InitError("pynetsnmp is required for SNNP support.")
         Query.__init__(self, conf)
 
-        self.conf['protocol'] = conf.get('protocol', 'udp')
+        #self.conf['protocol'] = conf.get('protocol', 'udp') #not supported right now
         self.conf['host'] = conf.get('host')
         self.conf['port'] = int(conf.get('port', 161))
-        self.conf['oid'] = conf.get('oid')
+        self.conf['oid'] = conf['oid']
         self.conf['version'] = str(conf.get('version', '2c'))
         self.conf['community'] = conf.get('community')
+
+        if not self.OID.match(self.conf['oid']):
+            raise errors.ConfigError(conf,
+                    "Invalid SNMP OID '%s'" % self.conf['oid'])
+
+        if self.conf['oid'][0] != '.':
+            self.conf['oid'] = ".%s" % self.conf['oid']
 
         if self.conf['version'] not in ('1', '2c'):
             raise errors.ConfigError(conf,
                     "Invalid SNMP version '%s'" % conf['version'])
 
+        self._client = twistedsnmp.AgentProxy(
+                self.conf['host'], self.conf['port'],
+                self.conf['community'], self.conf['version'])
+        try:
+            self._client.open()
+        except netsnmp.SnmpError, ex:
+            raise errors.InitError(str(ex))
+
     def _start(self):
-        proc = NetSnmpFactory(self.conf)
-        return proc.deferred
+        # Use half of the timeout and allow 1 retry,
+        # this probably isn't great but should be ok.
+        deferred = self._client.get(
+                (self.conf['oid'],),
+                self.conf['timeout']/2, 1)
+        deferred.addCallback(self._handle_result)
+        deferred.addErrback(self._handle_error)
+        return deferred
+
+    @errors.callback
+    def _handle_result(self, result):
+        assert self.conf['oid'] in result
+        if result[self.conf['oid']] is None:
+            raise errors.TestCritical("No value returned")
+        return result[self.conf['oid']]
+
+    @errors.callback
+    def _handle_error(self, result):
+        if isinstance(result.value, neterror.TimeoutError):
+            raise errors.TestCritical("SNMP request timeout")
+        return result
+
