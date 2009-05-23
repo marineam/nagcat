@@ -19,9 +19,11 @@ rrd = data['rrd'].value
 rrd_path = "%s/%s/%s.rrd" % (os.getenv('NAGCAT_RRA_DIR'), host, rrd)
 assert os.path.isfile(rrd_path)
 
-info = rrdtool.info(rrd_path)
 color = 0
 args = []
+info = rrdtool.info(rrd_path)
+# Escape : so DEF arguments parse properly
+rrd_path = rrd_path.replace(':', r'\:')
 for line in info['ds']:
     if line == "_state":
         continue
