@@ -16,6 +16,12 @@ assert 'rrd' in data
 host = data['host'].value
 rrd = data['rrd'].value
 
+if 'period' in data:
+    period = data['period'].value
+    assert period in ('day', 'week', 'month', 'year')
+else:
+    period = "day"
+
 rrd_path = "%s/%s/%s.rrd" % (os.getenv('NAGCAT_RRA_DIR'), host, rrd)
 assert os.path.isfile(rrd_path)
 
@@ -38,7 +44,7 @@ for line in info['ds']:
 
 print HEAD
 print
-rrdtool.graph("-", "-a", "PNG", "-s", "-1day",
+rrdtool.graph("-", "-a", "PNG", "-s", "-1%s" % period,
         "DEF:_state=%s:_state:MAX" % rrd_path,
         "CDEF:_state_ok=_state,0,EQ",
         "CDEF:_state_warn=_state,1,EQ",

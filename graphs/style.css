@@ -2,6 +2,26 @@ body {
     font-family: sans-serif;
 }
 
-h1 {
-    color: #555;
+h1,h2,h3 {
+    color: #444;
+}
+
+td {
+    border: thin solid #CCC;
+}
+
+.Ok,.Up {
+    background-color: #a0ffa0;
+}
+
+.Warning {
+    background-color: #ffffa0;
+}
+
+.Critical,.Down {
+    background-color: #ffa0a0;
+}
+
+.Unknown {
+    background-color: #ffa050;
 }
