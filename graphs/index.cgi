@@ -7,7 +7,7 @@ import os
 import cgi
 import urllib
 
-import nagios_objects
+from nagcat import nagios_objects
 
 HEAD = "Content-Type: text/html"
 PAGE = """<?xml version="1.0" encoding="UTF-8" ?>
