@@ -44,6 +44,26 @@ FEATURES
  * Set different alert thresholds based on the time.
 
 
+REQUIREMENTS
+------------
+
+Strict requirements:
+
+- Python >= 2.4 (>= 2.5 recommended)
+- Twisted >= 2.5 (>= 8.2 recommended)
+- Coil >= 0.3.5
+  http://code.google.com/p/coil
+
+Optional:
+
+- PyOpenSSL (for HTTPS support)
+- lxml (for XPath filter support)
+- rrdtool (for graphing)
+- pynetsnmp (for SNMP querys)
+  http://svn.zenoss.org/svn/trunk/pynetsnmp/
+
+
+
 DOCUMENTATION
 -------------
 
