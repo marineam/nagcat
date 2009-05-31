@@ -1,7 +1,5 @@
 """Parser for nagios object files"""
 
-from coil.struct import Struct
-
 # Note that this expects files generated *by* nagios
 # such objects.cache or status.dat
 
