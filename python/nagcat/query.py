@@ -19,6 +19,7 @@ All requests are defined as a Query class which is a Runnable.
 
 import os
 import re
+import errno
 import signal
 
 try:
@@ -120,8 +121,13 @@ class Query(scheduler.Runnable):
         elif isinstance(result.value, neterror.ConnectionRefusedError):
             raise errors.TestCritical("TCP connection refused")
 
+        elif isinstance(result.value, neterror.ConnectionLost):
+            raise errors.TestCritical("TCP connection lost unexpectedly")
+
         elif isinstance(result.value, neterror.ConnectError):
-            # ConnectError sometimes is used to wrap up various other errors.
+            if result.value.osError == errno.EMFILE:
+                log.error("Too many open files! Restart with a new ulimit -n")
+                raise errors.TestAbort("NAGCAT ERROR: %s" % result.value)
             raise errors.TestCritical("TCP error: %s" % result.value)
 
         return result

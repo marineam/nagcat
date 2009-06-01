@@ -76,6 +76,9 @@ class TestError(Exception):
     state = "UNKNOWN"
     index = 3
 
+class TestAbort(TestError):
+    pass
+
 class TestCritical(TestError):
     state = "CRITICAL"
     index = 2
