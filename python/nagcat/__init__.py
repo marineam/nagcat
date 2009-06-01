@@ -16,7 +16,6 @@
 
 import os
 import sys
-import pstats
 from UserDict import DictMixin
 from optparse import OptionParser
 
@@ -44,7 +43,6 @@ def simple(options, config):
                 % options.test)
 
     config.setdefault('host', options.host)
-    config.setdefault('addr', options.host)
     config.setdefault('port', options.port)
     config.setdefault('test', options.test)
     config.setdefault('name', options.test)

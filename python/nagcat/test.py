@@ -76,14 +76,7 @@ class BaseTest(scheduler.Runnable):
     """Shared base between SimpleTest and Test"""
 
     def __init__(self, conf):
-        assert isinstance(conf, struct.Struct)
-        conf.expand(recursive=False)
-        host = conf.get('host', None)
-        repeat = conf.get('repeat', "1m")
-        try:
-            scheduler.Runnable.__init__(self, repeat, host)
-        except util.IntervalError:
-            raise errors.ConfigError(conf, "Invalid repeat value.")
+        scheduler.Runnable.__init__(self, conf)
 
         self._port = conf.get('port', None)
         # used in return and report
@@ -217,6 +210,7 @@ class Test(BaseTest):
     def _addDefaults(self, conf):
         """Add default values based on this test to a subtest config"""
         conf.setdefault('host', self.host)
+        conf.setdefault('addr', self.addr)
         conf.setdefault('port', self._port)
         conf.setdefault('repeat', str(self.repeat))
 
@@ -376,7 +370,7 @@ class Test(BaseTest):
                 'error': error,
                 'extra': extra,
                 'host': self.host,
-                #'addr': self._addr,
+                'addr': self.addr,
                 'port': self._port,
                 'date': time.ctime(self._now),
                 'time': self._now,

@@ -31,7 +31,6 @@ from twisted.internet import error as neterror
 from twisted.web import error as weberror
 from twisted.web.client import HTTPClientFactory
 from twisted.python.util import InsensitiveDict
-from coil import struct
 
 # SSL support is screwy
 try:
@@ -49,7 +48,7 @@ try:
 except ImportError:
     netsnmp = None
 
-from nagcat import errors, log, scheduler, util
+from nagcat import errors, log, scheduler
 
 _queries = {}
 
@@ -90,13 +89,7 @@ class Query(scheduler.Runnable):
     """
 
     def __init__(self, conf):
-        assert isinstance(conf, struct.Struct)
-        conf.expand(recursive=False)
-        host = conf.get('host', None)
-        try:
-            scheduler.Runnable.__init__(self, conf.get('repeat', None), host)
-        except util.IntervalError:
-            raise errors.ConfigError(conf, "Invalid repeat value.")
+        scheduler.Runnable.__init__(self, conf)
 
         # self.conf must contain all configuration variables that
         # this object uses so identical Queries can be identified.
@@ -157,7 +150,7 @@ class Query_http(Query):
         Query.__init__(self, conf)
 
         self.agent = "NagCat" # Add more info?
-        self.conf['host'] = conf.get('host')
+        self.conf['addr'] = self.addr
         self.conf['port'] = int(conf.get('port', self.port))
         self.conf['path'] = conf.get('path', '/')
         self.conf['data'] = conf.get('data', None)
@@ -166,9 +159,9 @@ class Query_http(Query):
         # Some versions of twisted will send Host twice if it is in the
         # headers dict. Instead we set factory.host.
         if self.conf['port'] == self.port:
-            self.headers_host = self.conf['host']
+            self.headers_host = self.host
         else:
-            self.headers_host = "%s:%s" % (self.conf['host'], self.conf['port'])
+            self.headers_host = "%s:%s" % (self.host, self.conf['port'])
 
         # We need to make sure headers is a dict.
         self.headers = InsensitiveDict()
@@ -225,7 +218,7 @@ class Query_http(Query):
     def _connect(self, factory):
         # Split out the reactor.connect call to allow for easy
         # overriding in HTTPSQuery
-        reactor.connectTCP(self.conf['host'], self.conf['port'],
+        reactor.connectTCP(self.addr, self.conf['port'],
                 factory, self.conf['timeout'])
 
 
@@ -242,7 +235,7 @@ class Query_https(Query_http):
 
     def _connect(self, factory):
         context = ssl.ClientContextFactory()
-        reactor.connectSSL(self.conf['host'], self.conf['port'],
+        reactor.connectSSL(self.addr, self.conf['port'],
                 factory, context, self.conf['timeout'])
 
 class RawProtocol(protocol.Protocol):
@@ -313,7 +306,7 @@ class Query_tcp(Query):
     def __init__(self, conf):
         Query.__init__(self, conf)
 
-        self.conf['host'] = conf.get('host')
+        self.conf['addr'] = self.addr
         self.conf['port'] = int(conf.get('port'))
         self.conf['data'] = conf.get('data', None)
 
@@ -324,7 +317,7 @@ class Query_tcp(Query):
         return factory.deferred
 
     def _connect(self, factory):
-        reactor.connectTCP(self.conf['host'], self.conf['port'],
+        reactor.connectTCP(self.addr, self.conf['port'],
                 factory, self.conf['timeout'])
 
 class Query_ssl(Query_tcp):
@@ -337,7 +330,7 @@ class Query_ssl(Query_tcp):
 
     def _connect(self, factory):
         context = ssl.ClientContextFactory()
-        reactor.connectSSL(self.conf['host'], self.conf['port'],
+        reactor.connectSSL(self.addr, self.conf['port'],
                 factory, context, self.conf['timeout'])
 
 class SubprocessProtocol(protocol.ProcessProtocol):
@@ -450,7 +443,7 @@ class Query_snmp(Query_http):
         Query.__init__(self, conf)
 
         #self.conf['protocol'] = conf.get('protocol', 'udp') #not supported right now
-        self.conf['host'] = conf.get('host')
+        self.conf['addr'] = self.addr
         self.conf['port'] = int(conf.get('port', 161))
         self.conf['oid'] = conf['oid']
         self.conf['version'] = str(conf.get('version', '2c'))
@@ -468,7 +461,7 @@ class Query_snmp(Query_http):
                     "Invalid SNMP version '%s'" % conf['version'])
 
         self._client = twistedsnmp.AgentProxy(
-                self.conf['host'], self.conf['port'],
+                self.addr, self.conf['port'],
                 self.conf['community'], self.conf['version'])
         try:
             self._client.open()

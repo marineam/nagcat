@@ -34,10 +34,12 @@ Scheduling works as follows:
 """
 
 import time
+import socket
 from random import randint
 
 from twisted.internet import defer, reactor
 from twisted.python import failure
+from coil.struct import Struct
 
 from nagcat import errors, util, log
 
@@ -193,15 +195,36 @@ class Runnable(object):
     override _start to actually run its task.
     """
 
-    def __init__(self, repeat, host=None):
+    def __init__(self, conf):
         self.__depends = set()
         self.scheduler = None
         self.lastrun = 0
         self.result = None
         self.deferred = None
-        self.repeat = util.Interval(repeat)
-        # Used to distribute load during startup
-        self.host = host
+
+        if conf is None:
+            conf = Struct()
+
+        assert isinstance(conf, Struct)
+        conf.expand(recursive=False)
+
+        self.host = conf.get('host', None)
+
+        try:
+            self.repeat = util.Interval(conf.get('repeat', '1m'))
+        except util.IntervalError, ex:
+            raise errors.ConfigError(conf, str(ex))
+
+        if 'addr' in conf:
+            self.addr = conf['addr']
+        elif self.host:
+            try:
+                self.addr = socket.gethostbyname(self.host)
+            except socket.gaierror, ex:
+                raise errors.InitError("Failed to resolve '%s': %s"
+                        % (self.host, ex))
+        else:
+            self.addr = None
 
     def _start(self):
         """Start a Runnable object, return a Deferred.
