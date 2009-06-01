@@ -17,7 +17,7 @@
 import os
 
 from coil.errors import CoilError
-from nagcat import errors, log, test, trend
+from nagcat import errors, log, nagios_objects, test, trend
 
 class NagiosTests(object):
     """Setup tests defined by Nagios and report back"""
@@ -80,40 +80,14 @@ class NagiosTests(object):
     def _parse_tests(self):
         """Get the list of NagCat services in the object cache"""
 
-        obj = open(self._nagios_obj)
-
+        parser = nagios_objects.Parser(self._nagios_obj, ('host', 'service'))
         hosts = {}
-        services = []
-        current = {}
-        ishost = False
-        isservice = False
         tests = []
 
-        for line in obj:
-            line = line.strip()
+        for host in parser['host']:
+            hosts[host['host_name']] = host
 
-            if line == "define host {":
-                ishost = True
-            elif ishost and line == "}":
-                hosts[current['host_name']] = current
-                current = {}
-                ishost = False
-            elif line == "define service {":
-                isservice = True
-            elif isservice and line == "}":
-                services.append(current)
-                current = {}
-                isservice = False
-            elif isservice or ishost:
-                split = line.split(None, 1)
-                if len(split) == 2:
-                    current[split[0]] = split[1]
-                else:
-                    current[split[0]] = ""
-
-        obj.close()
-
-        for service in services:
+        for service in parser['service']:
             if "_TEST" not in service:
                 continue
 
