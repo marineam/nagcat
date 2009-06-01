@@ -174,6 +174,8 @@ class Scheduler(object):
                 reactor.callLater(delay, runnable.start)
                 delay += slot
 
+        log.info("Startup complete, running...")
+
     def stop(self):
         """Stop the scheduler"""
 
@@ -292,7 +294,7 @@ class Runnable(object):
 
         if (isinstance(result, failure.Failure) and
                 not isinstance(result.value, errors.TestError)):
-            log.error("Unhandled error:\n%s" % result)
+            log.error("Unhandled error in %s:\n%s" % (self, result))
 
     def addDependency(self, dep):
         """Declare that self depends on another Runnable"""
