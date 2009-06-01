@@ -264,17 +264,21 @@ class Runnable(object):
                 log.warn("Top level task got scheduled too soon! "
                         "Scheduling in %s" % self.repeat)
                 reactor.callLater(self.repeat.seconds, self.start)
-            return defer.succeed(self.result)
+            deferred = defer.succeed(self.result)
+            deferred.addBoth(self.__null)
+        else:
+            # use deferred instead of self.deferred because
+            # __done could have been called already
+            self.deferred = deferred = self.__startDependencies()
+            deferred.addBoth(self.__startSelf)
+            deferred.addBoth(self.__done)
 
-        # use deferred instead of self.deferred because
-        # __done could have been called already
-        self.deferred = deferred = self.__startDependencies()
-        deferred.addBoth(self.__startSelf)
-        deferred.addBoth(self.__done)
         return deferred
 
     @errors.callback
     def __done(self, result):
+        """Save the result, log unhandled errors"""
+
         log.debug("Stopping %s", self)
         log.debug("Result: %s", result)
         self.result = result
@@ -294,7 +298,12 @@ class Runnable(object):
 
         if (isinstance(result, failure.Failure) and
                 not isinstance(result.value, errors.TestError)):
-            log.error("Unhandled error in %s:\n%s" % (self, result))
+            log.error("Unhandled error in %s:\n%s" %
+                    (self, result.getTraceback()))
+
+    def __null(self, result):
+        """Just a sink for results are replayed"""
+        pass
 
     def addDependency(self, dep):
         """Declare that self depends on another Runnable"""
