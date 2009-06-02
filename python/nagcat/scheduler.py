@@ -174,6 +174,9 @@ class Scheduler(object):
                 reactor.callLater(delay, runnable.start)
                 delay += slot
 
+        # Start latency self-checker
+        reactor.callLater(1.0, self.latency, time.time())
+
         log.info("Startup complete, running...")
 
     def stop(self):
@@ -189,6 +192,16 @@ class Scheduler(object):
             log.info("Nothing left to do, stopping.")
 
         reactor.stop()
+
+    def latency(self, last):
+        now = time.time()
+        reactor.callLater(1.0, self.latency, now)
+
+        latency = now - last - 1.0
+        if latency > 5.0:
+            log.error("Callback latency: %s" % latency)
+        elif latency > 1.5:
+            log.warn("Callback latency: %s" % latency)
 
 
 class Runnable(object):
