@@ -132,7 +132,7 @@ class SimpleTest(BaseTest):
         return deferred
 
 
-class ChildError(Exception):
+class ChildError(errors.TestError):
     """This is used to tell Test._report that the error happened in
     a sub-test rather than in the top level Test code.
     """

@@ -33,7 +33,7 @@ class Failure(failure.Failure):
         # has a high overhead and we don't need it for known errors.
         if exc_value is None:
             type_, value, tb = sys.exc_info()
-            if type_ in (TestCritical, TestWarning):
+            if issubclass(type_, TestError):
                 exc_value = value
                 exc_type = type_
                 exc_tb = None
@@ -70,7 +70,7 @@ def callback(method):
 class TestError(Exception):
     """Records a test failure.
 
-    Use subclasses TestWarning and CriticalError, not this class.
+    Use subclasses TestWarning and TestCritical, not this class.
     """
 
     state = "UNKNOWN"
