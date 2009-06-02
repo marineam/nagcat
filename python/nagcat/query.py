@@ -269,7 +269,7 @@ class RawProtocol(protocol.Protocol):
     def connectionLost(self, reason):
         if self.timedout:
             self.factory.result(errors.Failure(
-                errors.CriticalError("Timeout waiting for connection close."),
+                errors.TestCritical("Timeout waiting for connection close."),
                 result=self.result))
         elif self.result:
             self.factory.result(self.result)
