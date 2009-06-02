@@ -35,7 +35,7 @@ Scheduling works as follows:
 
 import time
 import socket
-from random import randint
+import random
 
 from twisted.internet import defer, reactor
 from twisted.python import failure
@@ -131,12 +131,14 @@ class Scheduler(object):
         """
         assert self._startup and not self._running
 
-        self._startup = False
+        tests = len(self._registered)
         self._create_groups()
+        self._startup = False
+        log.info("There are %s tests configured in %s groups" % (tests, len(self._registered)))
 
     def start(self):
         """Start up the scheduler!"""
-
+        assert not self._startup and not self._running
         self._running = True
 
         if not self._registered:
@@ -163,11 +165,9 @@ class Scheduler(object):
             # the end of the slot time period. Any remaining runnables will
             # start after the number of seconds in the slot. This should
             # evenly distribute queries that are sent to the same host.
-            slot = 60 // len(host_group)
-            if slot == 0:
-                slot = 1
-
-            delay = randint(0, slot)
+            slot = 60.0 / len(host_group)
+            assert slot
+            delay = random.random() * slot
 
             for runnable in host_group:
                 log.debug("Scheduling %s in %s seconds.", runnable, delay)
@@ -296,10 +296,14 @@ class Runnable(object):
             self.scheduler.unregister(self)
             self.scheduler = None
 
-        if (isinstance(result, failure.Failure) and
-                not isinstance(result.value, errors.TestError)):
-            log.error("Unhandled error in %s:\n%s" %
-                    (self, result.getTraceback()))
+        if isinstance(result, failure.Failure):
+            if isinstance(result.value, errors.TestError):
+                if result.tb is not None:
+                    log.warn("TestError with a traceback in %s:\n" %
+                            (self, result.getTraceback()))
+            else:
+                log.error("Unhandled error in %s:\n%s" %
+                        (self, result.getTraceback()))
 
     def __null(self, result):
         """Just a sink for results are replayed"""

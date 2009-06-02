@@ -184,6 +184,7 @@ def init(options):
     for testobj in tests:
         sch.register(testobj)
 
+    sch.prepare()
     reactor.callWhenRunning(sch.start)
 
     # daemonize and redirect stdio to log
