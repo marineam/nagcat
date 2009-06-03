@@ -268,7 +268,13 @@ class Test(BaseTest):
         """
 
         def indent(string, prefix="    "):
-            return "\n".join([prefix+x for x in string.splitlines()])
+            ret = ""
+            for line in string.splitlines():
+                if line:
+                    ret = "%s%s%s\n" % (ret, prefix, line)
+                else:
+                    ret = "%s\n" % ret
+            return ret
 
         # Choose what to report at the main result
         if isinstance(result, failure.Failure):
