@@ -298,7 +298,8 @@ class Test(BaseTest):
             else:
                 failed = result
 
-            if isinstance(failed, errors.Failure):
+            if (isinstance(failed, errors.Failure) and
+                    failed.result is not errors.NO_RESULT):
                 output = failed.result
             else:
                 output = ""
@@ -333,7 +334,8 @@ class Test(BaseTest):
             if isinstance(subtest.result, failure.Failure):
                 results[subname] = ""
 
-                if isinstance(subtest.result, errors.Failure):
+                if (isinstance(subtest.result, errors.Failure) and
+                        subtest.result.result is not errors.NO_RESULT):
                     subout = str(subtest.result.result)
                 else:
                     subout = ""

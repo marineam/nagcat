@@ -20,13 +20,13 @@ from twisted.python import failure
 from twisted.python.log import logerr
 from coil.errors import StructError
 
-_no_result = object()
+NO_RESULT = object()
 
 class Failure(failure.Failure):
     """Custom failure class to keep the result a callback was given"""
 
     def __init__(self, exc_value=None, exc_type=None,
-            exc_tb=None, result=_no_result):
+            exc_tb=None, result=NO_RESULT):
         self.result = result
 
         # Don't include the traceback for TestError, processing it
@@ -41,7 +41,7 @@ class Failure(failure.Failure):
         failure.Failure.__init__(self, exc_value, exc_type, exc_tb)
 
     def printTraceback(self, file=None, *args, **kwargs):
-        if self.result is not _no_result:
+        if self.result is not NO_RESULT:
             # Failure is odd and writes to a file like object instead
             # of just returning a string like a sane person would...
             if file is None:
