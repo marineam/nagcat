@@ -226,6 +226,7 @@ class Runnable(object):
         assert isinstance(conf, Struct)
         conf.expand(recursive=False)
 
+        self.label = conf.get('label', "")
         self.host = conf.get('host', None)
 
         try:
