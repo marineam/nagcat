@@ -270,10 +270,9 @@ class Test(BaseTest):
         def indent(string, prefix="    "):
             ret = ""
             for line in string.splitlines():
-                if line:
-                    ret = "%s%s%s\n" % (ret, prefix, line)
-                else:
-                    ret = "%s\n" % ret
+                if line.strip():
+                    line = prefix+line
+                ret += line+'\n'
             return ret
 
         # Choose what to report at the main result
@@ -329,7 +328,6 @@ class Test(BaseTest):
             for savedname, savedval in subtest.saved.iteritems():
                 subextra += "    %s:\n" % savedname
                 subextra += indent(str(savedval), " "*8)
-                subextra += "\n"
 
             if isinstance(subtest.result, failure.Failure):
                 results[subname] = ""
@@ -352,15 +350,13 @@ class Test(BaseTest):
             if subout and subout != output:
                 subextra += "    Output:\n"
                 subextra += indent(subout, " "*8)
-                subextra += "\n"
 
             if suberr and suberr != error:
                 subextra += "    Error:\n"
                 subextra += indent(suberr, " "*8)
-                subextra += "\n"
 
             if subextra:
-                extra += indent("%s:\n%s\n" % (subname, subextra))
+                extra += indent("%s:\n%s" % (subname, subextra))
 
         assert state in STATES
 
