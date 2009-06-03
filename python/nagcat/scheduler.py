@@ -133,8 +133,11 @@ class Scheduler(object):
 
         tests = len(self._registered)
         self._create_groups()
+        if tests > 1:
+            log.info("There are %s tests configured in %s groups" %
+                    (tests, len(self._registered)))
+
         self._startup = False
-        log.info("There are %s tests configured in %s groups" % (tests, len(self._registered)))
 
     def start(self):
         """Start up the scheduler!"""
@@ -218,7 +221,7 @@ class Runnable(object):
         self.deferred = None
 
         if conf is None:
-            conf = Struct()
+            conf = Struct({'repeat': None})
 
         assert isinstance(conf, Struct)
         conf.expand(recursive=False)
@@ -349,14 +352,12 @@ class RunnableGroup(Runnable):
     """
 
     def __init__(self, group):
-        Runnable.__init__(self, None)
-
+        # Grab the first non-zero repeat value and count hosts
         hosts = {}
-
+        repeat = None
         for dependency in group:
-            if not self.repeat:
-                self.repeat = dependency.repeat
-            self.addDependency(dependency)
+            if not repeat:
+                repeat = dependency.repeat
 
             if dependency.host in hosts:
                 hosts[dependency.host] += 1
@@ -373,4 +374,10 @@ class RunnableGroup(Runnable):
                 max_count = count
 
         self.host = max_host
+
+        # Setup this Runnable
+        conf = Struct({'repeat': repeat, 'host': max_host})
+        Runnable.__init__(self, conf)
+        for dependency in group:
+            self.addDependency(dependency)
 
