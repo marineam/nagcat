@@ -176,16 +176,16 @@ def init(options):
             tests = nagios.NagiosTests(config, options.nagios)
         else:
             raise Exception("Normal mode without nagios is unimplemented")
+
+        sch = scheduler.Scheduler()
+        for testobj in tests:
+            sch.register(testobj)
+
+        sch.prepare()
+        reactor.callWhenRunning(sch.start)
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)
-
-    sch = scheduler.Scheduler()
-    for testobj in tests:
-        sch.register(testobj)
-
-    sch.prepare()
-    reactor.callWhenRunning(sch.start)
 
     # daemonize and redirect stdio to log
     if options.daemon:

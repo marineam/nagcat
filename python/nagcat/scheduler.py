@@ -220,9 +220,6 @@ class Runnable(object):
         self.result = None
         self.deferred = None
 
-        if conf is None:
-            conf = Struct({'repeat': None})
-
         assert isinstance(conf, Struct)
         conf.expand(recursive=False)
 
@@ -374,10 +371,8 @@ class RunnableGroup(Runnable):
                 max_host = host
                 max_count = count
 
-        self.host = max_host
-
         # Setup this Runnable
-        conf = Struct({'repeat': repeat, 'host': max_host})
+        conf = Struct({'repeat': repeat, 'host': max_host, 'addr': None})
         Runnable.__init__(self, conf)
         for dependency in group:
             self.addDependency(dependency)

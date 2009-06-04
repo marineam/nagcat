@@ -17,7 +17,7 @@
 import os
 
 from coil.errors import CoilError
-from nagcat import errors, log, nagios_objects, test, trend
+from nagcat import errors, log, nagios_api, nagios_objects, test, trend
 
 class NagiosTests(object):
     """Setup tests defined by Nagios and report back"""
@@ -27,7 +27,6 @@ class NagiosTests(object):
 
         self._nagios_obj = None
         self._nagios_cmd = None
-        self._nagios_cmd_fd = None
 
         try:
             self._parse_cfg(nagios_cfg)
@@ -55,6 +54,7 @@ class NagiosTests(object):
     def _parse_cfg(self, nagios_cfg):
         """Find the object cache and command file"""
 
+        cmd_file = None
         cfg = open(nagios_cfg)
 
         for line in cfg:
@@ -62,20 +62,20 @@ class NagiosTests(object):
             if line.startswith("object_cache_file="):
                 (var, self._nagios_obj) = line.split("=", 1)
             elif line.startswith("command_file="):
-                (var, self._nagios_cmd) = line.split("=", 1)
+                (var, cmd_file) = line.split("=", 1)
 
         cfg.close()
 
         if self._nagios_obj is None:
             raise errors.InitError(
                     "Failed to find object_cache_file in %s" % nagios_cfg)
-        if self._nagios_cmd is None:
+        if cmd_file is None:
             raise errors.InitError(
                     "Failed to find command_file in %s" % nagios_cfg)
 
-        self._open_command_file()
+        self._nagios_cmd = nagios_api.NagiosCommander(cmd_file)
         log.info("Using Nagios object cache: %s", self._nagios_obj)
-        log.info("Using Nagios command file: %s", self._nagios_cmd)
+        log.info("Using Nagios command file: %s", cmd_file)
 
     def _parse_tests(self):
         """Get the list of NagCat services in the object cache"""
@@ -155,39 +155,10 @@ class NagiosTests(object):
 
         return tests
 
-    def _open_command_file(self):
-        try:
-            self._nagios_cmd_fd = os.open(self._nagios_cmd,
-                    os.O_WRONLY | os.O_APPEND | os.O_NONBLOCK)
-        except OSError, ex:
-            raise errors.InitError("Failed to open command file %s: %s"
-                    % (self._nagios_cmd, ex))
-
-    def _write_command(self, data):
-        try:
-            os.write(self._nagios_cmd_fd, data)
-        except (OSError, IOError):
-            self._open_command_file()
-            try:
-                os.write(self._nagios_cmd_fd, data)
-            except (OSError, IOError), ex:
-                raise errors.InitError("Failed to write command to %s: %s"
-                        % (self._nagios_cmd, ex))
-
     def _send_report(self, report, host_name, service_description):
         log.debug("Submitting report for %s %s to Nagios",
                 host_name, service_description)
 
-        msg = "[%s] PROCESS_SERVICE_CHECK_RESULT;%s;%s;%s;%s\n" % (
-                int(report['time']), host_name, service_description,
-                report['state_id'], report['text'].replace("\n","\\n") )
-
-        # The | character is special in nagios output :-(
-        # It would be nice to escape it instead so reports are correct
-        msg = msg.replace('|', '_')
-
-        try:
-            self._write_command(msg)
-        except errors.InitError, ex:
-            log.error("Error while writing report for %s/%s: %s",
-                    host_name, service_description, ex)
+        self._nagios_cmd.command(report['time'],
+                'PROCESS_SERVICE_CHECK_RESULT', host_name,
+                service_description, report['state_id'], report['text'])

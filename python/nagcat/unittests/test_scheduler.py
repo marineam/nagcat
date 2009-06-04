@@ -14,12 +14,13 @@
 
 from twisted.trial import unittest
 #from nagcat.unittests import dummy_server
+from coil.struct import Struct
 from nagcat import scheduler
 
 class RunnableTestCase(unittest.TestCase):
 
     def testSingle(self):
-        r = scheduler.Runnable(None)
+        r = scheduler.Runnable(Struct({'repeat': None}))
         d = r.start()
         d.addBoth(self.endSingle, r)
         return d
