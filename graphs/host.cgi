@@ -62,8 +62,8 @@ host_dir = "%s/%s" % (os.getenv('NAGCAT_RRA_DIR'), host)
 assert obj_file and os.path.isfile(obj_file)
 assert stat_file and os.path.isfile(stat_file)
 
-objects = nagios_objects.Parser(obj_file, ('host',), {'host_name': host})
-status = nagios_objects.Parser(stat_file,
+objects = nagios_objects.ObjectParser(obj_file, ('host',), {'host_name': host})
+status = nagios_objects.ObjectParser(stat_file,
         ('host','service'), {'host_name': host})
 host_conf = objects['host'][0]
 host_info_esc = cgi.escape(host_conf['notes'])

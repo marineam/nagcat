@@ -48,8 +48,8 @@ assert rra_dir and os.path.isdir(rra_dir)
 assert obj_file and os.path.isfile(obj_file)
 assert stat_file and os.path.isfile(stat_file)
 
-group_list = nagios_objects.Parser(obj_file, ('hostgroup',))['hostgroup']
-host_list = nagios_objects.Parser(stat_file, ('host',))['host']
+group_list = nagios_objects.ObjectParser(obj_file, ('hostgroup',))['hostgroup']
+host_list = nagios_objects.ObjectParser(stat_file, ('host',))['host']
 
 host_map = {}
 for host in host_list:

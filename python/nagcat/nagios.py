@@ -27,18 +27,8 @@ class NagiosTests(object):
 
         self._nagios_obj = None
         self._nagios_cmd = None
-
-        try:
-            self._parse_cfg(nagios_cfg)
-        except IOError, ex:
-            raise errors.InitError("Failed to open Nagios config: %s" % ex)
-
-        try:
-            test_skels = self._parse_tests()
-        except IOError, ex:
-            raise errors.InitError(
-                    "Failed to read Nagios object cache: %s" % ex)
-
+        self._parse_cfg(nagios_cfg)
+        test_skels = self._parse_tests()
         self._tests = self._fill_templates(templates, test_skels)
 
     # Provide read-only access to the test list
@@ -54,33 +44,32 @@ class NagiosTests(object):
     def _parse_cfg(self, nagios_cfg):
         """Find the object cache and command file"""
 
-        cmd_file = None
-        cfg = open(nagios_cfg)
+        try:
+            cfg = nagios_objects.ConfigParser(nagios_cfg)
+        except IOError, ex:
+            raise errors.InitError("Failed to read Nagios config: %s" % ex)
 
-        for line in cfg:
-            line = line.strip()
-            if line.startswith("object_cache_file="):
-                (var, self._nagios_obj) = line.split("=", 1)
-            elif line.startswith("command_file="):
-                (var, cmd_file) = line.split("=", 1)
+        print cfg
 
-        cfg.close()
+        for key in 'object_cache_file', 'command_file':
+            if key not in cfg:
+                raise errors.InitError(
+                        "Failed to find %s in %s" % (key, nagios_cfg))
 
-        if self._nagios_obj is None:
-            raise errors.InitError(
-                    "Failed to find object_cache_file in %s" % nagios_cfg)
-        if cmd_file is None:
-            raise errors.InitError(
-                    "Failed to find command_file in %s" % nagios_cfg)
-
-        self._nagios_cmd = nagios_api.NagiosCommander(cmd_file)
+        self._nagios_obj = cfg['object_cache_file']
+        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'])
         log.info("Using Nagios object cache: %s", self._nagios_obj)
-        log.info("Using Nagios command file: %s", cmd_file)
+        log.info("Using Nagios command file: %s", cfg['command_file'])
 
     def _parse_tests(self):
         """Get the list of NagCat services in the object cache"""
 
-        parser = nagios_objects.Parser(self._nagios_obj, ('host', 'service'))
+        try:
+            parser = nagios_objects.ObjectParser(
+                    self._nagios_obj, ('host', 'service'))
+        except IOError, ex:
+            raise errors.InitError(
+                    "Failed to read Nagios object cache: %s" % ex)
         hosts = {}
         tests = []
 

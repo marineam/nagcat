@@ -1,9 +1,25 @@
-"""Parser for nagios object files"""
+# Copyright 2009 ITA Software, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Parsers for nagios config and object files"""
+
+import re
 
 # Note that this expects files generated *by* nagios
 # such objects.cache or status.dat
 
-class Parser(object):
+class ObjectParser(object):
     """Parse a given config file for the requested objects"""
 
     def __init__(self, object_file, object_types=(), object_select={}):
@@ -74,6 +90,34 @@ class Parser(object):
 
     def types(self):
         return self._objects.keys()
+
+class ConfigParser(object):
+    """Parser for the main nagios config file (nagios.cfg)"""
+
+    ATTR = re.compile("^(\w+)\s*=\s*(.*)$")
+
+    def __init__(self, config_file):
+
+        self._config = {}
+
+        config_fd = open(config_file)
+
+        for line in config_fd:
+            line = line.strip()
+            match = self.ATTR.match(line)
+            if match:
+                self._config[match.group(1)] = match.group(2)
+
+        config_fd.close()
+
+    def __getitem__(self, key):
+        return self._config[key]
+
+    def __contains__(self, key):
+        return key in self._config
+
+    def keys(self):
+        return self._config.keys()
 
 if __name__ == "__main__":
     import sys, pprint

@@ -59,7 +59,7 @@ host_dir = "%s/%s" % (os.getenv('NAGCAT_RRA_DIR'), host)
 assert obj_file and os.path.isfile(obj_file)
 assert stat_file and os.path.isfile(stat_file)
 
-service_info = nagios_objects.Parser(stat_file, ('service',),
+service_info = nagios_objects.ObjectParser(stat_file, ('service',),
         {'host_name': host, 'service_description': service})['service'][0]
 
 if service_info['long_plugin_output']:
