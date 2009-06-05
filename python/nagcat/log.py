@@ -143,7 +143,7 @@ def info(text, *args):
     if args:
         log.msg(text % args, log_level=2)
     else:
-        log.msg(text, log_level=0)
+        log.msg(text, log_level=2)
 
 def debug(text, *args):
     """Log text at level DEBUG"""
@@ -152,13 +152,13 @@ def debug(text, *args):
     if args:
         log.msg(text % args, log_level=3)
     else:
-        log.msg(text, log_level=0)
+        log.msg(text, log_level=3)
 
 def trace(text, *args):
     """Log text at level TRACE"""
     if _logger and _logger.log_level < 4:
         return
     if args:
-        log.msg(text % args, log_level=3)
+        log.msg(text % args, log_level=4)
     else:
-        log.msg(text, log_level=0)
+        log.msg(text, log_level=4)
