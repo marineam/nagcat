@@ -83,5 +83,8 @@ def main():
         log.error(str(ex))
         sys.exit(1)
 
-    reactor.listenTCP(options.port, server.Site(rpc))
+    site = server.Site(rpc)
+    site.noisy = False
+
+    reactor.listenTCP(options.port, site)
     reactor.run()

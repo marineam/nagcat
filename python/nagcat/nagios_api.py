@@ -25,6 +25,8 @@ from nagcat import errors, log, nagios_objects
 class NagiosCommander(object):
 
     ALLOWED_COMMANDS = {
+            'DEL_HOST_DOWNTIME': 1,
+            'DEL_SVC_DOWNTIME': 1,
             'PROCESS_SERVICE_CHECK_RESULT': 4,
             'SCHEDULE_HOSTGROUP_HOST_DOWNTIME': 8,
             'SCHEDULE_HOST_DOWNTIME': 8,
@@ -95,7 +97,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         xmlrpc.XMLRPC.__init__(self)
         xmlrpc.addIntrospection(self)
 
-        cfg = nagios_objects.ConfigParser(nagios_cfg)
+        cfg = nagios_objects.ConfigParser(nagios_cfg,
+                ('object_cache_file', 'command_file', 'status_file'))
 
         # object types we care about:
         types = ('host', 'service', 'hostgroup', 'servicegroup')
@@ -126,13 +129,23 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             self._objects['servicegroup'][obj['servicegroup_name']] = obj
 
         self._cmdobj = NagiosCommander(cfg['command_file'])
-        print "running.."
+        self._status_file = cfg['status_file']
 
     def _cmd(self, *args):
         try:
             self._cmdobj.command(*args)
         except errors.InitError, ex:
             raise xmlrpc.Fault(1, "Command failed: %s" % ex)
+
+    def _status(self, object_types=(), object_select=()):
+        try:
+            stat = nagios_objects.ObjectParser(
+                    self._status_file, object_types, object_select)
+        except errors.InitError, ex:
+            log.error("Failed to parse Nagios status file: %s" % ex)
+            raise xmlrpc.Fault(1, "Failed to read Nagios status")
+
+        return stat
 
     def xmlrpc_listHosts(self):
         """get a list of host names"""
@@ -239,6 +252,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         stop: date/time to auto-cancel the downtime
         user: identifier defining who/what sent this request
         comment: arbitrary comment about the downtime
+        
+        returns a key to use to cancel this downtime early
         """
 
         return self._scheduleServiceGroupDowntime(False,
@@ -254,6 +269,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         stop: date/time to auto-cancel the downtime
         user: identifier defining who/what sent this request
         comment: arbitrary comment about the downtime
+        
+        returns a key to use to cancel this downtime early
         """
 
         return self._scheduleServiceGroupDowntime(True,
@@ -348,6 +365,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         stop: date/time to auto-cancel the downtime
         user: identifier defining who/what sent this request
         comment: arbitrary comment about the downtime
+        
+        returns a key to use to cancel this downtime early
         """
 
         return self._scheduleHostGroupDowntime(False,
@@ -363,6 +382,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         stop: date/time to auto-cancel the downtime
         user: identifier defining who/what sent this request
         comment: arbitrary comment about the downtime
+        
+        returns a key to use to cancel this downtime early
         """
 
         return self._scheduleHostGroupDowntime(True,
@@ -409,3 +430,33 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
                         start, stop, 1, 0, 0, user, comment)
 
         return "%d:%d" % (now, key)
+
+    def xmlrpc_delServiceDowntime(self, key):
+        """Cancel all service downtimes identified by key"""
+
+        return self._delDowntime('servicedowntime', 'DEL_SVC_DOWNTIME', key)
+
+    def xmlrpc_delHostDowntime(self, key):
+        """Cancel all host downtimes identified by key"""
+
+        return self._delDowntime('hostdowntime', 'DEL_HOST_DOWNTIME', key)
+
+    def _delDowntime(self, objtype, cmdtype, key):
+        try:
+            timestamp, uid = key.split(':', 1)
+            assert int(timestamp) and int(uid)
+        except:
+            raise xmlrpc.Fault(1, "Invalid downtime key: %r" % key)
+
+        status = self._status([objtype], {'entry_time': timestamp})
+        count = 0
+
+        for downtime in status[objtype]:
+            if downtime['comment'].endswith('key=%s' % uid):
+                self._cmd(None, cmdtype, downtime['downtime_id'])
+                count += 1
+
+        return count
+
+
+

@@ -25,8 +25,10 @@ class ObjectParser(object):
     such objects.cache or status.dat
     """
 
-    def __init__(self, object_file, object_types=(), object_select={}):
+    def __init__(self, object_file, object_types=(), object_select=()):
         self._objects = {}
+
+        object_select = dict(object_select)
 
         try:
             self._parse(object_file, object_types, object_select)
@@ -52,6 +54,9 @@ class ObjectParser(object):
                     elif line.endswith('status {'):
                         splitter = '='
                         type_ = line[:-8]
+                    elif line.endswith(' {'):
+                        splitter = '='
+                        type_ = line[:-2]
                     else:
                         continue
 
