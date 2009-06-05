@@ -16,14 +16,25 @@
 
 import re
 
-# Note that this expects files generated *by* nagios
-# such objects.cache or status.dat
+from nagcat import errors
 
 class ObjectParser(object):
-    """Parse a given config file for the requested objects"""
+    """Parse a given config file for the requested objects.
+
+    Note that this expects files generated *by* Nagios
+    such objects.cache or status.dat
+    """
 
     def __init__(self, object_file, object_types=(), object_select={}):
         self._objects = {}
+
+        try:
+            self._parse(object_file, object_types, object_select)
+        except IOError, ex:
+            raise errors.InitError(
+                    "Failed to read Nagios object cache: %s" % ex)
+
+    def _parse(self, object_file, object_types, object_select):
         for type_ in object_types:
             self._objects[type_] = []
 
@@ -95,20 +106,29 @@ class ConfigParser(object):
     """Parser for the main nagios config file (nagios.cfg)"""
 
     ATTR = re.compile("^(\w+)\s*=\s*(.*)$")
+    # Default required config options
+    REQUIRED = ('object_cache_file', 'command_file')
 
-    def __init__(self, config_file):
-
+    def __init__(self, config_file, required=REQUIRED):
         self._config = {}
 
-        config_fd = open(config_file)
+        try:
+            config_fd = open(config_file)
 
-        for line in config_fd:
-            line = line.strip()
-            match = self.ATTR.match(line)
-            if match:
-                self._config[match.group(1)] = match.group(2)
+            for line in config_fd:
+                line = line.strip()
+                match = self.ATTR.match(line)
+                if match:
+                    self._config[match.group(1)] = match.group(2)
 
-        config_fd.close()
+            config_fd.close()
+        except IOError, ex:
+            raise errors.InitError("Failed to read Nagios config: %s" % ex)
+
+        for key in required:
+            if key not in self._config:
+                raise errors.InitError(
+                        "Failed to find %s in %s" % (key, config_file))
 
     def __getitem__(self, key):
         return self._config[key]
@@ -118,11 +138,3 @@ class ConfigParser(object):
 
     def keys(self):
         return self._config.keys()
-
-if __name__ == "__main__":
-    import sys, pprint
-    assert len(sys.argv) == 2
-    parser = Parser(sys.argv[1])
-    for type_ in parser.types():
-        print "### %s ###" % type_
-        pprint.pprint(parser[type_])

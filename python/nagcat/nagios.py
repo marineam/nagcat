@@ -14,8 +14,6 @@
 
 """NagCat->Nagios connector"""
 
-import os
-
 from coil.errors import CoilError
 from nagcat import errors, log, nagios_api, nagios_objects, test, trend
 
@@ -25,9 +23,13 @@ class NagiosTests(object):
     def __init__(self, templates, nagios_cfg):
         """Read given Nagios config file"""
 
-        self._nagios_obj = None
-        self._nagios_cmd = None
-        self._parse_cfg(nagios_cfg)
+        cfg = nagios_objects.ConfigParser(nagios_cfg)
+        self._nagios_obj = cfg['object_cache_file']
+        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'])
+
+        log.info("Using Nagios object cache: %s", self._nagios_obj)
+        log.info("Using Nagios command file: %s", cfg['command_file'])
+
         test_skels = self._parse_tests()
         self._tests = self._fill_templates(templates, test_skels)
 
@@ -41,35 +43,11 @@ class NagiosTests(object):
     def __iter__(self):
         return iter(self._tests)
 
-    def _parse_cfg(self, nagios_cfg):
-        """Find the object cache and command file"""
-
-        try:
-            cfg = nagios_objects.ConfigParser(nagios_cfg)
-        except IOError, ex:
-            raise errors.InitError("Failed to read Nagios config: %s" % ex)
-
-        print cfg
-
-        for key in 'object_cache_file', 'command_file':
-            if key not in cfg:
-                raise errors.InitError(
-                        "Failed to find %s in %s" % (key, nagios_cfg))
-
-        self._nagios_obj = cfg['object_cache_file']
-        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'])
-        log.info("Using Nagios object cache: %s", self._nagios_obj)
-        log.info("Using Nagios command file: %s", cfg['command_file'])
-
     def _parse_tests(self):
         """Get the list of NagCat services in the object cache"""
 
-        try:
-            parser = nagios_objects.ObjectParser(
-                    self._nagios_obj, ('host', 'service'))
-        except IOError, ex:
-            raise errors.InitError(
-                    "Failed to read Nagios object cache: %s" % ex)
+        parser = nagios_objects.ObjectParser(
+                self._nagios_obj, ('host', 'service'))
         hosts = {}
         tests = []
 
