@@ -401,7 +401,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         count = 0
 
         for downtime in status[objtype]:
-            if downtime['comment'].endswith('key=%s' % uid):
+            if downtime['comment'].endswith('key:%s' % uid):
                 self._cmd(None, cmdtype, downtime['downtime_id'])
                 count += 1
 
