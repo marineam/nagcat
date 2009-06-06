@@ -41,6 +41,8 @@ def parse_options():
             help="path to nagios.cfg (required)")
     parser.add_option("-P", "--port", dest="port", type="int",
             help="port to listen on (required)")
+    parser.add_option("-H", "--host", dest="host", default="",
+            help="local host name or address to listen on")
 
     (options, args) = parser.parse_args()
 
@@ -86,5 +88,5 @@ def main():
     site = server.Site(rpc)
     site.noisy = False
 
-    reactor.listenTCP(options.port, site)
+    reactor.listenTCP(options.port, site, interface=options.host)
     reactor.run()
