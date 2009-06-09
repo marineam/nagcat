@@ -11,17 +11,17 @@ td {
 }
 
 .Ok,.Up {
-    background-color: #a0ffa0;
+    background-color: #ccffcc;
 }
 
 .Warning {
-    background-color: #ffffa0;
+    background-color: #ffffcc;
 }
 
 .Critical,.Down {
-    background-color: #ffa0a0;
+    background-color: #ffcccc;
 }
 
 .Unknown {
-    background-color: #ffa050;
+    background-color: #ffcc55;
 }

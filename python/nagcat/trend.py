@@ -69,7 +69,7 @@ class Trend(object):
         self._start = start
 
         def parse_ds(ds_name, ds_conf):
-            if 'trend' not in ds_conf:
+            if 'trend' not in ds_conf or 'type' not in ds_conf['trend']:
                 return
 
             # Only type supported right now
@@ -106,6 +106,14 @@ class Trend(object):
             except OSError, ex:
                 raise errors.InitError("Cannot create directory %s: %s" %
                         (self._rradir, ex))
+
+        coil_file = os.path.join(self._rradir, "%s.coil" % conf['name'])
+        try:
+            coil_fd = open(coil_file, 'w')
+            coil_fd.write('%s\n' % conf)
+            coil_fd.close()
+        except (IOError, OSError), ex:
+            raise errors.InitError("Cannot write to %s: %s" % (coil_file, ex))
 
         if os.path.exists(self._rrafile):
             self.validate()
