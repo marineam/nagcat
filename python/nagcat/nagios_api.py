@@ -42,6 +42,12 @@ class NagiosCommander(object):
         self._open_command_file()
 
     def _open_command_file(self):
+        if self._command_fd:
+            try:
+                os.close(self._command_fd)
+            except:
+                pass
+
         try:
             self._command_fd = os.open(self._command_file,
                     os.O_WRONLY | os.O_APPEND | os.O_NONBLOCK)
