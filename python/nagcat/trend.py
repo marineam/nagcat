@@ -197,4 +197,4 @@ class Trend(object):
             rrdtool.update(self._rrafile, "-t", names,
                     "%s:%s" % (report['time'], values))
         except Exception, ex:
-            log.error("rrdupdate failed: %s" % ex)
+            log.error("rrdupdate for %s failed: %s" % (self._rrafile, ex))
