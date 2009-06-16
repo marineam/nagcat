@@ -42,10 +42,10 @@ class NagiosCommander(object):
         self._open_command_file()
 
     def _open_command_file(self):
-        if self._command_fd:
+        if self._command_fd is not None:
             tmp_fd = self._command_fd
             self._command_fd = None
-            os.close(self._command_fd)
+            os.close(tmp_fd)
 
         try:
             self._command_fd = os.open(self._command_file,
@@ -55,6 +55,9 @@ class NagiosCommander(object):
                     % (self._command_file, ex))
 
     def _write_command(self, data):
+        if self._command_fd is None:
+            self._open_command_file()
+
         try:
             os.write(self._command_fd, data)
         except (OSError, IOError):
