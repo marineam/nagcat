@@ -43,10 +43,9 @@ class NagiosCommander(object):
 
     def _open_command_file(self):
         if self._command_fd:
-            try:
-                os.close(self._command_fd)
-            except:
-                pass
+            tmp_fd = self._command_fd
+            self._command_fd = None
+            os.close(self._command_fd)
 
         try:
             self._command_fd = os.open(self._command_file,
