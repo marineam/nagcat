@@ -167,6 +167,10 @@ test-name: {
         # type. See the Queries section for the details.
     }
 
+    # 'label' is a optional user friendly name to describe the final
+    # value. It is used in some errors and rrdtool trend graphs.
+    label: "% Disk Used"
+
     # 'repeat' defines when or how frequently to run. It may be a
     # specific time of day or a time interval such as 10s or 10m.
     # The default is 1 minute.
@@ -197,8 +201,8 @@ test-name: {
     #       included with that name in the 'Extra Output' section of the
     #       report.
     #
-    #	"warning:<operator> <value>"
-    #	"critical:<operator> <value>"
+    #    "warning:<operator> <value>"
+    #    "critical:<operator> <value>"
     #       The warning and critical filters simply test the data and
     #       raise a Warning or Critical alert if the test is true.
     #       Normally you will define these with the separate warning
@@ -226,6 +230,60 @@ test-name: {
     # string "ok" is returned you could write: critical: "!~ ^ok$"
     warning: "<operator> <value>"
     critical: "<operator> <value>"
+
+    # The 'trend' block defines how to record and graph the data over
+    # time using rrdtool. By the final state is always recorded but
+    # if the data is numeric this can be used to record it as well.
+    trend: {
+        # 'type' defines the type of data. It can be any of the normal
+        # rrdtool data source types:
+        # 'gauge' records a plain value, such as temperature
+        # 'counter' records the change in a counter, resets are auto-detected.
+        # 'derive' also records the change in the value, but can be negative.
+        # 'absolute' is a special counter that resets when read.
+        # If the 'type' attribute is not given then only the final state
+        # is recorded.
+        type: 'gauge'
+
+        # 'label' will appear in the graph legend to identify this
+        # data. It will default to the test's label or 'Result'.
+        label: "Awesome Data"
+
+        # 'display' defines how to display the data, can be 'line'
+        # or 'area'. Use 'area' if you want the various data souces
+        # to stack on top of each other. Defaults to 'line'.
+        display: "line"
+
+        # 'color' defines a RGB color to use for the line or area.
+        # A color will be chosen if not given.
+        color: "#000000"
+
+        # 'scale' defines what scale the returned data is. This can
+        # be used to ensure the scale is correct if a query returns
+        # a size in KB instead of Bytes. In this case set scale to
+        # 1024. Defaults to 0.
+        scale: 1024
+
+        # 'base' defines what base the data is. This also helps ensure
+        # the scale is correct. If a query is getting an amount of
+        # memory set this to 1024 so one 'K' is 1024, one M is 1024K,
+        # etc. The default is 1000 so on 'K' is 1000, one M is 1000K.
+        base: 1024
+
+        # 'title' defines a title to place at the top of the graph.
+        title: "somehost - Pretty Graph"
+
+        # axis_min/axis_max: default minimum and maximum scale for the
+        # y axis. If any data is outside of this range the scale will
+        # be expanded to include it. axis_min defaults to 0
+        axis_min: 0
+        axis_max: 99
+
+        # axis_label provides a label for the y axis. This will
+        # typically be the units of the data such as 'bytes'.
+        # The default is no label
+        axis_label: "bytes"
+    }
 
     # 'documentation' and 'investigation' are used only for providing
     # in-line information in the generated reports. They can be either a
@@ -294,6 +352,11 @@ query: {
     filters: [ "somefilter:arguments" ]
     warning: "<operator> <value>"
     critical: "<operator> <value>"
+
+    # 'trend' is the same as the trend block in the main test section
+    # but will graph this specific query's data. All the same
+    # attributes are supported except for axis_min, axis_max, axis_label.
+    trend: { type: "gauge" }
 
     # 'repeat' may be defined here to override the repeat value for the
     # entire test. This is useful for having one sub-query in a compound
