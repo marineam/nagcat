@@ -172,6 +172,41 @@ test-name: {
     # The default is 1 minute.
     repeat: "1m"
 
+    # Filters are strings defining some manipulation to the data
+    # returned, they are run in the order listed.
+    # Valid filters are:
+    #   "regex:<some regular expression>"
+    #       If the regular expression includes a grouping ie: (foo) the
+    #       result will be the first grouping, otherwise it is the match
+    #       of the entire expression.
+    #
+    #   "date2epoch:<date format>"
+    #       Convert a date using the given format to a time in seconds
+    #       since the epoch, useful for doing math with $(NOW).
+    #
+    #   "xpath:<some xpath expression>"
+    #       If you are parsing XML, using XPath expressions are the way
+    #       to go. Some quick examples:
+    #       Get the HTML title:           /html/head/title/text()
+    #       Get a div with a specific id: //div[@id="something"]
+    #
+    #       More info here: http://en.wikipedia.org/wiki/XPath_1.0
+    #
+    #   "save:<some name>"
+    #       Saved the current result as the given name and will be
+    #       included with that name in the 'Extra Output' section of the
+    #       report.
+    #
+    #	"warning:<operator> <value>"
+    #	"critical:<operator> <value>"
+    #       The warning and critical filters simply test the data and
+    #       raise a Warning or Critical alert if the test is true.
+    #       Normally you will define these with the separate warning
+    #       and critical attributes rather than in the filter chain for
+    #       clarity but using them as filters allows more complex tests.
+    #       See the description of warning/critical below for more info.
+    filters: [ "somefilter:arguments" ]
+
     # 'warning' and 'critical' will compare the data returned by the
     # query with a given value. If it evaluates to true the test will
     # report WARNING or CRITICAL respectively, with CRITICAL winning out
@@ -254,32 +289,11 @@ query: {
     # Override the port
     port: <port number>
 
-    # Filters are strings defining some manipulation to the data
-    # returned, they are run in the order listed.
-    # Valid filters are:
-    #   "regex:<some regular expression>"
-    #       If the regular expression includes a grouping ie: (foo) the
-    #       result will be the first grouping, otherwise it is the match
-    #       of the entire expression.
-    #
-    #   "date2epoch:<date format>"
-    #       Convert a date using the given format to a time in seconds
-    #       since the epoch, useful for doing math with $(NOW).
-    #
-    #   "xpath:<some xpath expression>"
-    #       If you are parsing XML, using XPath expressions are the way
-    #       to go. Some quick examples:
-    #       Get the HTML title:           /html/head/title/text()
-    #       Get a div with a specific id: //div[@id="something"]
-    #
-    #       More info here: http://en.wikipedia.org/wiki/XPath_1.0
-    #
-    #   "save:<some name>"
-    #       Saved the current result as the given name and will be
-    #       included with that name in the 'Extra Output' section of the
-    #       report.
-
+    # Filters and warning/critical tests can be defined here just as
+    # they are inside a test but will apply to only this query.
     filters: [ "somefilter:arguments" ]
+    warning: "<operator> <value>"
+    critical: "<operator> <value>"
 
     # 'repeat' may be defined here to override the repeat value for the
     # entire test. This is useful for having one sub-query in a compound
