@@ -16,6 +16,9 @@
 
 import os
 import sys
+import pwd
+import grp
+import resource
 from UserDict import DictMixin
 from optparse import OptionParser
 
@@ -49,6 +52,47 @@ def simple(options, config):
 
     return [testobj]
 
+def setup(user=None, group=None, file_limit=None):
+    """Set the processes user, group, and file limits"""
+
+    if file_limit:
+        try:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (file_limit, file_limit))
+        except ValueError, ex:
+            log.error("Failed to set limit on open files: %s" % ex)
+            sys.exit(1)
+
+    if group:
+        if not group.isdigit():
+            try:
+                group = grp.getgrnam(group)[2]
+            except KeyError:
+                log.error("Unknown group '%s'" % group)
+                sys.exit(1)
+        else:
+            group = int(group)
+
+        try:
+            os.setregid(group, group)
+        except OSError, ex:
+            log.error("Failed to set gid: %s" % ex)
+            sys.exit(1)
+
+    if user:
+        if not user.isdigit():
+            try:
+                user = pwd.getpwnam(user)[2]
+            except KeyError:
+                log.error("Unknown user '%s'" % user)
+                sys.exit(1)
+        else:
+            user = int(user)
+
+        try:
+            os.setreuid(user, user)
+        except OSError, ex:
+            log.error("Failed to set uid: %s" % ex)
+            sys.exit(1)
 
 def daemonize(pid_file):
     """Background the current process"""
@@ -103,6 +147,12 @@ def parse_options():
     parser.add_option("-d", "--daemon", dest="daemon",
             action="store_true", default=False,
             help="run as a daemon")
+    parser.add_option("-u", "--user", dest="user",
+            help="run as the given user")
+    parser.add_option("-g", "--group", dest="group",
+            help="run as the given group")
+    parser.add_option("-f", "--file-limit", dest="file_limit", type="int",
+            help="set the limit on number of open files")
     parser.add_option("-r", "--rradir", dest="rradir",
             help="directory used to store rrdtool archives")
     parser.add_option("-t", "--test", dest="test",
@@ -182,6 +232,9 @@ def init(options):
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)
+
+    # Set uid/gid/file_limit
+    setup(options.user, options.group, options.file_limit)
 
     # daemonize and redirect stdio to log
     if options.daemon:
