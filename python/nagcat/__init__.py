@@ -209,6 +209,9 @@ def init(options):
     if (not issubclass(coil.struct.Struct, DictMixin)):
         raise Exception("Coil >= 0.3.0 is required!")
 
+    # Set uid/gid/file_limit
+    setup(options.user, options.group, options.file_limit)
+
     log.init(options.logfile, options.loglevel)
     config = coil.parse_file(options.config, expand=False)
 
@@ -232,9 +235,6 @@ def init(options):
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)
-
-    # Set uid/gid/file_limit
-    setup(options.user, options.group, options.file_limit)
 
     # daemonize and redirect stdio to log
     if options.daemon:
