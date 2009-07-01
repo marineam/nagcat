@@ -20,7 +20,7 @@ from nagcat import errors, log, nagios_api, nagios_objects, test, trend
 class NagiosTests(object):
     """Setup tests defined by Nagios and report back"""
 
-    def __init__(self, templates, nagios_cfg):
+    def __init__(self, templates, nagios_cfg, tag=None):
         """Read given Nagios config file"""
 
         cfg = nagios_objects.ConfigParser(nagios_cfg)
@@ -30,7 +30,7 @@ class NagiosTests(object):
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])
 
-        test_skels = self._parse_tests()
+        test_skels = self._parse_tests(tag)
         self._tests = self._fill_templates(templates, test_skels)
 
     # Provide read-only access to the test list
@@ -43,7 +43,7 @@ class NagiosTests(object):
     def __iter__(self):
         return iter(self._tests)
 
-    def _parse_tests(self):
+    def _parse_tests(self, tag):
         """Get the list of NagCat services in the object cache"""
 
         parser = nagios_objects.ObjectParser(
@@ -56,6 +56,8 @@ class NagiosTests(object):
 
         for service in parser['service']:
             if "_TEST" not in service:
+                continue
+            elif tag and service.get("_TAG", None) != tag:
                 continue
 
             test_defaults = {
