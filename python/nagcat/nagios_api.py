@@ -312,7 +312,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
 
     def _groupGetSet(self, identifier, return_type):
         if ':' not in identifier:
-            raise xmlrpc.Fault(1, "Invalid identifier: %r" % name)
+            raise xmlrpc.Fault(1, "Invalid identifier: %r" % identifier)
 
         group_type, group_name = identifier.split(':', 1)
 
