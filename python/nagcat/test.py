@@ -31,7 +31,10 @@ from nagcat import errors, filters, log, query, scheduler, util
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 
 TEMPLATE_OK = """%(test)s %(state)s: %(summary)s
-NagCat report for test %(test)s on %(host)s:%(port)s
+%(report_url)s
+Host: %(host)s
+Port: %(port)s
+Test: %(test)s
 
 Full Output:
 %(output)s
@@ -48,14 +51,16 @@ Documentation:
 """
 
 TEMPLATE_BAD = """%(test)s %(state)s: %(summary)s
-NagCat report for test %(test)s on %(host)s:%(port)s
-
-%(priority)s
-Full Output:
-%(output)s
+%(report_url)s
+Host: %(host)s
+Port: %(port)s
+Test: %(test)s
 
 Error:
 %(error)s
+%(priority)s
+Full Output:
+%(output)s
 
 Extra Output:
 %(extra)s
@@ -147,6 +152,7 @@ class Test(BaseTest):
         self._test = conf.get('test', "")
         self._documentation = conf.get('documentation', "")
         self._investigation = conf.get('investigation', "")
+        self._report_url = conf.get('report_url', "")
         self._priority = conf.get('priority', "")
         self._url = conf.get('url', "")
         self._subtests = {}
@@ -157,8 +163,11 @@ class Test(BaseTest):
         if isinstance(self._investigation, list):
             self._investigation = "\n".join(self._documentation)
 
+        if self._report_url:
+            self._report_url = "\n%s\n" % self._report_url
+
         if self._priority:
-            self._priority = "Priority: %s\n" % self._priority
+            self._priority = "Priority: %s\n\n" % self._priority
 
         if conf['query.type'] == "compound":
             self._compound = True
@@ -382,6 +391,7 @@ class Test(BaseTest):
                 'time': self._now,
                 'documentation': self._documentation,
                 'investigation': self._investigation,
+                'report_url': self._report_url,
                 'priority': self._priority,
                 'url': self._url,
                 'results': results,

@@ -163,6 +163,8 @@ def parse_options():
             help="port to use when only running one test")
     parser.add_option("-n", "--nagios", dest="nagios",
             help="path to nagios.cfg, enables Nagios support")
+    parser.add_option("-U", "--url", dest="url",
+            help="use the given nagios url in reports")
     parser.add_option("-T", "--tag", dest="tag",
             help="only load nagios tests with a specific tag")
     parser.add_option("", "--profile-init", dest="profile_init",
@@ -224,7 +226,8 @@ def init(options):
         if options.test:
             tests = simple(options, config)
         elif options.nagios:
-            tests = nagios.NagiosTests(config, options.nagios, options.tag)
+            tests = nagios.NagiosTests(config,
+                    options.nagios, options.tag, options.url)
         else:
             raise Exception("Normal mode without nagios is unimplemented")
 
