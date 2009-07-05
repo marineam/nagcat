@@ -403,6 +403,11 @@ query: {
 
     # Data to write to stdin
     data: "some arbitrary data"
+
+    # Optionally you may add various environment variables.
+    environment: {
+        PATH: "/special/path:/usr/bin"
+    }
 }
 
 SNMP: (versions 1 and 2 only currently)

@@ -406,7 +406,7 @@ class SubprocessFactory(process.Process):
         self.deferred.addBoth(self._cancelCleanup, call_id)
 
         process.Process.__init__(self, reactor, command[0], command,
-                environment={}, path=None, proto=proto)
+                self.conf['environment'], path=None, proto=proto)
 
     def result(self, result):
         self.deferred.callback(result)
@@ -430,8 +430,13 @@ class Query_subprocess(Query):
     def __init__(self, conf):
         Query.__init__(self, conf)
 
-        self.conf['command'] = conf.get('command')
+        env = os.environ.copy()
+        if 'environment' in conf:
+            env.update(conf['environment'])
+
+        self.conf['command'] = conf['command']
         self.conf['data'] = conf.get('data', "")
+        self.conf['environment'] = env
 
     def _start(self):
         proc = SubprocessFactory(self.conf)

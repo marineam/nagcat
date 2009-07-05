@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from twisted.trial import unittest
 from nagcat.unittests import dummy_server
-from nagcat import query
+from nagcat import errors, query
 from coil.struct import Struct
 
 class NoOpQueryTestCase(unittest.TestCase):
@@ -96,4 +97,45 @@ class SubprocessQueryTestCase(unittest.TestCase):
 
     def endBasic(self, ignore, q):
         self.assertEquals(q.result, "hello\n")
+
+    def testTrue(self):
+        q = query.Query_subprocess(Struct({'command': "true"}))
+        d = q.start()
+        d.addBoth(self.endTrue, q)
+        return d
+
+    def endTrue(self, ignore, q):
+        self.assertEquals(q.result, "")
+
+    def testFalse(self):
+        q = query.Query_subprocess(Struct({'command': "false"}))
+        d = q.start()
+        d.addBoth(self.endFalse, q)
+        return d
+
+    def endFalse(self, ignore, q):
+        self.assertIsInstance(q.result, errors.Failure)
+        self.assertIsInstance(q.result.value, errors.TestCritical)
+
+    def testEnvGood(self):
+        c = {'command': "test_subprocess_path", 'environment': {
+                'PATH': os.path.dirname(__file__) } }
+        q = query.Query_subprocess(Struct(c))
+        d = q.start()
+        d.addBoth(self.endEnvGood, q)
+        return d
+
+    def endEnvGood(self, ignore, q):
+        self.assertEquals(q.result, "")
+
+    def testEnvBad(self):
+        q = query.Query_subprocess(Struct({'command': "test_subprocess_path"}))
+        d = q.start()
+        d.addBoth(self.endEnvBad, q)
+        return d
+
+    def endEnvBad(self, ignore, q):
+        self.assertIsInstance(q.result, errors.Failure)
+        self.assertIsInstance(q.result.value, errors.TestCritical)
+
 
