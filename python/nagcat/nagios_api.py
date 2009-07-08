@@ -20,6 +20,7 @@ import time
 import random
 
 from twisted.web import xmlrpc
+from twisted.internet import reactor
 
 from nagcat import errors, log, nagios_objects
 
@@ -388,17 +389,20 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             else:
                 break
 
-    def xmlrpc_delServiceDowntime(self, key):
+    def xmlrpc_delServiceDowntime(self, key, delay=None):
         """Cancel all service downtimes identified by key"""
 
-        return self._delDowntime('servicedowntime', 'DEL_SVC_DOWNTIME', key)
-
-    def xmlrpc_delHostDowntime(self, key):
+        
+        return self._delDowntime('servicedowntime', 
+                                 'DEL_SVC_DOWNTIME', key, delay)
+        
+    def xmlrpc_delHostDowntime(self, key, delay=None):
         """Cancel all host downtimes identified by key"""
+        
+        return self._delDowntime('hostdowntime', 
+                                 'DEL_HOST_DOWNTIME', key, delay)
 
-        return self._delDowntime('hostdowntime', 'DEL_HOST_DOWNTIME', key)
-
-    def _delDowntime(self, objtype, cmdtype, key):
+    def _delDowntime(self, objtype, cmdtype, key, delay=None):
         try:
             timestamp, uid = key.split(':', 1)
             assert int(timestamp) and int(uid)
@@ -410,7 +414,11 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
 
         for downtime in status[objtype]:
             if downtime['comment'].endswith('key:%s' % uid):
-                self._cmd(None, cmdtype, downtime['downtime_id'])
+                if delay:
+                    reactor.callLater(delay, self._cmd, None, cmdtype, 
+                                      downtime['downtime_id'])
+                else:
+                    self._cmd(None, cmdtype, downtime['downtime_id'])
                 count += 1
 
         return count
