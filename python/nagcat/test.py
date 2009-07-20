@@ -219,9 +219,11 @@ class Test(BaseTest):
     def _addDefaults(self, conf):
         """Add default values based on this test to a subtest config"""
         conf.setdefault('host', self.host)
-        conf.setdefault('addr', self.addr)
         conf.setdefault('port', self._port)
         conf.setdefault('repeat', str(self.repeat))
+
+        if conf['host'] == self.host:
+            conf.setdefault('addr', self.addr)
 
     def _start(self):
         self._now = time.time()
