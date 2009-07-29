@@ -55,7 +55,7 @@ color_index = 0
 stack_started = False
 for ds in info['ds']:
     if ds not in ds_configured:
-        args.append("WARNING: Unexpected DS %s\\n" % ds)
+        args.append("COMMENT:WARNING\: Unexpected DS %s\\n" % ds)
         continue
 
     ds_configured.remove(ds)
@@ -108,7 +108,7 @@ for ds in info['ds']:
     args.append("GPRINT:_max_%s:Maximum\\:%%8.2lf%%s\\n" % ds)
 
 for ds in ds_configured:
-    args.append("WARNING: Missing DS %s\\n" % ds)
+    args.append("COMMENT:WARNING\: Missing DS %s\\n" % ds)
 
 print HEAD
 print
