@@ -449,6 +449,18 @@ class Query_snmp(Query_http):
     OID = re.compile("^\.?\d+(\.\d+)*$")
 
     def __init__(self, conf):
+        def check_oid(oid):
+            """
+            Check that oid matches the expected regex pattern. 
+            Make sure first char is '.'.
+            """
+            if not self.OID.match(oid):
+                raise errors.ConfigError(conf,
+                         "Invalid SNMP OID '%s'" % oid)
+            if oid[0] != '.':
+                 return ".%s" % oid
+            return oid
+
         if netsnmp is None:
             raise errors.InitError("pynetsnmp is required for SNNP support.")
         Query.__init__(self, conf)
@@ -456,16 +468,30 @@ class Query_snmp(Query_http):
         #self.conf['protocol'] = conf.get('protocol', 'udp') #not supported right now
         self.conf['addr'] = self.addr
         self.conf['port'] = int(conf.get('port', 161))
-        self.conf['oid'] = conf['oid']
+
+        if conf.has_key('oid'):
+            self.conf['oid'] = check_oid(conf['oid'])
+        if conf.has_key('oid_base'):
+            self.conf['oid_base'] = check_oid(conf['oid_base'])
+        if conf.has_key('oid_key'):
+            self.conf['oid_key'] = check_oid(conf['oid_key'])
+        if conf.has_key('key'):
+            self.conf['key'] = conf['key']
+
+        if self.conf.has_key("oid"):
+            if (self.conf.has_key("oid_base") or
+                   self.conf.has_key("oid_key") or self.conf.has_key("key")):
+                raise errors.ConfigError(conf,
+                     "oid_base, oid_key and key not needed if oid is set.")
+        else:
+            if not (self.conf.has_key("oid_base") and
+                   self.conf.has_key("oid_key") and self.conf.has_key("key")):
+                raise errors.ConfigError(conf,
+                     "oid_base, oid_key and key need to be set if oid not set.")
+
+
         self.conf['version'] = str(conf.get('version', '2c'))
         self.conf['community'] = conf.get('community')
-
-        if not self.OID.match(self.conf['oid']):
-            raise errors.ConfigError(conf,
-                    "Invalid SNMP OID '%s'" % self.conf['oid'])
-
-        if self.conf['oid'][0] != '.':
-            self.conf['oid'] = ".%s" % self.conf['oid']
 
         if self.conf['version'] not in ('1', '2c'):
             raise errors.ConfigError(conf,
@@ -482,18 +508,54 @@ class Query_snmp(Query_http):
     def _start(self):
         # Use half of the timeout and allow 1 retry,
         # this probably isn't great but should be ok.
-        deferred = self._client.get(
+        if self.conf.has_key('oid'):
+            deferred = self._client.get(
                 (self.conf['oid'],),
-                self.conf['timeout']/2, 1)
-        deferred.addCallback(self._handle_result)
+                timeout=self.conf['timeout']/2, retryCount=1)
+            deferred.addCallback(self._handle_oid_result)
+        else:
+            deferred = self._client.getTable(
+                (self.conf['oid_base'], self.conf['oid_key']),
+                timeout=self.conf['timeout']/2, retryCount=1)
+            deferred.addCallback(self._handle_set_result)
+
         deferred.addErrback(self._handle_error)
         return deferred
 
     @errors.callback
-    def _handle_result(self, result):
-        if self.conf['oid'] not in result or result[self.conf['oid']] is None:
-            raise errors.TestCritical("No value returned")
-        return str(result[self.conf['oid']])
+    def _handle_oid_result(self, result):
+            if self.conf['oid'] not in result or \
+                    result[self.conf['oid']] is None:
+                raise errors.TestCritical("No oid value returned")
+            return str(result[self.conf['oid']])
+
+    @errors.callback
+    def _handle_set_result(self, result):
+        if self.conf['oid_base'] not in result or \
+                result[self.conf['oid_base']] is None:
+            raise errors.TestCritical("No oid_base value returned")
+        else:
+            oid_base_dict = result[self.conf["oid_base"]]
+
+        if self.conf['oid_key'] not in result or \
+                result[self.conf['oid_key']] is None:
+            raise errors.TestCritical("No oid_key value returned")
+        else:
+            oid_keys_dict = result[self.conf["oid_key"]]
+
+        for key in oid_keys_dict.keys():
+            if self.conf["key"] == oid_keys_dict[key]:
+                relevant_index = key.split(".")[-1].strip()
+                oid_lookup = self.conf['oid_base'] + "." + relevant_index
+                break
+        else:
+            raise errors.TestCritical("No oid_key match with key: %s." %
+                                      self.conf["key"])
+
+        if oid_lookup in oid_base_dict:
+            return str(oid_base_dict[oid_lookup])
+        else:
+            raise errors.TestCritical("No oid_base, oid_key match.")
 
     @errors.callback
     def _handle_error(self, result):
