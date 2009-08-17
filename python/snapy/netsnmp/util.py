@@ -50,7 +50,6 @@ def _decode_variable(var):
     oid = decode_oid(var.name, var.name_length)
     decode = _decoder.get(var.type, None)
     if not decode:
-        print var.type
         return (oid, None)
     return oid, decode(var)
 

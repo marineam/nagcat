@@ -1,3 +1,6 @@
+import sys
+import math
+import select
 import ctypes
 from ctypes import byref
 from ctypes.util import find_library
@@ -9,6 +12,21 @@ from snapy.netsnmp import const, types, util
 class SnmpError(Exception):
     """Error in NetSNMP"""
     pass
+
+class SnmpTimeout(Exception):
+    """Request Timeout"""
+    pass
+
+# The normal fd limit
+FD_SETSIZE = 1024
+
+def _mkfdset(fd):
+    """Make a fd set of the right size and set fd"""
+    size = max(fd, FD_SETSIZE)
+    fd_set_t = ctypes.c_int32 * int(math.ceil(size / 32.0))
+    fd_set = fd_set_t()
+    fd_set[fd // 32] |= 1 << (fd % 32)
+    return fd_set
 
 def _parse_args(args, session):
     """Wrapper around snmp_parse_args"""
@@ -39,7 +57,10 @@ class Session(object):
         self.sessp = None   # single session api pointer
         self.session = None # session struct
         self.session_template = types.netsnmp_session()
-        self.session_argv = _parse_args(args, self.session_template)
+        self._requests = None
+
+        self._session_argv = _parse_args(args, self.session_template)
+        self.session_template.callback = types.netsnmp_callback(self._callback)
 
     def error(self):
         pass
@@ -54,20 +75,52 @@ class Session(object):
             raise SnmpError('snmp_sess_open')
 
         self.session = lib.snmp_sess_session(self.sessp)
+        self._requests = {}
 
     def close(self):
         assert self.sessp
 
         lib.snmp_sess_close(self.sessp)
-        #del sessionMap[id(self)]
         self.sessp = None
         self.session = None
 
-    def callback(self, pdu):
-        pass
+    def fileno(self):
+        assert self.sessp
+        transport = lib.snmp_sess_transport(self.sessp)
+        return transport.contents.sock
 
-    def timeout(self, reqid):
-        pass
+    def timeout(self):
+        assert self.sessp
+        fd_max = ctypes.c_int()
+        fd_set = _mkfdset(self.fileno())
+        tv = types.timeval()
+        block = ctypes.c_int()
+
+        # We only actually need tv and block
+        lib.snmp_sess_select_info(self.sessp,
+                byref(fd_max), byref(fd_set),
+                byref(tv), byref(block))
+
+        if block:
+            return None
+        else:
+            return tv.tv_sec + tv.tv_usec / 1000000.0
+
+    def _callback(self, operation, sp, reqid, pdu, magic):
+        try:
+            cb, args = self._requests.pop(reqid)
+            if operation == const.NETSNMP_CALLBACK_OP_RECEIVED_MESSAGE:
+                result = util.decode_result(pdu.contents)
+                cb(result, *args)
+            elif operation == const.NETSNMP_CALLBACK_OP_TIMED_OUT:
+                cb(SnmpTimeout(), *args)
+            else:
+                raise Exception("Unexpected operation: %d" % operation)
+        except Exception, ex:
+            # This shouldn't happen, but just in case...
+            # TODO: Probably should use the logging api instead.
+            sys.stderr.write("Exception in _callback: %s\n" % (ex,))
+        return 1
 
     def _create_request(self, msg_type, oids):
         req = lib.snmp_pdu_create(msg_type)
@@ -76,23 +129,71 @@ class Session(object):
             lib.snmp_add_null_var(req, oid, len(oid))
         return req
 
+    def _send_request(self, msg_type, oids, cb, *args):
+        assert self.sessp
+        req = self._create_request(msg_type, oids)
+        self._requests[req.contents.reqid] = (cb, args)
+
+        if not lib.snmp_sess_send(self.sessp, req):
+            lib.snmp_free_pdu(req)
+            del self._requests[req.contents.reqid]
+            raise SnmpError("snmp_sess_send")
+
     def sget(self, oids):
         assert self.sessp
         req = self._create_request(const.SNMP_MSG_GET, oids)
         response = types.netsnmp_pdu_p()
-        if lib.snmp_sess_synch_response(self.sessp, req, byref(response)) == 0:
-            result = util.decode_result(response.contents)
-            lib.snmp_free_pdu(response)
-            return result
 
-#    def get(self, oids):
-#        assert self.sessp
-#        req = self._create_request(SNMP_MSG_GET, oids)
-#        if not lib.snmp_sess_send(self.sessp, req):
-#            lib.snmp_free_pdu(req)
-#            raise SnmpError("snmp_send")
-#        return req.contents.reqid
-#
+        if lib.snmp_sess_synch_response(self.sessp, req, byref(response)):
+            raise SnmpError("snmp_sess_synch_response")
+
+        result = util.decode_result(response.contents)
+        lib.snmp_free_pdu(response)
+        return result
+
+    def get(self, oids, cb, *args):
+        self._send_request(const.SNMP_MSG_GET, oids, cb, *args)
+
+    def getnext(self, oids, cb, *args):
+        self._send_request(const.SNMP_MSG_GETNEXT, oids, cb, *args)
+
+    def walk(self, start, cb, *args):
+        """Walk using a sequence of getnext requests"""
+
+        tree = {}
+
+        # This is a little simple minded and simply stops the walk
+        # when we evaluate a result to None but None could result
+        # due to situations other than the end of the tree.
+        # TODO: check for the true end of the tree instead.
+        # Note: v1 and v2c report this condition in different ways.
+        def walk_cb(value):
+            oid = value.keys()[0]
+            if value[oid] is None:
+                cb(tree, *args)
+            else:
+                tree.update(value)
+                self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
+
+        self._send_request(const.SNMP_MSG_GETNEXT, [start], walk_cb)
+
+    def wait(self):
+        """Wait for any outstanding requests/timeouts"""
+
+        fd = self.fileno()
+
+        while self._requests:
+            timeout = self.timeout()
+
+            read, w, x = select.select((fd,), (), (), timeout)
+
+            if read:
+                fd_set = _mkfdset(fd)
+                lib.snmp_sess_read(self.sessp, byref(fd_set))
+            else:
+                lib.snmp_sess_timeout(self.sessp)
+
+
 #    def getbulk(self, nonrepeaters, maxrepetitions, oids):
 #        assert self.sessp
 #        req = self._create_request(SNMP_MSG_GETBULK)
@@ -103,16 +204,6 @@ class Session(object):
 #            oid = mkoid(oid)
 #            lib.snmp_add_null_var(req, oid, len(oid))
 #        if not lib.snmp_sess_send(self.sessp, req):
-#            lib.snmp_free_pdu(req)
-#            raise SnmpError("snmp_send")
-#        return req.contents.reqid
-#
-#    def walk(self, root):
-#        assert self.sessp
-#        req = self._create_request(SNMP_MSG_GETNEXT)
-#        oid = mkoid(root)
-#        lib.snmp_add_null_var(req, oid, len(oid))
-#        if not lib.snmp_sess_send(self.sess, req):
 #            lib.snmp_free_pdu(req)
 #            raise SnmpError("snmp_send")
 #        return req.contents.reqid

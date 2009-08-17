@@ -1,6 +1,13 @@
 from ctypes import *
 from snapy.netsnmp import const, lib
 
+# Provide the standard timeval struct
+class timeval(Structure):
+    _fields_ = [
+        ('tv_sec', c_long),
+        ('tv_usec', c_long),
+        ]
+
 # Match netsnmp's data types (mostly)
 oid = c_long
 u_long = c_ulong
@@ -20,6 +27,7 @@ netsnmp_pdu_p = POINTER(netsnmp_pdu)
 lib.netsnmp_get_version.restype = c_char_p
 lib.snmp_pdu_create.restype = netsnmp_pdu_p
 lib.snmp_sess_session.restype = POINTER(netsnmp_session)
+lib.snmp_sess_transport.restype = POINTER(netsnmp_transport)
 
 authenticator = CFUNCTYPE(c_char_p, c_int_p, c_char_p, c_int)
 
