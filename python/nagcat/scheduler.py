@@ -313,7 +313,7 @@ class Runnable(object):
         if isinstance(result, failure.Failure):
             if isinstance(result.value, errors.TestError):
                 if result.tb is not None:
-                    log.warn("TestError with a traceback in %s:\n" %
+                    log.warn("TestError with a traceback in %s:\n%s" %
                             (self, result.getTraceback()))
             else:
                 log.error("Unhandled error in %s:\n%s" %
