@@ -67,9 +67,20 @@ class Server(process.Process):
         env = {"PATH": "/bin:/sbin:/usr/bin:/usr/sbin"}
         cmd = ("snmpd", "-f", "-I", "override", "-C", "-c", self.conf,
                 "--noPersistentLoad=1", "--noPersistentSave=1", self.socket)
+
+        # Skip test if snmpd doesn't exist
+        found = False
+        for path in env['PATH'].split(':'):
+            if os.path.exists("%s/%s" % (path, cmd[0])):
+                found = True
+                break
+        if not found:
+            raise unittest.SkipTest("snmpd missing")
+
         super(Server, self).__init__(reactor, cmd[0], cmd, env, None, proto)
 
     def started(self):
+        log.msg("Ready, snmpd listening on %s" % self.socket)
         self._address.callback(self.socket)
 
     def address(self):
@@ -77,17 +88,24 @@ class Server(process.Process):
 
     def stop(self):
         assert self.pid and self._deferred
+        log.msg("Stopping snmpd...")
+
         os.kill(self.pid, signal.SIGTERM)
         self._timeout = reactor.callLater(5.0, self.timeout)
         return self._deferred
 
     def timeout(self):
         assert self.pid
+        log.msg("Timeout, Killing snmpd...")
+
         os.kill(self.pid, signal.SIGKILL)
         self._timeout = None
 
     def done(self, status):
         assert self._deferred
+
+        if not self._address.called:
+            self._address.errback(Exception("snmpd failed"))
 
         if self._timeout:
             self._timeout.cancel()
@@ -107,7 +125,7 @@ class TestCase(unittest.TestCase):
 
         self.server = Server()
         d = self.server.address()
-        d.addCallback(self.setUpSession)
+        d.addCallbacks(self.setUpSession, lambda x: None)
         d.addErrback(lambda x: self.server.stop())
         return d
 
