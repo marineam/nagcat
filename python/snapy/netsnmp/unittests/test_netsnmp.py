@@ -83,13 +83,13 @@ class TestSessionV1(TestCase):
 
     def test_walk1(self):
         result = Result()
-        self.session.walk(".1.3.6.1.4.2.1", set_result, result)
+        self.session.walk([".1.3.6.1.4.2.1"], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, self.basics)
 
     def test_walk2(self):
         result = Result()
-        self.session.walk(".1.3.6.1.4.2.1.1", set_result, result)
+        self.session.walk([".1.3.6.1.4.2.1.1"], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, {".1.3.6.1.4.2.1.1": 1})
 

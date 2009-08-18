@@ -40,7 +40,7 @@ class TestSessionV1(TestCase):
         def cb(result):
             self.assertEquals(result, expect)
 
-        d = self.session.walk(root)
+        d = self.session.walk([root])
         d.addCallback(cb)
         return d
 

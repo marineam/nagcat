@@ -12,7 +12,7 @@
 # GNU General Public License for more details.
 
 from zope.interface import implements
-from twisted.internet import defer, interfaces, reactor
+from twisted.internet import defer, error, interfaces, reactor
 
 from snapy import netsnmp
 
@@ -76,7 +76,9 @@ class Session(object):
     def _done(self, result, deferred):
         def fire():
             self._update_timeout()
-            if isinstance(result, Exception):
+            if isinstance(result, netsnmp.SnmpTimeout):
+                deferred.errback(error.TimeoutError())
+            elif isinstance(result, Exception):
                 deferred.errback(result)
             else:
                 deferred.callback(result)
@@ -92,8 +94,8 @@ class Session(object):
         self._update_timeout()
         return deferred
 
-    def walk(self, root):
+    def walk(self, oids):
         deferred = defer.Deferred()
-        self._session.walk(root, self._done, deferred)
+        self._session.walk(oids, self._done, deferred)
         self._update_timeout()
         return deferred

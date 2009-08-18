@@ -176,10 +176,10 @@ class Session(object):
     def getnext(self, oids, cb, *args):
         self._send_request(const.SNMP_MSG_GETNEXT, oids, cb, *args)
 
-    def walk(self, root, cb, *args):
+    def walk(self, oids, cb, *args):
         """Walk using a sequence of getnext requests"""
 
-        root = util.parse_oid(root)
+        oids = [util.parse_oid(x) for x in oids]
         tree = {}
 
         # This is a little simple minded and simply stops the walk
@@ -187,22 +187,40 @@ class Session(object):
         # due to situations other than the end of the tree.
         # TODO: check for the true end of the tree instead.
         # Note: v1 and v2c report this condition in different ways.
-        def walk_cb(value):
+        def walk_cb(value, root):
+            if isinstance(value, Exception):
+                cb(value, *args)
+                return
+
             oid = value.keys()[0]
             if value[oid] is None or not oid.startswith(root):
-                cb(tree, *args)
+                start_or_stop()
             else:
                 tree.update(value)
-                self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
+                self._send_request(const.SNMP_MSG_GETNEXT,
+                        [oid], walk_cb, root)
 
         def first_cb(value):
+            if isinstance(value, Exception):
+                cb(value, *args)
+                return
+
             oid = value.keys()[0]
             if value[oid] is not None:
-                cb(value, *args)
+                tree.update(value)
+                start_or_stop()
             else:
-                self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
+                self._send_request(const.SNMP_MSG_GETNEXT,
+                        [oid], walk_cb, oid)
 
-        self._send_request(const.SNMP_MSG_GET, [root], first_cb)
+        def start_or_stop():
+            if oids:
+                oid = oids.pop()
+                self._send_request(const.SNMP_MSG_GET, [oid], first_cb)
+            else:
+                cb(tree, *args)
+
+        start_or_stop()
 
     def do_timeout(self):
         assert self.sessp
