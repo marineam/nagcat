@@ -65,7 +65,7 @@ class Server(process.Process):
 
         proto = LoggingProtocol(self)
         env = {"PATH": "/bin:/sbin:/usr/bin:/usr/sbin"}
-        cmd = ("snmpd", "-f", "-I", "override", "-C", "-c", self.conf,
+        cmd = ("snmpd", "-f", "-LE6", "-I", "override", "-C", "-c", self.conf,
                 "--noPersistentLoad=1", "--noPersistentSave=1", self.socket)
 
         # Skip test if snmpd doesn't exist
