@@ -17,7 +17,7 @@ import warnings
 import tempfile
 
 from twisted.internet import defer, error, process, protocol, reactor
-from twisted.python import log, failure
+from twisted.python import log
 from twisted.trial import unittest
 
 class LoggingProtocol(protocol.ProcessProtocol):
@@ -55,13 +55,12 @@ class Server(process.Process):
         self._address = defer.Deferred()
         self._timeout = None
         self.conf = "%s/snmpd.conf" % os.path.dirname(__file__)
-        self.port = 9999
 
         # XXX: Not perfect, there is a race condition between
         # the unlink and snmpd's bind call but it's good enough.
-        fd, name = tempfile.mkstemp()
-        self.socket = "unix:%s" % name
-        os.unlink(name)
+        fd, self.socket_name = tempfile.mkstemp()
+        self.socket = "unix:%s" % self.socket_name
+        os.unlink(self.socket_name)
         os.close(fd)
 
         proto = LoggingProtocol(self)
@@ -94,6 +93,9 @@ class Server(process.Process):
             self._timeout.cancel()
             self._timeout = None
 
+        if os.path.exists(self.socket_name):
+            os.unlink(self.socket_name)
+
         self._deferred.callback(status)
         self._deferred = None
 
@@ -114,7 +116,7 @@ class TestCase(unittest.TestCase):
 
     def tearDown(self):
         d = self.server.stop()
-        d.addCallback(lambda x: self.tearDownSession)
+        d.addCallback(lambda x: self.tearDownSession())
         return d
 
     def tearDownSession(self):
