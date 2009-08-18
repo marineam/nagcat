@@ -44,11 +44,8 @@ if ssl and not ssl.supported:
    # happens second and later times
    ssl = None
 
-# SNMP support
-try:
-    from pynetsnmp import netsnmp, twistedsnmp
-except ImportError:
-    netsnmp = None
+from snapy import netsnmp
+from snapy.twisted import Session as SnmpSession
 
 from nagcat import errors, log, scheduler
 
@@ -57,17 +54,14 @@ _queries = {}
 def addQuery(conf, qcls=None):
     """Create a new query and register it or return an existing one"""
 
-    qtype = conf.get('type')
-
     # Find the correct Query class for this type
     if not qcls:
+        qtype = conf.get('type')
         qcls = globals().get('Query_%s' % qtype, None)
+        if not qcls:
+            raise errors.ConfigError(conf, "Unknown query type '%s'" % qtype)
 
-    if qcls is not None:
-        qobj = qcls(conf)
-    else:
-        raise errors.ConfigError(conf, "Unknown query type '%s'" % qtype)
-
+    qobj = qcls(conf)
     key = str(qobj)
     if key in _queries:
         log.debug("Reusing query '%s'", key)
@@ -457,169 +451,166 @@ class Query_subprocess(Query):
         proc = SubprocessFactory(self.conf)
         return proc.deferred
 
-class Query_snmp_common(Query):
+
+class _Query_snmp_common(Query):
     """Parent class for both Query_snmp and QuerySnmp_combined."""
-    OID = re.compile("^\.?\d+(\.\d+)*$")
+
+    def __init__(self, conf):
+        Query.__init__(self, conf)
+
+        self.conf['protocol'] = conf.get('protocol', 'udp')
+        if self.conf['protocol'] not in ('udp', 'tcp', 'unix'):
+            raise errors.ConfigError(conf,
+                    "Invalid SNMP protocol: %r" % conf['protocol'])
+
+        # Unix sockets are used by the unit tests
+        if self.conf['protocol'] == 'unix':
+            self.conf['addr'] = 'unix:%s' % conf['path']
+        else:
+            self.conf['addr'] = '%s:%s:%d' % (self.conf['protocol'],
+                    self.addr, int(conf.get('port', 161)))
+
+        self.conf['version'] = str(conf.get('version', '2c'))
+        if self.conf['version'] not in ('1', '2c'):
+            raise errors.ConfigError(conf,
+                    "Invalid SNMP version %r" % conf['version'])
+
+        self.conf['community'] = conf.get('community', None)
+        if not self.conf['community']:
+            raise errors.ConfigError(conf, "SNMP community is required")
 
     def check_oid(self, oid):
-        """
-        Check that oid matches the expected regex pattern.
-        Make sure first char is '.'.
-        """
-        if not self.OID.match(oid):
-            raise errors.ConfigError(conf,
-                                     "Invalid SNMP OID '%s'" % oid)
-        if oid[0] != '.':
-            return ".%s" % oid
+        """Check/parse an oid"""
+        try:
+            oid = netsnmp.util.parse_oid(oid)
+        except:
+            raise errors.ConfigError(conf, "Invalid SNMP OID %r" % oid)
+
         return oid
 
-    def oid_set(self, oid):
-        """Get the oid set value lookup for an oid value."""
-        oid_set =  ".".join(oid.split(".")[:-1])
-        return self.check_oid(oid_set)
 
-class Query_snmp(Query_snmp_common):
+class Query_snmp(_Query_snmp_common):
     """Fetch a single value via SNMP"""
 
     def __init__(self, conf):
-        if netsnmp is None:
-            raise errors.InitError("pynetsnmp is required for SNNP support.")
-        Query.__init__(self, conf)
-
-        self.conf['addr'] = self.addr
-        self.conf['port'] = int(conf.get('port', 161))
+        _Query_snmp_common.__init__(self, conf)
 
         if 'oid' in conf:
             self.conf['oid'] = self.check_oid(conf['oid'])
-            self.conf['oid_set'] = self.oid_set(conf['oid'])
-            if ("oid_base" in self.conf or
-                "oid_key" in self.conf or "key" in self.conf):
+
+            if ("oid_base" in conf or "oid_key" in conf or "key" in conf):
                 raise errors.ConfigError(conf,
-                      "oid_base, oid_key and key not needed if oid is set.")
-        elif ("oid_base" in conf and
-              "oid_key" in conf and "key" in conf):
+                        "oid cannot be used with oid_base, oid_key, and key")
+        elif ("oid_base" in conf and "oid_key" in conf and "key" in conf):
             self.conf['oid_base'] = self.check_oid(conf['oid_base'])
             self.conf['oid_key'] = self.check_oid(conf['oid_key'])
             self.conf['key'] = conf['key']
         else:
             raise errors.ConfigError(conf,
-                  "oid_base, oid_key and key need to be set if oid not set.")
-
-        self.conf['version'] = str(conf.get('version', '2c'))
-        self.conf['community'] = conf.get('community')
-
-        if self.conf['version'] not in ('1', '2c'):
-            raise errors.ConfigError(conf,
-                    "Invalid SNMP version '%s'" % conf['version'])
+                    "oid or oid_base, oid_key, and key are required")
 
         # add single Query class per host address that
         # does the actual retreival of data
-        self.query_combined = addQuery(conf, qcls=Query_snmp_combined)
+        self.query_combined = addQuery(conf, qcls=_Query_snmp_combined)
         self.addDependency(self.query_combined)
 
     def _start(self):
-        """Get data structure from combined query.
+        """Get and filter the result the from combined query."""
 
-        Get the result data table from combined query.
-        Retreive the relevant value for the query and return it.
-        """
         result = self.query_combined.result
 
         if isinstance(result, failure.Failure):
             return result
         elif "oid" in self.conf:
-            return self.get_oid_from_result(result)
+            return self._get_result(result, self.conf['oid'])
         else:
-            return self.get_oid_set_from_result(result)
+            return self._get_result_set(result)
 
-    def check_lookup(self, oid_key, lookup_table):
-        """Check that key is in dictionary. Throw exception if it is not."""
-        if oid_key not in lookup_table or lookup_table[oid_key] is None:
-            raise errors.TestCritical("No oid set returned %s for" %
-                                      oid_key)
+    @errors.callback
+    def _get_result(self, result, oid):
+        """Get a single oid value"""
 
-    def get_oid_from_result(self, result):
-        """Retreive the oid value information from the result set."""
-        self.check_lookup(self.conf["oid_set"], result)
-        self.check_lookup(self.conf["oid"], result[self.conf["oid_set"]])
+        if oid not in result:
+            raise errors.TestCritical("No value received")
 
-        return str(result[self.conf["oid_set"]][self.conf["oid"]])
+        return str(result[oid])
 
-    def get_oid_set_from_result(self, result):
-        """Retreive the oid value from the oid_base set.
+    @errors.callback
+    def _get_result_set(self, result):
+        """Get the requested value from the oid_base set.
 
         Matches the value index from the oid_key set specified
         by the key field to retreive the oid_base value.
         """
-        self.check_lookup(self.conf["oid_base"], result)
-        oid_base_dict = result[self.conf["oid_base"]]
 
-        self.check_lookup(self.conf["oid_key"], result)
-        oid_keys_dict = result[self.conf["oid_key"]]
+        def filter_result(root):
+            new = {}
+            for key, value in result.iteritems():
+                if key.startswith(root):
+                    new[key] = value
+            return new
 
-        for key in oid_keys_dict.keys():
-            if self.conf["key"] == oid_keys_dict[key]:
-                relevant_index = key.split(".")[-1].strip()
-                oid_lookup = self.conf['oid_base'] + "." + relevant_index
+        base = filter_result(self.conf["oid_base"])
+        if not base:
+            raise errors.TestCritical("No values received for oid_base")
+
+        keys = filter_result(self.conf["oid_key"])
+        if not keys:
+            raise errors.TestCritical("No values received for oid_key")
+
+        final = None
+        for oid, value in keys.iteritems():
+            if value == self.conf["key"]:
+                index = oid[len(self.conf["oid_key"]):]
+                final = "%s%s" % (self.conf['oid_base'], index)
                 break
-        else:
-            raise errors.TestCritical("No oid_key match for: '%s'." %
-                                      self.conf["key"])
 
-        self.check_lookup(oid_lookup, oid_base_dict)
-        return str(oid_base_dict[oid_lookup])
+        if final is None:
+            raise errors.TestCritical("key not found: %r" % self.conf["key"])
+
+        return self._get_result(base, final)
 
 
-class Query_snmp_combined(Query_snmp_common):
+class _Query_snmp_combined(_Query_snmp_common):
     """Combined Query used to send just one query to common host."""
 
     def __init__(self, conf):
         """Initialize query with oids and host port information."""
-        if netsnmp is None:
-            raise errors.InitError("pynetsnmp is required for SNNP support.")
+        _Query_snmp_common.__init__(self, conf)
 
-        Query.__init__(self, conf)
-
-        self.conf['addr'] = self.addr
-        self.conf['port'] = int(conf.get('port', 161))
         self.oids = set()
-
-        self.conf['version'] = str(conf.get('version', '2c'))
-        self.conf['community'] = conf.get('community')
-
-        if self.conf['version'] not in ('1', '2c'):
-            raise errors.ConfigError(conf,
-                    "Invalid SNMP version '%s'" % conf['version'])
         self.update(conf)
 
-        self._client = twistedsnmp.AgentProxy(
-                self.addr, self.conf['port'],
-                self.conf['community'], self.conf['version'])
-
-        try:
-            self._client.open()
-        except netsnmp.SnmpError, ex:
-            raise errors.InitError(str(ex))
-
-    def __str__(self):
-        """Compound query only displays host and port in repr."""
-        return "<%s  %s:%s>" % (self.__class__.__name__,
-                                self.conf['addr'], self.conf['port'])
+    def update(self, conf):
+        """Update compound query with oids to be retreived from host."""
+        if 'oid' in conf:
+            self.oids.add(self.check_oid(conf['oid']))
+        if 'oid_base' in conf:
+            self.oids.add(self.check_oid(conf['oid_base']))
+        if 'oid_key' in conf:
+            self.oids.add(self.check_oid(conf['oid_key']))
 
     def _start(self):
-        # Use half of the timeout and allow 1 retry,
-        # this probably isn't great but should be ok.
-        deferred = self._client.getTable(
-            (tuple(self.oids)),
-            timeout=self.conf['timeout']/2, retryCount=1)
+        try:
+            client = SnmpSession(
+                    '-v', self.conf['version'],
+                    '-c', self.conf['community'],
+                    '-t', '1', # Retry after 1 second for 'timeout' retries
+                    '-r', str(int(self.conf['timeout'])),
+                    self.conf['addr'])
+            client.open()
+        except:
+            return errors.Failure()
 
-        deferred.addCallback(self._handle_result)
+        deferred = client.walk(self.oids)
+        deferred.addBoth(self._handle_close, client)
         deferred.addErrback(self._handle_error)
         return deferred
 
-    def _handle_result(self, result):
-        """Callback handler sets result to data member of query."""
-        self.result = result
+    @errors.callback
+    def _handle_close(self, result, client):
+        """Close the SNMP connection socket"""
+        client.close()
         return result
 
     @errors.callback
@@ -627,13 +618,3 @@ class Query_snmp_combined(Query_snmp_common):
         if isinstance(result.value, neterror.TimeoutError):
             raise errors.TestCritical("SNMP request timeout")
         return result
-
-    def update(self, conf):
-        """Update compound query with oids to be retreived from host."""
-        if 'oid' in conf:
-            oid = ".".join(conf['oid'].split(".")[:-1])
-            self.oids.add(self.check_oid(oid))
-        if 'oid_base' in conf:
-            self.oids.add(self.check_oid(conf['oid_base']))
-        if 'oid_key' in conf:
-            self.oids.add(self.check_oid(conf['oid_key']))

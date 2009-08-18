@@ -17,6 +17,7 @@ from twisted.trial import unittest
 from nagcat.unittests import dummy_server
 from nagcat import errors, query
 from coil.struct import Struct
+from snapy.netsnmp.unittests import TestCase as SnmpTestCase
 
 class NoOpQueryTestCase(unittest.TestCase):
 
@@ -159,4 +160,58 @@ class SubprocessQueryTestCase(unittest.TestCase):
         self.assertIsInstance(q.result, errors.Failure)
         self.assertIsInstance(q.result.value, errors.TestCritical)
 
+class SnmpQueryTestCaseV2c(SnmpTestCase):
+
+    version = "2c"
+
+    def setUpSession(self, address):
+        assert address.startswith('unix:')
+        self.conf = Struct({
+                'version': self.version,
+                'community': "public",
+                'protocol': "unix",
+                'path': address[5:]})
+
+    def tearDownSession(self):
+        # Clear out the query list
+        query._queries.clear()
+
+    def testBasicGood(self):
+        c = self.conf.copy()
+        c['oid'] = ".1.3.6.1.4.2.1.1";
+        q = query.Query_snmp(c)
+
+        def check(ignore):
+            self.assertEquals(q.result, "1")
+
+        d = q.start()
+        d.addCallback(check)
+        return d
+
+    def testBasicBad(self):
+        c = self.conf.copy()
+        c['oid'] = ".1.3.6.1.4.2.1";
+        q = query.Query_snmp(c)
+
+        def check(ignore):
+            self.assertIsInstance(q.result, errors.Failure)
+            self.assertIsInstance(q.result.value, errors.TestCritical)
+
+        d = q.start()
+        d.addCallback(check)
+        return d
+
+    def testSetGood(self):
+        c = self.conf.copy()
+        c['oid_base'] = ".1.3.6.1.4.2.3";
+        c['oid_key']  = ".1.3.6.1.4.2.2";
+        c['key'] = 'two'
+        q = query.Query_snmp(c)
+
+        def check(ignore):
+            self.assertEquals(q.result, "2")
+
+        d = q.start()
+        d.addCallback(check)
+        return d
 
