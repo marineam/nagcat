@@ -23,6 +23,8 @@ lib = ctypes.CDLL(find_library('netsnmp'), ctypes.RTLD_GLOBAL)
 
 from snapy.netsnmp import const, types, util
 
+"""Net-SNMP bindings for the single session API"""
+
 class SnmpError(Exception):
     """Error in NetSNMP"""
     pass

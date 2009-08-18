@@ -79,7 +79,7 @@ class Session(object):
                 deferred.callback(result)
 
         # We must fire the deferred later because we don't want
-        # to trigger the user of this class to call any other
+        # to allow the user of this class to call any other
         # netsnmp functions while inside this netsnmp callback.
         reactor.callLater(0, fire)
 
