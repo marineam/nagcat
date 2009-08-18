@@ -19,8 +19,6 @@ from twisted.internet import defer, error, process, protocol, reactor
 from twisted.python import log
 from twisted.trial import unittest
 
-from snapy import netsnmp
-
 class LoggingProtocol(protocol.ProcessProtocol):
     """Log snmpd output via the twisted logging api"""
 
@@ -84,17 +82,10 @@ class Server(process.Process):
 
 class TestCase(unittest.TestCase):
 
-    version = "2c"
-
     def setUp(self):
         # Twisted falsely raises it's zombie warning during tests
         warnings.simplefilter("ignore", error.PotentialZombieWarning)
-
         self.server = Server()
-        self.session = netsnmp.Session("-v", self.version,
-                "-c", "public", "127.0.0.1:%d" % self.server.port)
-        self.session.open()
 
     def tearDown(self):
-        self.session.close()
         return self.server.stop()

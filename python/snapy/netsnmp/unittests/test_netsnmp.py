@@ -11,10 +11,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-from twisted.trial import unittest
-
-from snapy import netsnmp
 from snapy.netsnmp.unittests import TestCase
+from snapy.netsnmp import Session
 
 class Result(object):
     """Container for async results"""
@@ -32,6 +30,16 @@ class TestSessionV1(TestCase):
             ".1.3.6.1.4.2.1.3": 1,
             ".1.3.6.1.4.2.1.4": "test value",
             }
+
+    def setUp(self):
+        super(TestSessionV1, self).setUp()
+        self.session = Session("-v", self.version, "-c", "public",
+                "127.0.0.1:%d" % self.server.port)
+        self.session.open()
+
+    def tearDown(self):
+        self.session.close()
+        return super(TestSessionV1, self).tearDown()
 
     def test_sget(self):
         result = self.session.sget(self.basics.keys())

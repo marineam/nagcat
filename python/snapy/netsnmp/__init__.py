@@ -93,7 +93,6 @@ class Session(object):
 
     def close(self):
         assert self.sessp
-
         lib.snmp_sess_close(self.sessp)
         self.sessp = None
         self.session = None
@@ -108,7 +107,7 @@ class Session(object):
         fd_max = ctypes.c_int()
         fd_set = _mkfdset(self.fileno())
         tv = types.timeval()
-        block = ctypes.c_int()
+        block = ctypes.c_int(1) # block = 1 means tv is undefined
 
         # We only actually need tv and block
         lib.snmp_sess_select_info(self.sessp,
@@ -191,21 +190,27 @@ class Session(object):
 
         self._send_request(const.SNMP_MSG_GETNEXT, [start], walk_cb)
 
+    def do_timeout(self):
+        assert self.sessp
+        lib.snmp_sess_timeout(self.sessp)
+
+    def do_read(self):
+        assert self.sessp
+        fd_set = _mkfdset(self.fileno())
+        lib.snmp_sess_read(self.sessp, byref(fd_set))
+
     def wait(self):
         """Wait for any outstanding requests/timeouts"""
-
-        fd = self.fileno()
 
         while self._requests:
             timeout = self.timeout()
 
-            read, w, x = select.select((fd,), (), (), timeout)
+            read, w, x = select.select((self.fileno(),), (), (), timeout)
 
             if read:
-                fd_set = _mkfdset(fd)
-                lib.snmp_sess_read(self.sessp, byref(fd_set))
+                self.do_read()
             else:
-                lib.snmp_sess_timeout(self.sessp)
+                self.do_timeout()
 
 
 #    def getbulk(self, nonrepeaters, maxrepetitions, oids):
