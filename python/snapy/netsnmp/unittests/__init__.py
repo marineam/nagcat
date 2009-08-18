@@ -16,7 +16,7 @@ import signal
 import warnings
 
 from twisted.internet import defer, error, process, protocol, reactor
-from twisted.python import log
+from twisted.python import log, failure
 from twisted.trial import unittest
 
 class LoggingProtocol(protocol.ProcessProtocol):
@@ -87,5 +87,31 @@ class TestCase(unittest.TestCase):
         warnings.simplefilter("ignore", error.PotentialZombieWarning)
         self.server = Server()
 
+        try:
+            return self.setUp2()
+        except:
+            f = failure.Failure()
+            d = self.server.stop()
+            d.addCallback(lambda x: f)
+            return d
+
+    def setUp2(self):
+        pass
+
     def tearDown(self):
-        return self.server.stop()
+        d1 = self.server.stop()
+
+        try:
+            d2 = self.tearDown2()
+        except:
+            f = failure.Failure()
+            d1.addCallback(lambda x: f)
+            return d1
+
+        if isinstance(d2, defer.Deferred):
+            return defer.DeferredList([d1, d2])
+        else:
+            return d1
+
+    def tearDown2(self):
+        pass

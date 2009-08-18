@@ -18,15 +18,13 @@ class TestSessionV1(TestCase):
 
     version = "1"
 
-    def setUp(self):
-        super(TestSessionV1, self).setUp()
+    def setUp2(self):
         self.session = Session("-v", self.version, "-c", "public",
                 "127.0.0.1:%d" % self.server.port)
         self.session.open()
 
-    def tearDown(self):
+    def tearDown2(self):
         self.session.close()
-        return super(TestSessionV1, self).tearDown()
 
     def test_get(self):
         def cb(result):
