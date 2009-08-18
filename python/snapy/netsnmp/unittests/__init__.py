@@ -78,7 +78,7 @@ class Server(process.Process):
     def stop(self):
         assert self.pid and self._deferred
         os.kill(self.pid, signal.SIGTERM)
-        self._timeout = reactor.callLater(1.0, self.timeout)
+        self._timeout = reactor.callLater(5.0, self.timeout)
         return self._deferred
 
     def timeout(self):
