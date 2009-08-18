@@ -91,3 +91,9 @@ class Session(object):
         self._session.get(oids, self._done, deferred)
         self._update_timeout()
         return deferred
+
+    def walk(self, root):
+        deferred = defer.Deferred()
+        self._session.walk(root, self._done, deferred)
+        self._update_timeout()
+        return deferred

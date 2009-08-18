@@ -33,6 +33,17 @@ class TestSessionV1(TestCase):
         d.addCallback(cb)
         return d
 
+    def test_walk(self):
+        root = '.1.3.6.1.4.2.3'
+        expect = dict([("%s.%d" % (root, i), i) for i in xrange(1,5)])
+
+        def cb(result):
+            self.assertEquals(result, expect)
+
+        d = self.session.walk(root)
+        d.addCallback(cb)
+        return d
+
 class TestSessionV2c(TestSessionV1):
 
     version = "2c"
