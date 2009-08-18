@@ -53,9 +53,30 @@ class HTTPQueryTestCase(unittest.TestCase):
 
     def endPost(self, ignore, q):
         self.assertEquals(q.result, "post data")
-
+        
     def tearDown(self):
         return self.server.loseConnection()
+
+
+class HTTPEmptyResponseTestCase(unittest.TestCase):
+    """Test handling of an empty response from an http request"""
+    
+    def setUp(self):
+        self.bad_server = dummy_server.randomTCP(dummy_server.QuickShutdown())
+        self.bad_config = Struct({'host': "localhost", 'port': self.bad_server.port})
+
+    def testEmpty(self):
+        """test connecting to an HTTP socket that immediately closes"""
+        q = query.Query_http(self.bad_config)
+        d = q.start()
+        d.addBoth(self.endEmpty, q)
+        return d
+
+    def endEmpty(self, ignore, q):
+        self.assertIsInstance(q.result, errors.Failure)
+
+    def tearDown(self):
+        return self.bad_server.loseConnection()
 
 
 class TCPQueryTestCase(unittest.TestCase):

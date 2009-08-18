@@ -56,8 +56,15 @@ class Echo(protocol.Protocol):
 
 class TCP(protocol.Factory):
     """Dummy TCP server"""
-
     protocol = Echo
+
+class QuickShutdownProtocol(protocol.Protocol):
+    """Shuts down immediately after accepting"""
+    def dataReceived(self, data):
+        self.transport.loseConnection()
+
+class QuickShutdown(protocol.Factory):
+    protocol = QuickShutdownProtocol
 
 def randomTCP(factory):
     """Find an arbitrary port and listen on it."""

@@ -224,6 +224,9 @@ class Query_http(Query):
         if isinstance(result.value, defer.TimeoutError):
             raise errors.TestCritical("Timeout waiting on HTTP response")
 
+        elif isinstance(result.value, neterror.ConnectionDone):
+            raise errors.TestCritical("Empty HTTP Response")
+
         elif isinstance(result.value, weberror.PageRedirect):
             # Redirects aren't actually an error :-)
             result = "%s\n%s" % (result.value, result.value.location)
