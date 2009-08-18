@@ -115,8 +115,10 @@ class TestCase(unittest.TestCase):
         pass
 
     def tearDown(self):
-        d = self.server.stop()
-        d.addCallback(lambda x: self.tearDownSession())
+        try:
+            self.tearDownSession()
+        finally:
+            d = self.server.stop()
         return d
 
     def tearDownSession(self):
