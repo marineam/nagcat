@@ -123,7 +123,11 @@ class Session(object):
 
     def _callback(self, operation, sp, reqid, pdu, magic):
         try:
+            if reqid not in self._requests:
+                return 1
+
             cb, args = self._requests.pop(reqid)
+
             if operation == const.NETSNMP_CALLBACK_OP_RECEIVED_MESSAGE:
                 result = util.decode_result(pdu.contents)
                 cb(result, *args)

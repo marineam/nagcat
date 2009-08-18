@@ -14,6 +14,7 @@
 import os
 import signal
 import warnings
+import tempfile
 
 from twisted.internet import defer, error, process, protocol, reactor
 from twisted.python import log, failure
@@ -31,6 +32,8 @@ class LoggingProtocol(protocol.ProcessProtocol):
 
     def errReceived(self, data):
         for line in data.splitlines():
+            if line.startswith("NET-SNMP"):
+                self.factory.started()
             log.err("snmpd: %s" % line)
 
     def processEnded(self, status):
@@ -49,15 +52,29 @@ class Server(process.Process):
 
     def __init__(self):
         self._deferred = defer.Deferred()
+        self._address = defer.Deferred()
         self._timeout = None
         self.conf = "%s/snmpd.conf" % os.path.dirname(__file__)
         self.port = 9999
 
+        # XXX: Not perfect, there is a race condition between
+        # the unlink and snmpd's bind call but it's good enough.
+        fd, name = tempfile.mkstemp()
+        self.socket = "unix:%s" % name
+        os.unlink(name)
+        os.close(fd)
+
         proto = LoggingProtocol(self)
         env = {"PATH": "/bin:/sbin:/usr/bin:/usr/sbin"}
-        cmd = ("snmpd", "-f", "-C", "-c", self.conf,
-                "127.0.0.1:%d" % self.port)
+        cmd = ("snmpd", "-f", "-I", "override", "-C", "-c", self.conf,
+                "--noPersistentLoad=1", "--noPersistentSave=1", self.socket)
         super(Server, self).__init__(reactor, cmd[0], cmd, env, None, proto)
+
+    def started(self):
+        self._address.callback(self.socket)
+
+    def address(self):
+        return self._address
 
     def stop(self):
         assert self.pid and self._deferred
@@ -85,33 +102,20 @@ class TestCase(unittest.TestCase):
     def setUp(self):
         # Twisted falsely raises it's zombie warning during tests
         warnings.simplefilter("ignore", error.PotentialZombieWarning)
+
         self.server = Server()
+        d = self.server.address()
+        d.addCallback(self.setUpSession)
+        d.addErrback(lambda x: self.server.stop())
+        return d
 
-        try:
-            return self.setUp2()
-        except:
-            f = failure.Failure()
-            d = self.server.stop()
-            d.addCallback(lambda x: f)
-            return d
-
-    def setUp2(self):
+    def setUpSession(self, address):
         pass
 
     def tearDown(self):
-        d1 = self.server.stop()
+        d = self.server.stop()
+        d.addCallback(lambda x: self.tearDownSession)
+        return d
 
-        try:
-            d2 = self.tearDown2()
-        except:
-            f = failure.Failure()
-            d1.addCallback(lambda x: f)
-            return d1
-
-        if isinstance(d2, defer.Deferred):
-            return defer.DeferredList([d1, d2])
-        else:
-            return d1
-
-    def tearDown2(self):
+    def tearDownSession(self):
         pass

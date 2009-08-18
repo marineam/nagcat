@@ -31,12 +31,11 @@ class TestSessionV1(TestCase):
             ".1.3.6.1.4.2.1.4": "test value",
             }
 
-    def setUp2(self):
-        self.session = Session("-v", self.version, "-c", "public",
-                "127.0.0.1:%d" % self.server.port)
+    def setUpSession(self, address):
+        self.session = Session("-v", self.version, "-c", "public", address)
         self.session.open()
 
-    def tearDown2(self):
+    def tearDownSession(self):
         self.session.close()
 
     def test_sget(self):

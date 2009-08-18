@@ -32,8 +32,11 @@ class SnmpReader(object):
     def doRead(self):
         return self._session.do_read()
 
-    def connectionLost(self):
-        print "Connection Lost, sessp: %s" % self._session.sessp
+    def connectionLost(self, reason):
+        # TODO: How should we handle connection oriented protocols?
+        # When using a Unix or TCP socket this may get triggered.
+        # The API may need to be reworked again...
+        pass
 
 class Session(object):
 
