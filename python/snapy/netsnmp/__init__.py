@@ -190,7 +190,14 @@ class Session(object):
                 tree.update(value)
                 self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
 
-        self._send_request(const.SNMP_MSG_GETNEXT, [start], walk_cb)
+        def first_cb(value):
+            oid = value.keys()[0]
+            if value[oid] is not None:
+                cb(value, *args)
+            else:
+                self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
+
+        self._send_request(const.SNMP_MSG_GET, [start], first_cb)
 
     def do_timeout(self):
         assert self.sessp
