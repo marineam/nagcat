@@ -52,15 +52,16 @@ class TestSessionV1(TestCase):
         """Test a standard walk using just getnext"""
 
         all = {}
-        oid = ".1.3.6.1.4.2.1"
+        root = ".1.3.6.1.4.2.1"
+        oid = root
 
-        while oid:
+        while True:
             result = Result()
             self.session.getnext([oid], set_result, result)
             self.session.wait()
 
             oid = result.value.keys()[0]
-            if result.value[oid]:
+            if result.value[oid] and oid.startswith(root):
                 all.update(result.value)
             else:
                 break

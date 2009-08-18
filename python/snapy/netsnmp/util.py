@@ -16,10 +16,18 @@ import ctypes
 
 from snapy.netsnmp import const, types
 
-def encode_oid(oid):
+def _parse_oid(oid):
     # TODO: Handle strings like: SNMPv2-MIB::sysDescr.0
     if isinstance(oid, str):
         oid = [int(v) for v in oid.strip('.').split('.')]
+    return oid
+
+def parse_oid(oid):
+    oid = _parse_oid(oid)
+    return decode_oid(oid, len(oid))
+
+def encode_oid(oid):
+    oid = _parse_oid(oid)
     raw = (types.oid * len(oid))()
     for i, v in enumerate(oid):
         raw[i] = v

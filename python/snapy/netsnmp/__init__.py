@@ -176,9 +176,10 @@ class Session(object):
     def getnext(self, oids, cb, *args):
         self._send_request(const.SNMP_MSG_GETNEXT, oids, cb, *args)
 
-    def walk(self, start, cb, *args):
+    def walk(self, root, cb, *args):
         """Walk using a sequence of getnext requests"""
 
+        root = util.parse_oid(root)
         tree = {}
 
         # This is a little simple minded and simply stops the walk
@@ -188,7 +189,7 @@ class Session(object):
         # Note: v1 and v2c report this condition in different ways.
         def walk_cb(value):
             oid = value.keys()[0]
-            if value[oid] is None:
+            if value[oid] is None or not oid.startswith(root):
                 cb(tree, *args)
             else:
                 tree.update(value)
@@ -201,7 +202,7 @@ class Session(object):
             else:
                 self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
 
-        self._send_request(const.SNMP_MSG_GET, [start], first_cb)
+        self._send_request(const.SNMP_MSG_GET, [root], first_cb)
 
     def do_timeout(self):
         assert self.sessp
