@@ -15,6 +15,8 @@
 """RRDTool Trending"""
 
 import os
+import re
+import time
 
 try:
     import rrdtool
@@ -23,6 +25,9 @@ except ImportError:
 
 import coil
 from nagcat import errors, log, util
+
+class MismatchError(errors.InitError):
+    """RRDTool archive mismatch"""
 
 _rradir = None
 
@@ -50,6 +55,69 @@ def init(dir):
 
 def enabled():
     return bool(_rradir)
+
+def _rrdtool_info(rrd_file):
+    """Wrapper around rrdtool.info() for version compatibility.
+
+    RRDTool changed the format of the data returned by rrdtool.info()
+    in >= 1.3 to make it more annoying but similar to the command line
+    tool and other language bindings. To make things even better there
+    isn't a handy __version__ attribute in <= 1.4 to test.
+    """
+
+    new = {'ds': {}, 'rra': {}}
+    def parse_ds(key, value):
+        match = re.match(r'^ds\[([^\]]+)\]\.(\w+)$', key)
+        name = match.group(1)
+        attr = match.group(2)
+
+        if name not in new['ds']:
+            new['ds'][name] = {attr: value}
+        else:
+            new['ds'][name][attr] = value
+
+    def parse_rra(key, value):
+        # Currently we don't care about cdp_prep so just skip
+        if 'cdp_prep' in key:
+            return
+
+        match = re.match(r'^rra\[(\d+)\]\.(\w+)$', key)
+        index = int(match.group(1))
+        attr = match.group(2)
+
+        if index not in new['rra']:
+            new['rra'][index] = {attr: value}
+        else:
+            new['rra'][index][attr] = value
+
+    old = rrdtool.info(rrd_file)
+
+    # Verify that we actually got some data back
+    if 'step' not in old:
+        raise errors.InitError("Unknown RRDTool info format")
+
+    # Check which version we are probably using
+    # <= 1.2, nothing to do!
+    if 'ds' in old:
+        return old
+
+    # >= 1.3, convert to the easier to use 1.2 format :-(
+    for key, value in old.iteritems():
+        if key.startswith('ds'):
+            parse_ds(key, value)
+        elif key.startswith('rra'):
+            parse_rra(key, value)
+        else:
+            new[key] = value
+
+    # Convert rra from a dict to a sorted list
+    items = new['rra'].items()
+    items.sort()
+    new['rra'] = []
+    for i, value in items:
+        new['rra'].append(value)
+
+    return new
 
 class Trend(object):
 
@@ -116,9 +184,21 @@ class Trend(object):
             raise errors.InitError("Cannot write to %s: %s" % (coil_file, ex))
 
         if os.path.exists(self._rrafile):
-            self.validate()
+            try:
+                self.validate()
+            except MismatchError:
+                self.replace()
         else:
             self.create()
+
+    def replace(self):
+        assert os.path.exists(self._rrafile)
+        timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        new_file = "%s.%s" % (self._rrafile, timestamp)
+
+        log.info("RRA has changed, saving old file: %s" % new_file)
+        os.rename(self._rrafile, new_file)
+        self.create()
 
     def create(self):
         # For now just create archives with the minimal data required
@@ -139,7 +219,7 @@ class Trend(object):
             if interval < self._step:
                 continue
             steps = interval // self._step
-            rows = period // steps
+            rows = period // (steps * self._step)
             args.append("RRA:MAX:0.5:%d:%d" % (steps, rows))
             args.append("RRA:AVERAGE:0.5:%d:%d" % (steps, rows))
 
@@ -157,14 +237,50 @@ class Trend(object):
         self.validate()
 
     def validate(self):
-        info = rrdtool.info(self._rrafile)
-        assert info['step'] == self._step
-        # This interface changed between versions of rrdtool... lame :-(
-        #assert info['ds']['default']['type'] == self.type
-        #assert info['ds']['default']['minimal_heartbeat'] == self.step*2
-        #for rra in info['rra']:
-        #    if rra['cf'] in ('AVERAGE', 'MAX'):
-        #        assert rra['xff'] == 0.5
+        info = _rrdtool_info(self._rrafile)
+
+        if info['step'] != self._step:
+            raise MismatchError("step has changed")
+
+        new = set(self._ds_list.keys())
+        old = set(info['ds'].keys())
+        if new != old:
+            raise MismatchError("data source list has changed")
+
+        for ds_name, ds_conf in self._ds_list.iteritems():
+            ds_old = info['ds'][ds_name]
+
+            if ds_conf['type'] != ds_old['type']:
+                raise MismatchError("data source type has changed")
+
+            if self._step*2 != ds_old['minimal_heartbeat']:
+                raise MismatchError("data source heartbeat has changed")
+
+            if ds_old['min'] is not None or ds_old['max'] is not None:
+                raise MismatchError("data source min/max was set")
+
+        old = list(info['rra'])
+        for period, interval in self.RRAS:
+            if interval < self._step:
+                continue
+
+            steps = interval // self._step
+            rows = period // (steps * self._step)
+            rra_max = old.pop(0)
+            rra_avg = old.pop(0)
+
+            if rra_max['cf'] != 'MAX':
+                raise MismatchError("rra has an unexpected function")
+            if rra_avg['cf'] != 'AVERAGE':
+                raise MismatchError("rra has an unexpected function")
+
+            for rra in (rra_max, rra_avg):
+                if rra['pdp_per_row'] != steps:
+                    MismatchError("rra interval has changed")
+                if rra['rows'] != rows:
+                    MismatchError("rra period has changed")
+                if rra['xff'] != 0.5:
+                    MismatchError("rra xff has changed")
 
     def update(self, report):
         ds_values = {}
