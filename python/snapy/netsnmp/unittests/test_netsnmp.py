@@ -11,8 +11,9 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+from twisted.trial import unittest
 from snapy.netsnmp.unittests import TestCase
-from snapy.netsnmp import Session
+from snapy.netsnmp import Session, SnmpError, SnmpTimeout
 
 class Result(object):
     """Container for async results"""
@@ -97,3 +98,27 @@ class TestSessionV2c(TestSessionV1):
 
     version = "2c"
 
+class TestTimeoutsV1(unittest.TestCase):
+
+    version = "1"
+
+    def setUp(self):
+        self.session = Session("-v", self.version, "-c", "public",
+                "-r", "0", "-t", "0.1", "udp:127.0.0.1:9")
+        self.session.open()
+
+    def test_sget(self):
+        self.assertRaises(SnmpError, self.session.sget, [".1.3.6.1.4.2.1.1"])
+
+    def test_get(self):
+        result = Result()
+        self.session.get([".1.3.6.1.4.2.1.1"], set_result, result)
+        self.session.wait()
+        assert isinstance(result.value, SnmpTimeout)
+
+    def tearDown(self):
+        self.session.close()
+
+class TestTimeoutsV2c(TestTimeoutsV1):
+
+    version = "2c"

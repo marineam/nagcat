@@ -30,8 +30,9 @@ class SnmpError(Exception):
     pass
 
 class SnmpTimeout(Exception):
-    """Request Timeout"""
-    pass
+    """SNMP Timeout"""
+    def __init__(self):
+        super(SnmpTimeout, self).__init__(self.__class__.__doc__)
 
 # The normal fd limit
 FD_SETSIZE = 1024
