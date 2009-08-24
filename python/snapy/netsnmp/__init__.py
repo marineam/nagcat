@@ -142,16 +142,18 @@ class Session(object):
             sys.stderr.write("Exception in _callback: %s\n" % (ex,))
         return 1
 
-    def _create_request(self, msg_type, oids):
+    def _create_request(self, msg_type, oids, **pdu_args):
         req = lib.snmp_pdu_create(msg_type)
+        for opt, val in pdu_args.iteritems():
+            setattr(req.contents, opt, val)
         for oid in oids:
             oid = util.encode_oid(oid)
             lib.snmp_add_null_var(req, oid, len(oid))
         return req
 
-    def _send_request(self, msg_type, oids, cb, *args):
+    def _send_request(self, msg_type, oids, cb, *args, **pdu_args):
         assert self.sessp
-        req = self._create_request(msg_type, oids)
+        req = self._create_request(msg_type, oids, **pdu_args)
         self._requests[req.contents.reqid] = (cb, args)
 
         if not lib.snmp_sess_send(self.sessp, req):
@@ -176,6 +178,10 @@ class Session(object):
 
     def getnext(self, oids, cb, *args):
         self._send_request(const.SNMP_MSG_GETNEXT, oids, cb, *args)
+
+    def getbulk(self, oids, non_repeaters, max_repetitions, cb, *args):
+        self._send_request(const.SNMP_MSG_GETBULK, oids, cb, *args,
+                errstat=non_repeaters, errindex=max_repetitions)
 
     def walk(self, oids, cb, *args):
         """Walk using a sequence of getnext requests"""

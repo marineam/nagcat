@@ -168,8 +168,8 @@ netsnmp_pdu._fields_ = [
         ('msgid', c_long ),
         ('transid', c_long ),
         ('sessid', c_long ),
-        ('errstat', c_long ),
-        ('errindex', c_long ),
+        ('errstat', c_long ),   # (non_repeaters in GetBulk)
+        ('errindex', c_long ),  # (max_repetitions in GetBulk)
         ('time', c_ulong ),
         ('flags', c_ulong ),
         ('securityModel', c_int ),

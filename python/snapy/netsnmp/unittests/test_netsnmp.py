@@ -98,6 +98,13 @@ class TestSessionV2c(TestSessionV1):
 
     version = "2c"
 
+    def test_getbulk(self):
+        result = Result()
+        # Get the first 4 values which should be self.basics
+        self.session.getbulk([".1"], 0, 4, set_result, result)
+        self.session.wait()
+        self.assertEquals(result.value, self.basics)
+
 class TestTimeoutsV1(unittest.TestCase):
 
     version = "1"
