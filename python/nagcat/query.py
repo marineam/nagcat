@@ -20,6 +20,7 @@ All requests are defined as a Query class which is a Runnable.
 import os
 import errno
 import signal
+import re
 
 try:
     import uuid
@@ -32,6 +33,10 @@ from twisted.web import error as weberror
 from twisted.web.client import HTTPClientFactory
 from twisted.python.util import InsensitiveDict
 from twisted.python import failure
+
+import lxml.etree as etree
+from twisted.enterprise import adbapi
+import cx_Oracle
 
 # SSL support is screwy
 try:
@@ -617,3 +622,141 @@ class _Query_snmp_combined(_Query_snmp_common):
         if isinstance(result.value, neterror.TimeoutError):
             raise errors.TestCritical("SNMP request timeout")
         return result
+
+##############################
+# Oracle-specific SQL queries
+##############################
+
+class _DBColumn:
+    """describes the name and type of a column, to facilitate mapping the
+    attributes of a DB column into XML attribs (taken by processing
+    the contents of a cx_Oracle.Cursor.description)"""
+
+    # taken from http://cx-oracle.sourceforge.net/html/cursor.html
+    CX_VAR_COLUMNS = ('name', 'type', 'display_size', 'internal_size',
+                     'precision', 'scale', 'null_ok')
+
+    def __init__(self, desc):
+        """Take the decription of a cx_Oracle variable, and make it an actual
+        object"""
+
+        # these are the attributes that this item will contain
+        for k,v in zip(self.CX_VAR_COLUMNS, desc):
+            setattr(self, k, v)
+    def __str__(self):
+        return "<_DBColumn %s:%s>" % (self.name, self.type)
+    def __repr__(self):
+        return str(self)
+
+
+class _OracleConnectionPool(adbapi.ConnectionPool):
+    """a specialized connectionPool, with a modified _runQuery that fires with
+    the variables of the cursor as well as the the result"""
+
+    #! this makes me twitch, but I can't think of a better way to get the list of
+    #! variables out of the otherwise inaccessible cursor
+    def _runQuery(self, cursor, *args, **kwargs):
+        """Override the adbpapi.ConnectionPool._runQuery, to remember and return
+        the cursor, as well as the resulting data"""
+
+        # the parent-class _runQuery() returns the result of cursor.fetchall(),
+        # which might be dangerous if a rogue query were to return a huge dataset.
+        result = adbapi.ConnectionPool._runQuery(self, cursor, *args, **kwargs)
+        columns = map(lambda c: _DBColumn(c), cursor.description)
+        return (columns, result)
+
+
+class Query_oraclesql(Query):
+    """Use cx_Oracle to execute a query against one of the databases"""
+
+    # the field of the configuration struct that we care about
+    CONF_FIELDS = ['user', 'password', 'dsn', 'sql', 'binds', 'maxrows']
+
+    def __init__(self, conf):
+        Query.__init__(self, conf)
+        # need to make this take a tnsname system instead of just a DBI
+        for fieldname in self.CONF_FIELDS:
+            if fieldname in conf:
+                self.conf[fieldname] = conf.get(fieldname)
+
+    def _start(self):
+        self.dbpool = _OracleConnectionPool('cx_Oracle', user=self.conf['user'],
+                                          password=self.conf['password'],
+                                          dsn=self.conf['dsn'],
+                                          cp_reconnect=True)
+        log.debug("running sql %s", self.conf['sql'])
+        self.deferred = self.dbpool.runQuery(self.conf['sql'],
+                                             self.conf.get('binds', {}))
+        self.deferred.addCallback(self._success)
+        self.deferred.addErrback(self._failure_oracle)
+        return self.deferred
+
+    def _success(self, result):
+        """success receives a (columns, data) pair, where 'columns' is a list of
+        _DBColumns and 'data' is the actual data returned from the query.
+        Convert it to XML and return it
+        """
+        self.result = self._result_as_xml(*result)
+        log.debug("Query_oraclesql success: %s", self.result)
+        self._cleanup()
+        return self.result
+
+    def _result_as_xml(self, columns, result_table):
+        """Convert an executed query into XML, using the columns to get the
+        names and types of the column tags"""
+
+        # example query: select 1 as foo from dual
+        # returns: '<queryresult><row><foo type="NUMBER">1</foo></row></queryresult>'
+        try:
+            tree = etree.Element("queryresult")
+            for row in result_table:
+                xmlrow = etree.Element('row')
+                for col, val in zip(columns, row):
+                    xmlrow.append(self._xml_element(col, val))
+                tree.append(xmlrow)
+            return etree.tostring(tree, pretty_print=False)
+        except Exception as err:
+            raise errors.TestCritical("XML conversion error!: %s" % err)
+
+    def _xml_element(self, col, text):
+        name = re.sub("[^\w]","", col.name.lower())
+        elt = etree.Element(name, type=col.type.__name__)
+        elt.text = str(text)
+        return elt
+
+    @errors.callback
+    def _failure_oracle(self, result):
+        """Catch common oracle failures here"""
+        log.debug("Fail! %s", result.value)
+
+        # cleanup now, since we mightn't be back
+        self._cleanup()
+
+        if isinstance(result.value, cx_Oracle.Warning):
+            # Exception raised for important warnings and defined by the DB API
+            # but not actually used by cx_Oracle.
+            raise errors.TestWarning(result.value)
+
+        if isinstance(result.value, cx_Oracle.InterfaceError):
+            # Exception raised for errors that are related to the database
+            # interface rather than the database itself. It is a subclass of
+            # Error.
+            raise errors.TestCritical(result.value)
+
+        if isinstance(result.value, cx_Oracle.DatabaseError):
+            # Exception raised for errors that are related to the database. It
+            # is a subclass of Error.
+            raise errors.TestCritical(result.value)
+
+        if isinstance(result.value, cx_Oracle.Error):
+            # Exception that is the base class of all other exceptions
+            # defined by cx_Oracle and is a subclass of the Python
+            # StandardError exception (defined in the module exceptions).
+            raise errors.TestCritical(result.value)
+
+        log.debug("Unhandled failure! %s", result)
+
+    def _cleanup(self):
+        """Closes the ConnectionPool"""
+        self.dbpool.close()
+
