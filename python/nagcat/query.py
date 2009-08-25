@@ -18,7 +18,6 @@ All requests are defined as a Query class which is a Runnable.
 """
 
 import os
-import re
 import errno
 import signal
 
@@ -479,12 +478,12 @@ class _Query_snmp_common(Query):
         if not self.conf['community']:
             raise errors.ConfigError(conf, "SNMP community is required")
 
-    def check_oid(self, oid):
+    def check_oid(self, conf, key):
         """Check/parse an oid"""
         try:
-            oid = netsnmp.util.parse_oid(oid)
+            oid = netsnmp.util.parse_oid(conf[key])
         except:
-            raise errors.ConfigError(conf, "Invalid SNMP OID %r" % oid)
+            raise errors.ConfigError(conf, "Invalid SNMP OID %r" % conf[key])
 
         return oid
 
@@ -496,14 +495,14 @@ class Query_snmp(_Query_snmp_common):
         _Query_snmp_common.__init__(self, conf)
 
         if 'oid' in conf:
-            self.conf['oid'] = self.check_oid(conf['oid'])
+            self.conf['oid'] = self.check_oid(conf, 'oid')
 
             if ("oid_base" in conf or "oid_key" in conf or "key" in conf):
                 raise errors.ConfigError(conf,
                         "oid cannot be used with oid_base, oid_key, and key")
         elif ("oid_base" in conf and "oid_key" in conf and "key" in conf):
-            self.conf['oid_base'] = self.check_oid(conf['oid_base'])
-            self.conf['oid_key'] = self.check_oid(conf['oid_key'])
+            self.conf['oid_base'] = self.check_oid(conf, 'oid_base')
+            self.conf['oid_key'] = self.check_oid(conf, 'oid_key')
             self.conf['key'] = conf['key']
         else:
             raise errors.ConfigError(conf,
@@ -584,11 +583,11 @@ class _Query_snmp_combined(_Query_snmp_common):
     def update(self, conf):
         """Update compound query with oids to be retreived from host."""
         if 'oid' in conf:
-            self.oids.add(self.check_oid(conf['oid']))
+            self.oids.add(self.check_oid(conf, 'oid'))
         if 'oid_base' in conf:
-            self.oids.add(self.check_oid(conf['oid_base']))
+            self.oids.add(self.check_oid(conf, 'oid_base'))
         if 'oid_key' in conf:
-            self.oids.add(self.check_oid(conf['oid_key']))
+            self.oids.add(self.check_oid(conf, 'oid_key'))
 
     def _start(self):
         try:
