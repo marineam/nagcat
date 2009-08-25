@@ -458,16 +458,16 @@ class _Query_snmp_common(Query):
     def __init__(self, conf):
         Query.__init__(self, conf)
 
-        self.conf['protocol'] = conf.get('protocol', 'udp')
-        if self.conf['protocol'] not in ('udp', 'tcp', 'unix'):
+        protocol = conf.get('protocol', 'udp')
+        if protocol not in ('udp', 'tcp', 'unix'):
             raise errors.ConfigError(conf,
                     "Invalid SNMP protocol: %r" % conf['protocol'])
 
         # Unix sockets are used by the unit tests
-        if self.conf['protocol'] == 'unix':
+        if protocol == 'unix':
             self.conf['addr'] = 'unix:%s' % conf['path']
         else:
-            self.conf['addr'] = '%s:%s:%d' % (self.conf['protocol'],
+            self.conf['addr'] = '%s:%s:%d' % (protocol,
                     self.addr, int(conf.get('port', 161)))
 
         self.conf['version'] = str(conf.get('version', '2c'))
