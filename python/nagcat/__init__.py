@@ -25,7 +25,7 @@ from optparse import OptionParser
 from twisted.internet import reactor
 import coil
 
-from nagcat import errors, log, nagios, scheduler, test, trend
+from nagcat import errors, log, monitor_api, nagios, scheduler, test, trend
 
 def simpleReport(report):
     log.info("REPORT:\n%s" % report['text'])
@@ -155,6 +155,8 @@ def parse_options():
             help="set the limit on number of open files")
     parser.add_option("-r", "--rradir", dest="rradir",
             help="directory used to store rrdtool archives")
+    parser.add_option("-s", "--status-port", dest="status_port", type="int",
+            help="enable the HTTP status port")
     parser.add_option("-t", "--test", dest="test",
             help="only run a single test")
     parser.add_option("-H", "--host", dest="host",
@@ -239,6 +241,12 @@ def init(options):
 
         sch.prepare()
         reactor.callWhenRunning(sch.start)
+
+        # TODO: somehow start this earlier?
+        if options.status_port:
+            site = monitor_api.MonitorSite(sch)
+            reactor.listenTCP(options.status_port, site)
+
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)

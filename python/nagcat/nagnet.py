@@ -17,9 +17,9 @@
 import sys
 from optparse import OptionParser
 from twisted.internet import reactor
-from twisted.web import server
+from twisted.web import server, resource
 
-from nagcat import daemonize, errors, log, nagios_api
+from nagcat import daemonize, errors, log, monitor_api, nagios_api
 
 def parse_options():
     """Parse program options in sys.argv"""
@@ -85,8 +85,7 @@ def main():
         log.error(str(ex))
         sys.exit(1)
 
-    site = server.Site(rpc)
-    site.noisy = False
-
+    site = monitor_api.MonitorSite()
+    site.root.putChild("RPC2", rpc)
     reactor.listenTCP(options.port, site, interface=options.host)
     reactor.run()
