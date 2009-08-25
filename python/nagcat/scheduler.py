@@ -36,6 +36,7 @@ Scheduling works as follows:
 import time
 import socket
 import random
+from collections import deque
 
 from twisted.internet import defer, reactor
 from twisted.python import failure
@@ -50,6 +51,7 @@ class Scheduler(object):
         self._registered = set()
         self._startup = True
         self._running = False
+        self._latency = deque([0], 60)
 
     def register(self, runnable):
         """Register a top level Runnable to be run directly by the scheduler"""
@@ -70,6 +72,23 @@ class Scheduler(object):
         if not self._registered:
             self.stop()
             return
+
+    def stats(self):
+        """Get a variety of stats to report on"""
+
+        data = {}
+        data['latency'] = {
+                'period':  60, # Approximate but close enough
+                'max': max(self._latency),
+                'min': min(self._latency),
+                'avg': sum(self._latency) / len(self._latency),
+            }
+
+        data['tasks'] = {
+                'groups': len(self._registered),
+            }
+
+        return data
 
     def _create_groups(self):
         """Group together registered tasks with common subtasks.
@@ -201,6 +220,8 @@ class Scheduler(object):
         reactor.callLater(1.0, self.latency, now)
 
         latency = now - last - 1.0
+        self._latency.append(latency)
+
         if latency > 5.0:
             log.error("Callback latency: %s" % latency)
         elif latency > 1.5:

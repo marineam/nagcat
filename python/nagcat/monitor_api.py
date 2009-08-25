@@ -33,7 +33,7 @@ class XMLPage(resource.Resource):
 
         Returns an etree.Element object.
         """
-        raise Exeption("Not Implemented")
+        raise Exception("Not Implemented")
 
     def render_GET(self, request):
         """Transform the xml to text and send it"""
@@ -74,8 +74,16 @@ class Scheduler(XMLPage):
     def xml(self):
         sch = etree.Element("Scheduler", version="1.0")
 
-        count = len(self.scheduler._registered)
-        tasks = etree.SubElement(sch, "Tasks", count=str(count))
+        data = self.scheduler.stats()
+
+        lat = etree.SubElement(sch, "Latency",
+                period=str(data['latency']['period']))
+        etree.SubElement(lat, "Maximum").text = "%f" % data['latency']['max']
+        etree.SubElement(lat, "Minimum").text = "%f" % data['latency']['min']
+        etree.SubElement(lat, "Average").text = "%f" % data['latency']['avg']
+
+        tasks = etree.SubElement(sch, 'Tasks')
+        etree.SubElement(tasks, "Groups").text = str(data['tasks']['groups'])
 
         return sch
 
