@@ -186,6 +186,10 @@ def parse_options():
     if options.daemon and (not options.pidfile or not options.logfile):
         err.append("--logfile and --pidfile are required with --daemon")
 
+    if (not (options.nagios or options.test) or
+            (options.nagios and options.test)):
+        err.append("either --test or --nagios is required")
+
     if options.daemon and options.test:
         err.append("--test cannot be used with --daemon")
 
@@ -225,11 +229,9 @@ def init(options):
 
         if options.test:
             tests = simple(options, config)
-        elif options.nagios:
+        else:
             tests = nagios.NagiosTests(config,
                     options.nagios, options.tag, options.url)
-        else:
-            raise Exception("Normal mode without nagios is unimplemented")
 
         sch = scheduler.Scheduler()
         for testobj in tests:
