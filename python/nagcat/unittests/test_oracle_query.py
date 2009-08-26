@@ -1,11 +1,16 @@
-#!/usr/bin/python
-
-# Place a suitable copyright statement here...
-
-"""Purpose of this file..
-(a line or two of detail about what or why)"""
-__revision__ = "$Id: 0 0 0 $"
-__version__ = "%s/%s" % (__revision__.split()[3], __revision__.split()[2])
+# Copyright 2008-2009 ITA Software, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 from twisted.trial import unittest
@@ -18,10 +23,17 @@ from coil.struct import Struct
 # ORA_USER, ORA_PASS, ORA_DSN
 class OracleTestCase(unittest.TestCase):
     def setUp(self):
-        self.config = Struct({'user':os.environ['ORA_USER'],
-                              'password':os.environ['ORA_PASS'],
-                              'dsn':os.environ['ORA_DSN'],
-                              'sql':'select 1 as data from dual'})
+        
+        if ('ORA_DSN' in os.environ and 
+            'ORA_USER' in os.environ and 
+            'ORA_PASS' in os.environ): 
+
+            self.config = Struct({'user':os.environ['ORA_USER'],
+                                  'password':os.environ['ORA_PASS'],
+                                  'dsn':os.environ['ORA_DSN'],
+                                  'sql':'select 1 as data from dual'})
+        else: 
+            raise unittest.SkipTest("Missing oracle credentials")
 
     def testSimple(self):
         q = query.Query_oraclesql(self.config)
