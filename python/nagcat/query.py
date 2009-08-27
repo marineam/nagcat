@@ -33,10 +33,7 @@ from twisted.web import error as weberror
 from twisted.web.client import HTTPClientFactory
 from twisted.python.util import InsensitiveDict
 from twisted.python import failure
-
-import lxml.etree as etree
 from twisted.enterprise import adbapi
-import cx_Oracle
 
 # SSL support is screwy
 try:
@@ -47,6 +44,16 @@ except ImportError:
 if ssl and not ssl.supported:
    # happens second and later times
    ssl = None
+
+try:
+    from lxml import etree
+except ImportError:
+    etree = None
+
+try:
+    import cx_Oracle
+except ImportError:
+    cx_Oracle = None
 
 from snapy import netsnmp
 from snapy.twisted import Session as SnmpSession
@@ -699,6 +706,10 @@ class Query_oraclesql(Query):
     CONF_FIELDS = ['user', 'password', 'dsn', 'sql', 'binds', 'maxrows']
 
     def __init__(self, conf):
+        if not etree or not cx_Oracle:
+            raise errors.InitError(
+                    "cx_Oracle and lxml are required for Oracle support.")
+
         Query.__init__(self, conf)
         # need to make this take a tnsname system instead of just a DBI
         for fieldname in self.CONF_FIELDS:
