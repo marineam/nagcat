@@ -115,7 +115,7 @@ print
 rrdtool.graph("-", "-a", "PNG", "-s", "-1%s" % period,
         "--width=500", "--height=120",
         "--alt-autoscale-max", "--alt-y-grid",
-        "DEF:_state=%s:_state:MAX" % rrd_path,
+        "DEF:_state=%s:_state:MAX" % esc(rrd_path),
         "CDEF:_state_ok=_state,0,EQ",
         "CDEF:_state_warn=_state,1,EQ",
         "CDEF:_state_crit=_state,2,EQ",
