@@ -500,68 +500,90 @@ class Query_snmp(_Query_snmp_common):
         _Query_snmp_common.__init__(self, conf)
 
         if 'oid' in conf:
-            self.conf['oid'] = self.check_oid(conf, 'oid')
-
             if ("oid_base" in conf or "oid_key" in conf or "key" in conf):
                 raise errors.ConfigError(conf,
                         "oid cannot be used with oid_base, oid_key, and key")
+
+            self.conf['oid'] = self.check_oid(conf, 'oid')
+            self.query_oid = addQuery(conf, qcls=_Query_snmp_combined)
+            self.addDependency(self.query_oid)
+
         elif ("oid_base" in conf and "oid_key" in conf and "key" in conf):
+            if "oid" in conf:
+                raise errors.ConfigError(conf,
+                        "oid cannot be used with oid_base, oid_key, and key")
+
             self.conf['oid_base'] = self.check_oid(conf, 'oid_base')
             self.conf['oid_key'] = self.check_oid(conf, 'oid_key')
             self.conf['key'] = conf['key']
+
+            base = conf.copy()
+            base['oid'] = self.conf['oid_base']
+            self.query_base = addQuery(base, qcls=_Query_snmp_combined)
+            self.addDependency(self.query_base)
+
+            key = conf.copy()
+            key['oid'] = self.conf['oid_key']
+            self.query_key = addQuery(key, qcls=_Query_snmp_combined)
+            self.addDependency(self.query_key)
         else:
             raise errors.ConfigError(conf,
                     "oid or oid_base, oid_key, and key are required")
 
-        # add single Query class per host address that
-        # does the actual retreival of data
-        self.query_combined = addQuery(conf, qcls=_Query_snmp_combined)
-        self.addDependency(self.query_combined)
-
     def _start(self):
         """Get and filter the result the from combined query."""
 
-        result = self.query_combined.result
+        try:
+            if "oid" in self.conf:
+                return self._get_result()
+            else:
+                return self._get_result_set()
+        except:
+            return errors.Failure()
 
-        if isinstance(result, failure.Failure):
-            return result
-        elif "oid" in self.conf:
-            return self._get_result(result, self.conf['oid'])
-        else:
-            return self._get_result_set(result)
-
-    @errors.callback
-    def _get_result(self, result, oid):
+    def _get_result(self):
         """Get a single oid value"""
 
-        result = dict(result)
+        result = self.query_oid.result
+        if isinstance(result, failure.Failure):
+            return result
+
+        oid = self.conf['oid']
+        result = dict(self.query_oid.result)
         if oid not in result:
-            raise errors.TestCritical("No value received")
+            raise errors.TestCritical("No value received for %s" % oid)
 
         return str(result[oid])
 
-    @errors.callback
-    def _get_result_set(self, result):
+    def _get_result_set(self):
         """Get the requested value from the oid_base set.
 
         Matches the value index from the oid_key set specified
         by the key field to retreive the oid_base value.
         """
 
-        def filter_result(root):
+        class Return(Exception):
+            pass
+
+        def filter_result(result, root):
+            if isinstance(result, failure.Failure):
+                raise Return(result)
+
             new = {}
             for key, value in result:
-                if key.startswith(root):
+                if key.startswith(self.conf[root]):
                     new[key] = value
+
+            if not new:
+                raise error.TestCritical("No values received for %s" % root)
+
             return new
 
-        base = filter_result(self.conf["oid_base"])
-        if not base:
-            raise errors.TestCritical("No values received for oid_base")
-
-        keys = filter_result(self.conf["oid_key"])
-        if not keys:
-            raise errors.TestCritical("No values received for oid_key")
+        try:
+            base = filter_result(self.query_base.result, "oid_base")
+            keys = filter_result(self.query_base.result, "oid_key")
+        except Return, ex:
+            return ex.args[0]
 
         final = None
         for oid, value in keys.iteritems():
@@ -573,7 +595,10 @@ class Query_snmp(_Query_snmp_common):
         if final is None:
             raise errors.TestCritical("key not found: %r" % self.conf["key"])
 
-        return self._get_result(base, final)
+        if final not in base:
+            raise errors.TestCritical("No value received for %s" % final)
+
+        return str(base[final])
 
 
 class _Query_snmp_combined(_Query_snmp_common):
@@ -586,14 +611,14 @@ class _Query_snmp_combined(_Query_snmp_common):
         self.oids = set()
         self.update(conf)
 
+        # Don't combine different queries for version 1 because we don't
+        # get any advantage without the GETBULK query type in >= 2c
+        if self.conf['version'] == "1":
+            self.conf['oids'] = self.oids
+
     def update(self, conf):
         """Update compound query with oids to be retreived from host."""
-        if 'oid' in conf:
-            self.oids.add(self.check_oid(conf, 'oid'))
-        if 'oid_base' in conf:
-            self.oids.add(self.check_oid(conf, 'oid_base'))
-        if 'oid_key' in conf:
-            self.oids.add(self.check_oid(conf, 'oid_key'))
+        self.oids.add(self.check_oid(conf, 'oid'))
 
     def _start(self):
         try:
@@ -604,10 +629,10 @@ class _Query_snmp_combined(_Query_snmp_common):
                     '-r', str(int(self.conf['timeout'])),
                     self.conf['addr'])
             client.open()
+            deferred = client.walk(self.oids)
         except:
             return errors.Failure()
 
-        deferred = client.walk(self.oids)
         deferred.addBoth(self._handle_close, client)
         deferred.addErrback(self._handle_error)
         return deferred
