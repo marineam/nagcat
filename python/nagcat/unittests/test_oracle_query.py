@@ -54,7 +54,7 @@ class OracleTestCase(unittest.TestCase):
         self.assertEquals(q.result, expected)
 
     def testBadQuery(self):
-        raise unittests.SkipTest("Not working yet")
+        raise unittest.SkipTest("Not working yet")
 
         conf = self.config.copy()
         conf['sql'] = 'select 1 from dual'

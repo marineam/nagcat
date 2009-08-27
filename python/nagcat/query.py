@@ -582,7 +582,7 @@ class Query_snmp(_Query_snmp_common):
                     new[key] = value
 
             if not new:
-                raise error.TestCritical("No values received for %s" % root)
+                raise errors.TestCritical("No values received for %s" % root)
 
             return new
 

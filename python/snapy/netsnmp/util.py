@@ -91,7 +91,7 @@ def _decode_varerror(var, error):
         value = types.NoSuchObject()
     else:
         # TODO: do a better job here...
-        value = Exception("got error code: %d" % pdu.errstat)
+        value = Exception("got error code: %d" % error)
 
     return (oid, value)
 
