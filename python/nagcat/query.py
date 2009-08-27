@@ -534,6 +534,7 @@ class Query_snmp(_Query_snmp_common):
     def _get_result(self, result, oid):
         """Get a single oid value"""
 
+        result = dict(result)
         if oid not in result:
             raise errors.TestCritical("No value received")
 
@@ -549,7 +550,7 @@ class Query_snmp(_Query_snmp_common):
 
         def filter_result(root):
             new = {}
-            for key, value in result.iteritems():
+            for key, value in result:
                 if key.startswith(root):
                     new[key] = value
             return new

@@ -36,6 +36,11 @@ def encode_oid(oid):
 def decode_oid(raw, length):
     return "."+".".join([str(raw[i]) for i in xrange(length)])
 
+def compare_oids(oid1, oid2):
+    oid1 = encode_oid(oid1)
+    oid2 = encode_oid(oid2)
+    return lib.snmp_oid_compare(oid1, len(oid1), oid2, len(oid2))
+
 def _decode_objid(var):
     length = var.val_len / ctypes.sizeof(types.oid)
     return decode_oid(var.val.objid, length)
@@ -66,21 +71,54 @@ _decoder = {
     const.ASN_COUNTER64:    _decode_counter64,
     const.ASN_APP_FLOAT:    lambda var: var.val.float.contents.value,
     const.ASN_APP_DOUBLE:   lambda var: var.val.double.contents.value,
+
+    # Errors
+    const.SNMP_NOSUCHOBJECT:    lambda var: types.NoSuchObject(),
+    const.SNMP_NOSUCHINSTANCE:  lambda var: types.NoSuchInstance(),
+    const.SNMP_ENDOFMIBVIEW:    lambda var: types.EndOfMibView(),
     }
 
 def _decode_variable(var):
+    if var.type not in _decoder:
+        raise Exception("SNMP data type %d not implemented" % var.type)
     oid = decode_oid(var.name, var.name_length)
-    decode = _decoder.get(var.type, None)
-    if not decode:
-        return (oid, None)
-    return oid, decode(var)
+    return oid, _decoder[var.type](var)
+
+def _decode_varerror(var, error):
+    oid = decode_oid(var.name, var.name_length)
+
+    if error == const.SNMP_ERR_NOSUCHNAME:
+        value = types.NoSuchObject()
+    else:
+        # TODO: do a better job here...
+        value = Exception("got error code: %d" % pdu.errstat)
+
+    return (oid, value)
 
 def decode_result(pdu):
-    result = {}
+    result = []
+
+    # Check for an error
+    last_index = None
+    if pdu.errstat != const.SNMP_ERR_NOERROR:
+        last_index = pdu.errindex
+
     var = pdu.variables
+    index = 1
     while var:
-        var = var.contents
-        oid, value = _decode_variable(var)
-        result[oid] = value
-        var = var.next_variable
+        if last_index is not None and index >= last_index:
+            result.append(_decode_varerror(var.contents, pdu.errstat))
+            break
+        else:
+            result.append(_decode_variable(var.contents))
+            var = var.contents.next_variable
+            index += 1
+
     return result
+
+def compare_results(result1, result2):
+    """Useful for sorting the list returned by decode_result"""
+    return compare_oids(result1[0], result2[0])
+
+# __init__.py imports this file so import lib late
+from snapy.netsnmp import lib

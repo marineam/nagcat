@@ -27,7 +27,7 @@ class TestSessionV1(TestCase):
 
     def test_get(self):
         def cb(result):
-            self.assertEquals(result, {".1.3.6.1.4.2.1.1": 1})
+            self.assertEquals(result, [(".1.3.6.1.4.2.1.1", 1)])
 
         d = self.session.get([".1.3.6.1.4.2.1.1"])
         d.addCallback(cb)
@@ -35,7 +35,7 @@ class TestSessionV1(TestCase):
 
     def test_walk(self):
         root = '.1.3.6.1.4.2.3'
-        expect = dict([("%s.%d" % (root, i), i) for i in xrange(1,5)])
+        expect = [("%s.%d" % (root, i), i) for i in xrange(1,5)]
 
         def cb(result):
             self.assertEquals(result, expect)

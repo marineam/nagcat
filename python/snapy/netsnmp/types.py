@@ -218,3 +218,20 @@ netsnmp_transport._fields_ = [
         ('f_accept',  c_void_p),
         ('f_fmtaddr', c_void_p),
 ]
+
+# Special error types that are returned as values
+class ExceptionValue(object):
+    """Parent class of all special snmp error values"""
+
+    def __str__(self):
+        return self.__class__.__doc__
+
+class NoSuchObject(ExceptionValue):
+    """No Such Object"""
+
+class NoSuchInstance(ExceptionValue):
+    """No Such Instance"""
+
+class EndOfMibView(ExceptionValue):
+    """End of MIB View"""
+

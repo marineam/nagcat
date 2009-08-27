@@ -34,6 +34,12 @@ class SnmpTimeout(Exception):
     def __init__(self):
         super(SnmpTimeout, self).__init__(self.__class__.__doc__)
 
+# Provide easier access to types the user will see
+ExceptionValue = types.ExceptionValue
+NoSuchObject = types.NoSuchObject
+NoSuchInstance = types.NoSuchInstance
+EndOfMibView = types.EndOfMibView
+
 # The normal fd limit
 FD_SETSIZE = 1024
 
@@ -128,7 +134,6 @@ class Session(object):
                 return 1
 
             cb, args = self._requests.pop(reqid)
-
             if operation == const.NETSNMP_CALLBACK_OP_RECEIVED_MESSAGE:
                 result = util.decode_result(pdu.contents)
                 cb(result, *args)
@@ -136,22 +141,37 @@ class Session(object):
                 cb(SnmpTimeout(), *args)
             else:
                 raise Exception("Unexpected operation: %d" % operation)
+
         except Exception, ex:
             # This shouldn't happen, but just in case...
             # TODO: Probably should use the logging api instead.
             sys.stderr.write("Exception in _callback: %s\n" % (ex,))
+            raise
+
         return 1
 
     def _create_request(self, msg_type, oids, **pdu_args):
         req = lib.snmp_pdu_create(msg_type)
+
         for opt, val in pdu_args.iteritems():
             setattr(req.contents, opt, val)
+
         for oid in oids:
             oid = util.encode_oid(oid)
             lib.snmp_add_null_var(req, oid, len(oid))
+
         return req
 
     def _send_request(self, msg_type, oids, cb, *args, **pdu_args):
+        """Create and send the pdu for the given type and oids.
+
+        @param msg_type: one of const.SNMP_MSG_*
+        @param oids: sequence of oids to request
+        @param cb: callback function, result is the first argument
+        @param args: extra callback arguments
+        @param pdu_args: extra attributes to set in the request pdu
+        """
+
         assert self.sessp
         req = self._create_request(msg_type, oids, **pdu_args)
         self._requests[req.contents.reqid] = (cb, args)
@@ -184,50 +204,106 @@ class Session(object):
                 errstat=non_repeaters, errindex=max_repetitions)
 
     def walk(self, oids, cb, *args):
-        """Walk using a sequence of getnext requests"""
+        """Walk using GETBULK or GETNEXT"""
 
-        oids = [util.parse_oid(x) for x in oids]
+        if not oids:
+            return {}
+
+        # Parse and sort the oids, they must be in order
+        # so we know how far though the walk we have gotten.
+        oids = list(set(util.parse_oid(x) for x in oids))
+        oids.sort(cmp=util.compare_oids)
+
+        # Status on the tree needs to be shared between the
+        # callbacks, wrap up in a dict to avoid scoping issues
         tree = {}
 
-        # This is a little simple minded and simply stops the walk
-        # when we evaluate a result to None but None could result
-        # due to situations other than the end of the tree.
-        # TODO: check for the true end of the tree instead.
-        # Note: v1 and v2c report this condition in different ways.
-        def walk_cb(value, root):
-            if isinstance(value, Exception):
-                cb(value, *args)
+        # The base oid of the current tree we are processing
+        tree['base'] = None
+
+        # The last oid we saw in the current tree
+        tree['last'] = None
+
+        # The final value(s)
+        data = []
+
+        def walk_cb(results):
+            if isinstance(results, Exception):
+                stop(results)
                 return
 
-            oid = value.keys()[0]
-            if value[oid] is None or not oid.startswith(root):
-                start_or_stop()
-            else:
-                tree.update(value)
-                self._send_request(const.SNMP_MSG_GETNEXT,
-                        [oid], walk_cb, root)
+            # We must process things in order
+            results.sort(cmp=util.compare_results)
 
-        def first_cb(value):
-            if isinstance(value, Exception):
-                cb(value, *args)
+            for oid, value in results:
+                # Stop when an error is hit (ie endOfMibView)
+                if isinstance(value, ExceptionValue):
+                    stop()
+                    return
+
+                # Stop if the server's snmp server sucks and goes backwards
+                if oids and util.compare_oids(oid, tree['base']) <= 0:
+                    stop()
+                    return
+
+                # Remove OIDs that have been passed
+                while oids and util.compare_oids(oid, oids[0]) > 0:
+                    old = oids.pop(0)
+                    # Are we in a new tree?
+                    if not old.startswith(tree['base']):
+                        tree['base'] = old
+
+                # Make sure we are still in the requested tree
+                if not oid.startswith(tree['base']):
+                    tree['last'] = None
+                    continue
+
+                # Great! We got a value! save it and mark our position
+                data.append((oid, value))
+                tree['last'] = oid
+
+            # If we have a large tree we need to continue fetching
+            # insert our stopping point.
+            if tree['last']:
+                oids.insert(0, tree['last'])
+
+            next()
+
+        def get_cb(results):
+            if isinstance(results, Exception):
+                stop(results)
                 return
 
-            oid = value.keys()[0]
-            if value[oid] is not None:
-                tree.update(value)
-                start_or_stop()
-            else:
-                self._send_request(const.SNMP_MSG_GETNEXT,
-                        [oid], walk_cb, oid)
+            # Save any valid results, the remaining will be walked
+            for oid, value in results:
+                if not isinstance(value, ExceptionValue):
+                    data.append((oid, value))
+                    oids.remove(oid)
 
-        def start_or_stop():
             if oids:
-                oid = oids.pop()
-                self._send_request(const.SNMP_MSG_GET, [oid], first_cb)
-            else:
-                cb(tree, *args)
+                tree['base'] = oids[0]
+            next()
 
-        start_or_stop()
+        def next():
+            if oids:
+                if self.session.contents.version == const.SNMP_VERSION_1:
+                    oid = oids.pop(0)
+                    self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
+                else:
+                    # Fetch 50 results at a time, is this a good value?
+                    # Note: errstat=non_repeaters, errindex=max_repetitions
+                    self._send_request(const.SNMP_MSG_GETBULK, oids,
+                            walk_cb, errstat=0, errindex=50)
+            else:
+                stop()
+
+        def stop(results=None):
+            if results is None:
+                data.sort(cmp=util.compare_results)
+                results = data
+            cb(results, *args)
+
+        self._send_request(const.SNMP_MSG_GET, oids, get_cb)
 
     def do_timeout(self):
         assert self.sessp
@@ -250,18 +326,3 @@ class Session(object):
                 self.do_read()
             else:
                 self.do_timeout()
-
-
-#    def getbulk(self, nonrepeaters, maxrepetitions, oids):
-#        assert self.sessp
-#        req = self._create_request(SNMP_MSG_GETBULK)
-#        req = cast(req, POINTER(netsnmp_pdu))
-#        req.contents.errstat = nonrepeaters
-#        req.contents.errindex = maxrepetitions
-#        for oid in oids:
-#            oid = mkoid(oid)
-#            lib.snmp_add_null_var(req, oid, len(oid))
-#        if not lib.snmp_sess_send(self.sessp, req):
-#            lib.snmp_free_pdu(req)
-#            raise SnmpError("snmp_send")
-#        return req.contents.reqid

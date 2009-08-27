@@ -25,12 +25,12 @@ def set_result(value, result):
 class TestSessionV1(TestCase):
 
     version = "1"
-    basics = {
-            ".1.3.6.1.4.2.1.1": 1,
-            ".1.3.6.1.4.2.1.2": -1,
-            ".1.3.6.1.4.2.1.3": 1,
-            ".1.3.6.1.4.2.1.4": "test value",
-            }
+    basics = [
+            (".1.3.6.1.4.2.1.1",  1),
+            (".1.3.6.1.4.2.1.2", -1),
+            (".1.3.6.1.4.2.1.3",  1),
+            (".1.3.6.1.4.2.1.4", "test value"),
+            ]
 
     def setUpSession(self, address):
         self.session = Session("-v", self.version, "-c", "public", address)
@@ -40,19 +40,19 @@ class TestSessionV1(TestCase):
         self.session.close()
 
     def test_sget(self):
-        result = self.session.sget(self.basics.keys())
+        result = self.session.sget([x for x,v in self.basics])
         self.assertEquals(result, self.basics)
 
     def test_get(self):
         result = Result()
-        self.session.get(self.basics.keys(), set_result, result)
+        self.session.get([x for x,v in self.basics], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, self.basics)
 
     def test_getnext_single(self):
         """Test a standard walk using just getnext"""
 
-        all = {}
+        all = []
         root = ".1.3.6.1.4.2.1"
         oid = root
 
@@ -61,9 +61,9 @@ class TestSessionV1(TestCase):
             self.session.getnext([oid], set_result, result)
             self.session.wait()
 
-            oid = result.value.keys()[0]
-            if result.value[oid] and oid.startswith(root):
-                all.update(result.value)
+            oid, value = result.value[0]
+            if value and oid.startswith(root):
+                all.append((oid, value))
             else:
                 break
 
@@ -92,7 +92,7 @@ class TestSessionV1(TestCase):
         result = Result()
         self.session.walk([".1.3.6.1.4.2.1.1"], set_result, result)
         self.session.wait()
-        self.assertEquals(result.value, {".1.3.6.1.4.2.1.1": 1})
+        self.assertEquals(result.value, [(".1.3.6.1.4.2.1.1", 1)])
 
 class TestSessionV2c(TestSessionV1):
 
