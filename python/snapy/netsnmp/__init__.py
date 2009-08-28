@@ -45,7 +45,7 @@ FD_SETSIZE = 1024
 
 def _mkfdset(fd):
     """Make a fd set of the right size and set fd"""
-    size = max(fd, FD_SETSIZE)
+    size = max(fd+1, FD_SETSIZE)
     fd_set_t = ctypes.c_int32 * int(math.ceil(size / 32.0))
     fd_set = fd_set_t()
     fd_set[fd // 32] |= 1 << (fd % 32)
