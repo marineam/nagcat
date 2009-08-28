@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import gc
 
 try:
     from lxml import etree
@@ -23,12 +24,16 @@ from twisted.web import resource, server
 
 from nagcat import errors
 
+# Enable/Disable dangerous monitors
+# USE ONLY FOR DEBUGGING!
+DANGER = False
+
 class XMLPage(resource.Resource):
     """Generic XML Page"""
 
     isLeaf = True
 
-    def xml(self):
+    def xml(self, request):
         """The XML representation of this page.
 
         Returns an etree.Element object.
@@ -37,21 +42,61 @@ class XMLPage(resource.Resource):
 
     def render_GET(self, request):
         """Transform the xml to text and send it"""
-        return etree.tostring(self.xml(), pretty_print=True)
+        return etree.tostring(self.xml(request), pretty_print=True)
 
 class Ping(XMLPage):
     """Minimal alive page"""
 
-    def xml(self):
+    def xml(self, request):
         return etree.Element("ok", version="1.0")
+
+def _class_count(objects):
+    """List the most common object classes"""
+
+    totals = {}
+    for obj in objects:
+        try:
+            cls = obj.__class__
+        except AttributeError:
+            cls = type(obj)
+        name =  "%s.%s" % (cls.__module__, cls.__name__)
+        try:
+            totals[name].append(obj)
+        except KeyError:
+            totals[name] = [obj]
+
+    totals = totals.items()
+    totals.sort(lambda a,b: cmp(len(a[1]),len(b[1])))
+    totals = totals[-20:] # Is this a reasonable filter?
+    return totals
+
+def _class_list(parent, section, objects, refs):
+    """Print the most common classes as xml"""
+
+    sec = etree.SubElement(parent, section, count=str(len(objects)))
+
+    for cls, objs in _class_count(objects):
+        obj = etree.SubElement(sec, "Object", type=cls, count=str(len(objs)))
+        if refs:
+            _class_list(obj, "Referrers", gc.get_referrers(*objs), False)
 
 class Memory(XMLPage):
     """Process memory usage"""
 
     vm_regex = re.compile("^(Vm\w+):\s+(\d+)\s+(\w+)$")
 
-    def xml(self):
+    def xml(self, request):
         mem = etree.Element("Memory", version="1.0")
+
+        referrers = request.postpath and request.postpath[0] == 'referrers'
+
+        # include referrers for /stat/memory/referrers
+        # this is *REALY* expensive, marked as dangerous
+        refs = (DANGER and request.postpath and
+                request.postpath[0] == 'referrers')
+
+        _class_list(mem, "Allocated", gc.get_objects(), refs)
+        _class_list(mem, "Uncollectable", gc.garbage, refs)
 
         status = open("/proc/self/status")
         for line in status:
@@ -71,7 +116,7 @@ class Scheduler(XMLPage):
         XMLPage.__init__(self)
         self.scheduler = scheduler
 
-    def xml(self):
+    def xml(self, request):
         sch = etree.Element("Scheduler", version="1.0")
 
         data = self.scheduler.stats()
@@ -108,7 +153,7 @@ class Stat(XMLPage):
         if path not in self.order:
             self.order.append(path)
 
-    def xml(self):
+    def xml(self, request):
         stat = etree.Element("Stat")
 
         for path in self.order:
@@ -116,7 +161,7 @@ class Stat(XMLPage):
                 continue
 
             child = self.children[path]
-            stat.append(child.xml())
+            stat.append(child.xml(request))
 
         return stat
 
