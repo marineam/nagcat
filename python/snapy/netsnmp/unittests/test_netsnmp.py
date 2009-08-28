@@ -33,7 +33,10 @@ class TestSessionV1(TestCase):
             ]
 
     def setUpSession(self, address):
-        self.session = Session("-v", self.version, "-c", "public", address)
+        self.session = Session(
+                version=self.version,
+                community="public",
+                peername=address)
         self.session.open()
 
     def tearDownSession(self):
@@ -110,8 +113,11 @@ class TestTimeoutsV1(unittest.TestCase):
     version = "1"
 
     def setUp(self):
-        self.session = Session("-v", self.version, "-c", "public",
-                "-r", "0", "-t", "0.1", "udp:127.0.0.1:9")
+        self.session = Session(
+                version=self.version,
+                community="public",
+                peername="udp:127.0.0.1:9",
+                retries=0, timeout=0.1)
         self.session.open()
 
     def test_sget(self):

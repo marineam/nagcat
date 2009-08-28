@@ -630,11 +630,11 @@ class _Query_snmp_combined(_Query_snmp_common):
     def _start(self):
         try:
             client = SnmpSession(
-                    '-v', self.conf['version'],
-                    '-c', self.conf['community'],
-                    '-t', '1', # Retry after 1 second for 'timeout' retries
-                    '-r', str(int(self.conf['timeout'])),
-                    self.conf['addr'])
+                    version=self.conf['version'],
+                    community=self.conf['community'],
+                    # Retry after 1 second for 'timeout' retries
+                    timeout=1, retrys=int(self.conf['timeout']),
+                    peername=self.conf['addr'])
             client.open()
             deferred = client.walk(self.oids)
         except:

@@ -19,7 +19,10 @@ class TestSessionV1(TestCase):
     version = "1"
 
     def setUpSession(self, address):
-        self.session = Session("-v", self.version, "-c", "public", address)
+        self.session = Session(
+                version=self.version,
+                community="public",
+                peername=address)
         self.session.open()
 
     def tearDownSession(self):

@@ -26,7 +26,7 @@ from snapy.netsnmp import const, types, util
 """Net-SNMP bindings for the single session API"""
 
 class SnmpError(Exception):
-    """Error in NetSNMP"""
+    """Generic SNMP Error"""
     pass
 
 class SnmpTimeout(Exception):
@@ -51,42 +51,60 @@ def _mkfdset(fd):
     fd_set[fd // 32] |= 1 << (fd % 32)
     return fd_set
 
-def _parse_args(args, session):
-    """Wrapper around snmp_parse_args"""
-
-    @types.snmp_parse_args_proc
-    def dummy(argc, argv, arg):
-        pass
-
-    args = ["snapy"] + list(args)
-    argc = len(args)
-    argv = (ctypes.c_char_p * argc)()
-
-    for i, arg in enumerate(args):
-        argv[i] = ctypes.create_string_buffer(arg).raw
-
-    err = lib.snmp_parse_args(argc, argv, byref(session), '', dummy)
-    if err < 0:
-        raise SnmpError("snmp_parse_args: %d" % err)
-
-    # keep a reference to argv while session is alive
-    return argv
-
 class Session(object):
     """Wrapper around a single SNMP Session"""
 
-    def __init__(self, *args):
-        # TODO: support kwargs?
+    def __init__(self, **kwargs):
+        """The keywords set various options in struct snmp_session.
+
+        At the minimum you will want the following kwargs:
+        @param version: "1" or "2c" (haven't tested 3 yet)
+        @param peername: host and possibly transport and port
+            for example: "host" or "udp:host:port"
+        @param community: v1/2 community, ie: "public"
+
+        Other useful things include:
+        @param retries: number of retries before giving up
+        @param timeout: seconds time between retries
+        """
+
         self.sessp = None   # single session api pointer
         self.session = None # session struct
         self.session_template = types.netsnmp_session()
         self._requests = None
 
-        # We must hold a reference to argv so it isn't deleted
-        self._session_argv = _parse_args(args, self.session_template)
+        # Initialize session to default values
+        lib.snmp_sess_init(byref(self.session_template))
 
-    def error(self):
-        pass
+        # Convert from a string to the numeric constant
+        if 'version' not in kwargs:
+            raise SnmpError("Keyword version is required")
+        elif kwargs['version'] == '1':
+            kwargs['version'] = const.SNMP_VERSION_1
+        elif kwargs['version'] == '2c':
+            kwargs['version'] = const.SNMP_VERSION_2c
+        else:
+            raise SnmpError("Invalid version: %r" % kwargs['version'])
+
+        if 'peername' not in kwargs:
+            raise SnmpError("Keyword peername is required")
+        elif not isinstance(kwargs['peername'], str):
+            raise SnmpError("Invalid peername, must be a str")
+
+        # Check community is a str, set community_len
+        if 'community' not in kwargs:
+            raise SnmpError("Keyword community is required")
+        elif not isinstance(kwargs['community'], str):
+            raise SnmpError("Invalid community, must be a str")
+        else:
+            kwargs['community_len'] = len(kwargs['community'])
+
+        # Convert from seconds to microseconds
+        if 'timeout' in kwargs:
+            kwargs['timeout'] = int(kwargs['timeout'] * 1e6)
+
+        for attr, value in kwargs.iteritems():
+            setattr(self.session_template, attr, value)
 
     def open(self):
         sess = types.netsnmp_session()

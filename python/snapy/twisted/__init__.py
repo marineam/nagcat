@@ -40,8 +40,8 @@ class SnmpReader(object):
 
 class Session(object):
 
-    def __init__(self, *args):
-        self._session = netsnmp.Session(*args)
+    def __init__(self, **kwargs):
+        self._session = netsnmp.Session(**kwargs)
         self._timeout = None
         self._reader = None
 
