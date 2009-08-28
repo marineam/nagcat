@@ -72,6 +72,7 @@ class Session(object):
         reactor.removeReader(self._reader)
         self._reader = None
         self._session.close()
+        self._session = None
 
     def _done(self, result, deferred):
         def fire():

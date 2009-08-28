@@ -82,8 +82,8 @@ class Session(object):
         self.session_template = types.netsnmp_session()
         self._requests = None
 
+        # We must hold a reference to argv so it isn't deleted
         self._session_argv = _parse_args(args, self.session_template)
-        self.session_template.callback = types.netsnmp_callback(self._callback)
 
     def error(self):
         pass
@@ -92,6 +92,10 @@ class Session(object):
         sess = types.netsnmp_session()
         ctypes.memmove(byref(sess),
                 byref(self.session_template), ctypes.sizeof(sess))
+
+        # We must hold a reference to the callback while it is in use
+        self._session_callback = types.netsnmp_callback(self._callback)
+        sess.callback = self._session_callback
 
         self.sessp = lib.snmp_sess_open(byref(sess))
         if not self.sessp:
@@ -105,6 +109,7 @@ class Session(object):
         lib.snmp_sess_close(self.sessp)
         self.sessp = None
         self.session = None
+        self._session_callback = None
 
     def fileno(self):
         assert self.sessp
