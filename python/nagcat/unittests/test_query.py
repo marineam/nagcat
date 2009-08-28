@@ -160,9 +160,9 @@ class SubprocessQueryTestCase(unittest.TestCase):
         self.assertIsInstance(q.result, errors.Failure)
         self.assertIsInstance(q.result.value, errors.TestCritical)
 
-class SnmpQueryTestCaseV2c(SnmpTestCase):
+class SnmpQueryTestCaseV1(SnmpTestCase):
 
-    version = "2c"
+    version = "1"
 
     def setUpSession(self, address):
         assert address.startswith('unix:')
@@ -214,4 +214,8 @@ class SnmpQueryTestCaseV2c(SnmpTestCase):
         d = q.start()
         d.addCallback(check)
         return d
+
+class SnmpQueryTestCaseV2c(SnmpQueryTestCaseV1):
+
+    version = "2c"
 

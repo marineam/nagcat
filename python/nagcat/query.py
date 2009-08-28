@@ -588,7 +588,7 @@ class Query_snmp(_Query_snmp_common):
 
         try:
             base = filter_result(self.query_base.result, "oid_base")
-            keys = filter_result(self.query_base.result, "oid_key")
+            keys = filter_result(self.query_key.result, "oid_key")
         except Return, ex:
             return ex.args[0]
 
