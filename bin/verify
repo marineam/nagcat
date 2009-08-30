@@ -1,0 +1,82 @@
+#!/usr/bin/env python
+#
+# Copyright 2009 ITA Software, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Verify nagcat or nagnet has started.
+
+This is useful in environments where programs are run by a daemon
+manager as foreground processes rather than using init scripts.
+
+This script simply waits until /stat/ping responds.
+"""
+
+import sys
+import time
+import urllib2
+from optparse import OptionParser
+from lxml import etree
+
+def parse_options():
+    parser = OptionParser()
+    parser.add_option("-H", "--host", dest="host", default="127.0.0.1",
+            help="host to send requests to, defaults to localhost")
+    parser.add_option("-P", "--port", dest="port", type="int",
+            help="port to send requests to, required")
+    parser.add_option("-T", "--timeout", dest="timeout", type="float",
+            help="wait a given number of seconds", default=0.0)
+
+    options, args = parser.parse_args()
+
+    if not options.port:
+        parser.error("--port is required")
+
+    return options
+
+def main():
+    options = parse_options()
+
+    url = "http://%s:%d/stat/ping" % (options.host, options.port)
+    stop = time.time() + options.timeout
+
+    while True:
+        try:
+            data = urllib2.urlopen(url, timeout=1)
+        except urllib2.URLError, ex:
+            if (isinstance(ex.reason, IOError) and
+                    ex.reason.errno == 111 and
+                    time.time() < stop):
+                time.sleep(0.1)
+                continue
+            else:
+                sys.stderr.write("%s\n" % ex.reason)
+                sys.exit(1)
+
+        try:
+            root = etree.parse(data)
+        except etree.XMLSyntaxError, ex:
+            sys.stderr.write("%s\n" % ex)
+            sys.exit(1)
+
+        if root.tag != "ok":
+            sys.stderr.write("Unexpected tag: %s\n" % root.tag)
+            sys.exit(1)
+        else:
+            sys.exit(0)
+
+    sys.stderr.write("Timeout of %s seconds expired\n" % options.timeout)
+    sys.exit(1)
+
+if __name__ == "__main__":
+    main()
