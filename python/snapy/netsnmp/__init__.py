@@ -271,24 +271,14 @@ class Session(object):
 
                 # Remove OIDs that have been passed
                 while oids and util.compare_oids(oid, oids[0]) > 0:
-                    old = oids.pop(0)
-                    # Are we in a new tree?
-                    if not old.startswith(tree['base']):
-                        tree['base'] = old
+                    tree['base'] = oids.pop(0)
 
                 # Make sure we are still in the requested tree
                 if not oid.startswith(tree['base']):
                     tree['last'] = None
-                    continue
-
-                # Great! We got a value! save it and mark our position
-                data.append((oid, value))
-                tree['last'] = oid
-
-            # If we have a large tree we need to continue fetching
-            # insert our stopping point.
-            if tree['last']:
-                oids.insert(0, tree['last'])
+                else:
+                    tree['last'] = oid
+                    data.append((oid, value))
 
             next()
 
@@ -303,22 +293,25 @@ class Session(object):
                     data.append((oid, value))
                     oids.remove(oid)
 
-            if oids:
-                tree['base'] = oids[0]
             next()
 
         def next():
-            if oids:
-                if self.session.contents.version == const.SNMP_VERSION_1:
-                    oid = oids.pop(0)
-                    self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
-                else:
-                    # Fetch 50 results at a time, is this a good value?
-                    # Note: errstat=non_repeaters, errindex=max_repetitions
-                    self._send_request(const.SNMP_MSG_GETBULK, oids,
-                            walk_cb, errstat=0, errindex=50)
+            if tree['last']:
+                oid = tree['last']
+            elif oids:
+                oid = oids.pop(0)
+                tree['base'] = oid
             else:
                 stop()
+                return
+
+            if self.session.contents.version == const.SNMP_VERSION_1:
+                self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
+            else:
+                # Fetch 50 results at a time, is this a good value?
+                # Note: errstat=non_repeaters, errindex=max_repetitions
+                self._send_request(const.SNMP_MSG_GETBULK, [oid],
+                        walk_cb, errstat=0, errindex=5)
 
         def stop(results=None):
             if results is None:
