@@ -39,6 +39,7 @@ ExceptionValue = types.ExceptionValue
 NoSuchObject = types.NoSuchObject
 NoSuchInstance = types.NoSuchInstance
 EndOfMibView = types.EndOfMibView
+OID = types.OID
 
 # The normal fd limit
 FD_SETSIZE = 1024
@@ -180,8 +181,8 @@ class Session(object):
             setattr(req.contents, opt, val)
 
         for oid in oids:
-            oid = util.encode_oid(oid)
-            lib.snmp_add_null_var(req, oid, len(oid))
+            oid = OID(oid)
+            lib.snmp_add_null_var(req, oid.raw, len(oid))
 
         return req
 
@@ -234,8 +235,8 @@ class Session(object):
 
         # Parse and sort the oids, they must be in order
         # so we know how far though the walk we have gotten.
-        oids = list(set(util.parse_oid(x) for x in oids))
-        oids.sort(cmp=util.compare_oids)
+        oids = list(set(OID(x) for x in oids))
+        oids.sort()
 
         # Status on the tree needs to be shared between the
         # callbacks, wrap up in a dict to avoid scoping issues
@@ -265,12 +266,12 @@ class Session(object):
                     return
 
                 # Stop if the server's snmp server sucks and goes backwards
-                if oids and util.compare_oids(oid, tree['base']) <= 0:
+                if oid <= tree['base']:
                     stop()
                     return
 
                 # Remove OIDs that have been passed
-                while oids and util.compare_oids(oid, oids[0]) > 0:
+                while oids and oid > oids[0]:
                     tree['base'] = oids.pop(0)
 
                 # Make sure we are still in the requested tree

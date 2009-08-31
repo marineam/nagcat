@@ -16,34 +16,9 @@ import ctypes
 
 from snapy.netsnmp import const, types
 
-def _parse_oid(oid):
-    # TODO: Handle strings like: SNMPv2-MIB::sysDescr.0
-    if isinstance(oid, str):
-        oid = [int(v) for v in oid.strip('.').split('.')]
-    return oid
-
-def parse_oid(oid):
-    oid = _parse_oid(oid)
-    return decode_oid(oid, len(oid))
-
-def encode_oid(oid):
-    oid = _parse_oid(oid)
-    raw = (types.oid * len(oid))()
-    for i, v in enumerate(oid):
-        raw[i] = v
-    return raw
-
-def decode_oid(raw, length):
-    return "."+".".join([str(raw[i]) for i in xrange(length)])
-
-def compare_oids(oid1, oid2):
-    oid1 = encode_oid(oid1)
-    oid2 = encode_oid(oid2)
-    return lib.snmp_oid_compare(oid1, len(oid1), oid2, len(oid2))
-
 def _decode_objid(var):
     length = var.val_len / ctypes.sizeof(types.oid)
-    return decode_oid(var.val.objid, length)
+    return types.OID(var.val.objid, length)
 
 def _decode_ip(var):
     return '.'.join(map(str, var.val.bitstring[:4]))
@@ -81,11 +56,11 @@ _decoder = {
 def _decode_variable(var):
     if var.type not in _decoder:
         raise Exception("SNMP data type %d not implemented" % var.type)
-    oid = decode_oid(var.name, var.name_length)
+    oid = types.OID(var.name, var.name_length)
     return oid, _decoder[var.type](var)
 
 def _decode_varerror(var, error):
-    oid = decode_oid(var.name, var.name_length)
+    oid = types.OID(var.name, var.name_length)
 
     if error == const.SNMP_ERR_NOSUCHNAME:
         value = types.NoSuchObject()
@@ -118,7 +93,4 @@ def decode_result(pdu):
 
 def compare_results(result1, result2):
     """Useful for sorting the list returned by decode_result"""
-    return compare_oids(result1[0], result2[0])
-
-# __init__.py imports this file so import lib late
-from snapy.netsnmp import lib
+    return cmp(result1[0], result2[0])

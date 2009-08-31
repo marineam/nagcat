@@ -235,3 +235,48 @@ class NoSuchInstance(ExceptionValue):
 class EndOfMibView(ExceptionValue):
     """End of MIB View"""
 
+class OID(tuple):
+    """An OID and various helper methods.
+
+    The OID.raw attribute can be used for library calls.
+
+    >>> oid = OID("1.2.3.4")
+    >>> lib.snmp_add_null_var(req, oid.raw, len(oid))
+    """
+
+    def __new__(cls, seq, length=None):
+        """Note: length should only be used for sequence types that
+        may not be able to report their length properly."""
+        if isinstance(seq, OID):
+            return seq
+        elif isinstance(seq, basestring):
+            # TODO: Handle strings like: SNMPv2-MIB::sysDescr.0
+            seq = [int(v) for v in seq.strip('.').split('.')]
+        elif length:
+            seq = [int(seq[i]) for i in xrange(length)]
+        else:
+            # Just to make sure everyitng is an int
+            seq = [int(v) for v in seq]
+
+        self = super(OID, cls).__new__(cls, seq)
+        self.raw = (oid * len(self))()
+        for i, v in enumerate(self):
+            self.raw[i] = v
+
+        return self
+
+    def __str__(self):
+        return ".%s" % ".".join(str(i) for i in self)
+
+    def __repr__(self):
+        return "OID(%r)" % list(self)
+
+    def __add__(self, other):
+        return OID(super(OID, self).__add__(other))
+
+    def startswith(self, other):
+        """String like startswith method for comparing OIDs"""
+
+        if not isinstance(other, OID):
+            other = OID(other)
+        return self[:len(other)] == other

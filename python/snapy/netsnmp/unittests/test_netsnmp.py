@@ -13,7 +13,7 @@
 
 from twisted.trial import unittest
 from snapy.netsnmp.unittests import TestCase
-from snapy.netsnmp import Session, SnmpError, SnmpTimeout
+from snapy.netsnmp import Session, SnmpError, SnmpTimeout, OID
 
 class Result(object):
     """Container for async results"""
@@ -26,10 +26,10 @@ class TestSessionV1(TestCase):
 
     version = "1"
     basics = [
-            (".1.3.6.1.4.2.1.1",  1),
-            (".1.3.6.1.4.2.1.2", -1),
-            (".1.3.6.1.4.2.1.3",  1),
-            (".1.3.6.1.4.2.1.4", "test value"),
+            (OID(".1.3.6.1.4.2.1.1"),  1),
+            (OID(".1.3.6.1.4.2.1.2"), -1),
+            (OID(".1.3.6.1.4.2.1.3"),  1),
+            (OID(".1.3.6.1.4.2.1.4"), "test value"),
             ]
 
     def setUpSession(self, address):
@@ -56,7 +56,7 @@ class TestSessionV1(TestCase):
         """Test a standard walk using just getnext"""
 
         all = []
-        root = ".1.3.6.1.4.2.1"
+        root = OID(".1.3.6.1.4.2.1")
         oid = root
 
         while True:
@@ -75,10 +75,10 @@ class TestSessionV1(TestCase):
     def test_getnext_multi(self):
         """In a standard walk only one oid is sent, test the many case"""
 
-        oids = [".1.3.6.1.4.2.1.0",
-                ".1.3.6.1.4.2.1.1",
-                ".1.3.6.1.4.2.1.2",
-                ".1.3.6.1.4.2.1.3"]
+        oids = [OID(".1.3.6.1.4.2.1.0"),
+                OID(".1.3.6.1.4.2.1.1"),
+                OID(".1.3.6.1.4.2.1.2"),
+                OID(".1.3.6.1.4.2.1.3")]
 
         result = Result()
         self.session.getnext(oids, set_result, result)
@@ -92,10 +92,11 @@ class TestSessionV1(TestCase):
         self.assertEquals(result.value, self.basics)
 
     def test_walk2(self):
+        oid = OID(".1.3.6.1.4.2.1.1")
         result = Result()
-        self.session.walk([".1.3.6.1.4.2.1.1"], set_result, result)
+        self.session.walk([oid], set_result, result)
         self.session.wait()
-        self.assertEquals(result.value, [(".1.3.6.1.4.2.1.1", 1)])
+        self.assertEquals(result.value, [(oid, 1)])
 
 class TestSessionV2c(TestSessionV1):
 

@@ -11,6 +11,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+from snapy.netsnmp import OID
 from snapy.netsnmp.unittests import TestCase
 from snapy.twisted import Session
 
@@ -29,16 +30,17 @@ class TestSessionV1(TestCase):
         self.session.close()
 
     def test_get(self):
+        oid = OID(".1.3.6.1.4.2.1.1")
         def cb(result):
-            self.assertEquals(result, [(".1.3.6.1.4.2.1.1", 1)])
+            self.assertEquals(result, [(oid, 1)])
 
-        d = self.session.get([".1.3.6.1.4.2.1.1"])
+        d = self.session.get([oid])
         d.addCallback(cb)
         return d
 
     def test_walk(self):
-        root = '.1.3.6.1.4.2.3'
-        expect = [("%s.%d" % (root, i), i) for i in xrange(1,5)]
+        root = OID('.1.3.6.1.4.2.3')
+        expect = [(root + OID([i]), i) for i in xrange(1,5)]
 
         def cb(result):
             self.assertEquals(result, expect)

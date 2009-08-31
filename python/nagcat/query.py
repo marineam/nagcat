@@ -493,7 +493,7 @@ class _Query_snmp_common(Query):
     def check_oid(self, conf, key):
         """Check/parse an oid"""
         try:
-            oid = netsnmp.util.parse_oid(conf[key])
+            oid = netsnmp.OID(conf[key])
         except:
             raise errors.ConfigError(conf, "Invalid SNMP OID %r" % conf[key])
 
@@ -558,7 +558,7 @@ class Query_snmp(_Query_snmp_common):
         oid = self.conf['oid']
         result = dict(self.query_oid.result)
         if oid not in result:
-            raise errors.TestCritical("No value received for %s" % oid)
+            raise errors.TestCritical("No value received for %s" % (oid,))
 
         return str(result[oid])
 
@@ -582,7 +582,7 @@ class Query_snmp(_Query_snmp_common):
                     new[key] = value
 
             if not new:
-                raise errors.TestCritical("No values received for %s" % root)
+                raise errors.TestCritical("No values received for %s" % (root,))
 
             return new
 
@@ -596,14 +596,14 @@ class Query_snmp(_Query_snmp_common):
         for oid, value in keys.iteritems():
             if value == self.conf["key"]:
                 index = oid[len(self.conf["oid_key"]):]
-                final = "%s%s" % (self.conf['oid_base'], index)
+                final = self.conf['oid_base'] + index
                 break
 
         if final is None:
             raise errors.TestCritical("key not found: %r" % self.conf["key"])
 
         if final not in base:
-            raise errors.TestCritical("No value received for %s" % final)
+            raise errors.TestCritical("No value received for %s" % (final,))
 
         return str(base[final])
 
