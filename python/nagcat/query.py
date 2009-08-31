@@ -512,6 +512,8 @@ class Query_snmp(_Query_snmp_common):
                         "oid cannot be used with oid_base, oid_key, and key")
 
             self.conf['oid'] = self.check_oid(conf, 'oid')
+
+            conf['walk'] = False
             self.query_oid = addQuery(conf, qcls=_Query_snmp_combined)
             self.addDependency(self.query_oid)
 
@@ -525,11 +527,13 @@ class Query_snmp(_Query_snmp_common):
             self.conf['key'] = conf['key']
 
             base = conf.copy()
+            base['walk'] = True
             base['oid'] = self.conf['oid_base']
             self.query_base = addQuery(base, qcls=_Query_snmp_combined)
             self.addDependency(self.query_base)
 
             key = conf.copy()
+            key['walk'] = True
             key['oid'] = self.conf['oid_key']
             self.query_key = addQuery(key, qcls=_Query_snmp_combined)
             self.addDependency(self.query_key)
@@ -617,10 +621,11 @@ class _Query_snmp_combined(_Query_snmp_common):
 
         self.oids = set()
         self.update(conf)
+        self.conf['walk'] = conf['walk']
 
-        # Don't combine different queries for version 1 because we don't
+        # Don't combine walking queries for version 1 because we don't
         # get any advantage without the GETBULK query type in >= 2c
-        if self.conf['version'] == "1":
+        if self.conf['walk'] and self.conf['version'] == "1":
             self.conf['oids'] = self.oids
 
     def update(self, conf):
@@ -636,7 +641,10 @@ class _Query_snmp_combined(_Query_snmp_common):
                     timeout=1, retrys=int(self.conf['timeout']),
                     peername=self.conf['addr'])
             client.open()
-            deferred = client.walk(self.oids)
+            if self.conf['walk']:
+                deferred = client.walk(self.oids, strict=True)
+            else:
+                deferred = client.get(self.oids)
         except:
             return errors.Failure()
 

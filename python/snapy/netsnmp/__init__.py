@@ -248,8 +248,14 @@ class Session(object):
 
         self._send_request(const.SNMP_MSG_GET, oids[:10], walk_cb)
 
-    def walk(self, oids, cb, *args):
-        """Walk using GETBULK or GETNEXT"""
+    def walk(self, oids, cb, *args, **kwargs):
+        """Walk using GETBULK or GETNEXT
+
+        The only keyword argument supported is 'strict'.
+        (I'd rather say *args, strict=False but that is invalid)
+
+        If strict is False then a GET will be attempted as well.
+        """
 
         if not oids:
             return {}
@@ -340,7 +346,10 @@ class Session(object):
                 results = data
             cb(results, *args)
 
-        self.get(oids, get_cb)
+        if kwargs.get('strict', False):
+            next()
+        else:
+            self.get(oids, get_cb)
 
     def do_timeout(self):
         assert self.sessp

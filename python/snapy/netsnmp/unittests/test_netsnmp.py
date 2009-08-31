@@ -46,13 +46,13 @@ class TestSessionV1(TestCase):
         result = self.session.sget([x for x,v in self.basics])
         self.assertEquals(result, self.basics)
 
-    def test_get1(self):
+    def test_get_small(self):
         result = Result()
         self.session.get([x for x,v in self.basics], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, self.basics)
 
-    def test_get2(self):
+    def test_get_big(self):
         oids = []
         for i in xrange(1, 100):
             oids.append(OID((1,3,6,1,4,2,4,i)))
@@ -66,18 +66,26 @@ class TestSessionV1(TestCase):
             assert oid in result
             assert result[oid] == "data data data data"
 
-    def test_walk1(self):
+    def test_walk_tree(self):
         result = Result()
         self.session.walk([".1.3.6.1.4.2.1"], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, self.basics)
 
-    def test_walk2(self):
+    def test_walk_leaf(self):
         oid = OID(".1.3.6.1.4.2.1.1")
         result = Result()
         self.session.walk([oid], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, [(oid, 1)])
+
+    def test_walk_strict(self):
+        oid = OID(".1.3.6.1.4.2.1.1")
+        result = Result()
+        self.session.walk([oid], set_result, result, strict=True)
+        self.session.wait()
+        self.assertEquals(result.value, [])
+
 
 class TestSessionV2c(TestSessionV1):
 
