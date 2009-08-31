@@ -12,13 +12,23 @@
 # GNU General Public License for more details.
 
 import os
+import socket
 import signal
 import warnings
-import tempfile
 
 from twisted.internet import defer, error, process, protocol, reactor
 from twisted.python import log
 from twisted.trial import unittest
+
+def pick_a_port():
+    # XXX: Not perfect, there is a race condition between
+    # the close and snmpd's bind. However the other way
+    # would be to hook into snmpd's bind() call...
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('127.0.0.1', 0))
+    host, port = sock.getsockname()
+    sock.close()
+    return port
 
 class LoggingProtocol(protocol.ProcessProtocol):
     """Log snmpd output via the twisted logging api"""
@@ -55,13 +65,7 @@ class Server(process.Process):
         self._address = defer.Deferred()
         self._timeout = None
         self.conf = "%s/snmpd.conf" % os.path.dirname(__file__)
-
-        # XXX: Not perfect, there is a race condition between
-        # the unlink and snmpd's bind call but it's good enough.
-        fd, self.socket_name = tempfile.mkstemp()
-        self.socket = "unix:%s" % self.socket_name
-        os.unlink(self.socket_name)
-        os.close(fd)
+        self.socket = "udp:127.0.0.1:%d" % pick_a_port()
 
         proto = LoggingProtocol(self)
         env = {"PATH": "/bin:/sbin:/usr/bin:/usr/sbin"}
@@ -110,9 +114,6 @@ class Server(process.Process):
         if self._timeout:
             self._timeout.cancel()
             self._timeout = None
-
-        if os.path.exists(self.socket_name):
-            os.unlink(self.socket_name)
 
         self._deferred.callback(status)
         self._deferred = None

@@ -165,12 +165,13 @@ class SnmpQueryTestCaseV1(SnmpTestCase):
     version = "1"
 
     def setUpSession(self, address):
-        assert address.startswith('unix:')
+        assert address.startswith('udp:')
+        proto, host, port = address.split(":", 3)
         self.conf = Struct({
                 'version': self.version,
                 'community': "public",
-                'protocol': "unix",
-                'path': address[5:]})
+                'host': host,
+                'port': port})
 
     def tearDownSession(self):
         # Clear out the query list
