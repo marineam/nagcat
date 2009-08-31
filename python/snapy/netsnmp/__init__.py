@@ -205,6 +205,9 @@ class Session(object):
             del self._requests[req.contents.reqid]
             raise SnmpError("snmp_sess_send")
 
+    def _uniq(self, oids):
+        return list(set(OID(x) for x in oids))
+
     def sget(self, oids):
         assert self.sessp
         req = self._create_request(const.SNMP_MSG_GET, oids)
@@ -218,14 +221,32 @@ class Session(object):
         return result
 
     def get(self, oids, cb, *args):
-        self._send_request(const.SNMP_MSG_GET, oids, cb, *args)
+        oids = self._uniq(oids)
+        data = []
 
-    def getnext(self, oids, cb, *args):
-        self._send_request(const.SNMP_MSG_GETNEXT, oids, cb, *args)
+        def walk_cb(results):
+            if isinstance(results, Exception):
+                cb(results, *args)
+                return
 
-    def getbulk(self, oids, non_repeaters, max_repetitions, cb, *args):
-        self._send_request(const.SNMP_MSG_GETBULK, oids, cb, *args,
-                errstat=non_repeaters, errindex=max_repetitions)
+            for oid, value in results:
+                try:
+                    oids.remove(oid)
+                except:
+                    # Unexpected value! Abort!
+                    cb(data, *args)
+                    return
+
+                if not isinstance(value, ExceptionValue):
+                    data.append((oid, value))
+
+            if oids:
+                self._send_request(const.SNMP_MSG_GET, oids[:10], walk_cb)
+            else:
+                data.sort(cmp=util.compare_results)
+                cb(data, *args)
+
+        self._send_request(const.SNMP_MSG_GET, oids[:10], walk_cb)
 
     def walk(self, oids, cb, *args):
         """Walk using GETBULK or GETNEXT"""
@@ -235,7 +256,7 @@ class Session(object):
 
         # Parse and sort the oids, they must be in order
         # so we know how far though the walk we have gotten.
-        oids = list(set(OID(x) for x in oids))
+        oids = self._uniq(oids)
         oids.sort()
 
         # Status on the tree needs to be shared between the
@@ -288,11 +309,10 @@ class Session(object):
                 stop(results)
                 return
 
-            # Save any valid results, the remaining will be walked
+            # Save any results, the remaining will be walked
             for oid, value in results:
-                if not isinstance(value, ExceptionValue):
-                    data.append((oid, value))
-                    oids.remove(oid)
+                data.append((oid, value))
+                oids.remove(oid)
 
             next()
 
@@ -312,7 +332,7 @@ class Session(object):
                 # Fetch 50 results at a time, is this a good value?
                 # Note: errstat=non_repeaters, errindex=max_repetitions
                 self._send_request(const.SNMP_MSG_GETBULK, [oid],
-                        walk_cb, errstat=0, errindex=5)
+                        walk_cb, errstat=0, errindex=10)
 
         def stop(results=None):
             if results is None:
@@ -320,7 +340,7 @@ class Session(object):
                 results = data
             cb(results, *args)
 
-        self._send_request(const.SNMP_MSG_GET, oids, get_cb)
+        self.get(oids, get_cb)
 
     def do_timeout(self):
         assert self.sessp

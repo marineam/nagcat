@@ -46,44 +46,25 @@ class TestSessionV1(TestCase):
         result = self.session.sget([x for x,v in self.basics])
         self.assertEquals(result, self.basics)
 
-    def test_get(self):
+    def test_get1(self):
         result = Result()
         self.session.get([x for x,v in self.basics], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, self.basics)
 
-    def test_getnext_single(self):
-        """Test a standard walk using just getnext"""
-
-        all = []
-        root = OID(".1.3.6.1.4.2.1")
-        oid = root
-
-        while True:
-            result = Result()
-            self.session.getnext([oid], set_result, result)
-            self.session.wait()
-
-            oid, value = result.value[0]
-            if value and oid.startswith(root):
-                all.append((oid, value))
-            else:
-                break
-
-        self.assertEquals(all, self.basics)
-
-    def test_getnext_multi(self):
-        """In a standard walk only one oid is sent, test the many case"""
-
-        oids = [OID(".1.3.6.1.4.2.1.0"),
-                OID(".1.3.6.1.4.2.1.1"),
-                OID(".1.3.6.1.4.2.1.2"),
-                OID(".1.3.6.1.4.2.1.3")]
+    def test_get2(self):
+        oids = []
+        for i in xrange(1, 100):
+            oids.append(OID((1,3,6,1,4,2,4,i)))
 
         result = Result()
-        self.session.getnext(oids, set_result, result)
+        self.session.get(oids, set_result, result)
         self.session.wait()
-        self.assertEquals(result.value, self.basics)
+
+        result = dict(result.value)
+        for oid in oids:
+            assert oid in result
+            assert result[oid] == "data data data data"
 
     def test_walk1(self):
         result = Result()
@@ -101,13 +82,6 @@ class TestSessionV1(TestCase):
 class TestSessionV2c(TestSessionV1):
 
     version = "2c"
-
-    def test_getbulk(self):
-        result = Result()
-        # Get the first 4 values which should be self.basics
-        self.session.getbulk([".1"], 0, 4, set_result, result)
-        self.session.wait()
-        self.assertEquals(result.value, self.basics)
 
 class TestTimeoutsV1(unittest.TestCase):
 
