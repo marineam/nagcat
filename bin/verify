@@ -64,7 +64,7 @@ def main():
                 sys.exit(1)
 
         try:
-            root = etree.parse(data)
+            root = etree.parse(data).getroot()
         except etree.XMLSyntaxError, ex:
             sys.stderr.write("%s\n" % ex)
             sys.exit(1)
