@@ -623,9 +623,9 @@ class _Query_snmp_combined(_Query_snmp_common):
         self.update(conf)
         self.conf['walk'] = conf['walk']
 
-        # Don't combine walking queries for version 1 because we don't
-        # get any advantage without the GETBULK query type in >= 2c
-        if self.conf['walk'] and self.conf['version'] == "1":
+        # Don't combine version 1 queries because the response can only
+        # report one error and we can't tell if the others are ok or not
+        if self.conf['version'] == "1":
             self.conf['oids'] = self.oids
 
     def update(self, conf):
