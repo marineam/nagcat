@@ -15,7 +15,6 @@
 """NagCat initialization and startup"""
 
 import sys
-from UserDict import DictMixin
 from optparse import OptionParser
 
 from twisted.internet import reactor
@@ -134,9 +133,10 @@ def parse_options():
 def init(options):
     """Prepare to start up NagCat"""
 
-    # Sanity check, make sure we are using >= coil-0.3.0
-    if (not issubclass(coil.struct.Struct, DictMixin)):
-        raise Exception("Coil >= 0.3.0 is required!")
+    # Sanity check, make sure we are using >= coil-0.3.8
+    if getattr(coil, '__version_info__', (0,0)) < (0,3,8):
+        sys.stderr.write("Coil >= 0.3.8 is required!\n")
+        sys.exit(1)
 
     # Set uid/gid/file_limit
     util.setup(options.user, options.group, options.file_limit)
