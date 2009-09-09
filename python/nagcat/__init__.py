@@ -14,18 +14,15 @@
 
 """NagCat initialization and startup"""
 
-import os
 import sys
-import pwd
-import grp
-import resource
 from UserDict import DictMixin
 from optparse import OptionParser
 
 from twisted.internet import reactor
 import coil
 
-from nagcat import errors, log, monitor_api, nagios, scheduler, test, trend
+from nagcat import errors, log, monitor_api, nagios
+from nagcat import scheduler, test, trend, util
 
 def simpleReport(report):
     log.info("REPORT:\n%s" % report['text'])
@@ -51,94 +48,6 @@ def simple(options, config):
     testobj.addReportCallback(simpleReport)
 
     return [testobj]
-
-def setup(user=None, group=None, file_limit=None):
-    """Set the processes user, group, and file limits"""
-
-    if file_limit:
-        try:
-            resource.setrlimit(resource.RLIMIT_NOFILE, (file_limit, file_limit))
-        except ValueError, ex:
-            log.error("Failed to set limit on open files: %s" % ex)
-            sys.exit(1)
-
-    if group:
-        if not group.isdigit():
-            try:
-                group = grp.getgrnam(group)[2]
-            except KeyError:
-                log.error("Unknown group '%s'" % group)
-                sys.exit(1)
-        else:
-            group = int(group)
-
-        try:
-            os.setregid(group, group)
-        except OSError, ex:
-            log.error("Failed to set gid: %s" % ex)
-            sys.exit(1)
-
-    if user:
-        if not user.isdigit():
-            try:
-                user = pwd.getpwnam(user)[2]
-            except KeyError:
-                log.error("Unknown user '%s'" % user)
-                sys.exit(1)
-        else:
-            user = int(user)
-
-        try:
-            os.setreuid(user, user)
-        except OSError, ex:
-            log.error("Failed to set uid: %s" % ex)
-            sys.exit(1)
-
-def daemonize(pid_file):
-    """Background the current process"""
-
-    log.debug("daemonizing process")
-
-    try:
-        # A trivial check to see if we are already running
-        pidfd = open(pid_file)
-        pid = int(pidfd.readline().strip())
-        pidfd.close()
-        os.kill(pid, 0)
-    except (IOError, OSError):
-        pass # Assume all is well if the test raised no errors
-    else:
-        log.error("PID file exits and process %s is running!" % pid)
-        sys.exit(1)
-
-    try:
-        null = os.open("/dev/null", os.O_RDWR)
-    except OSError, ex:
-        log.error("Failed to open /dev/null!")
-        log.error("Error: %s" % (ex,))
-        sys.exit(1)
-
-    try:
-        pidfd = open(pid_file, 'w')
-    except IOError, ex:
-        log.error("Failed to open PID file %s" % pid_file)
-        log.error("Error: %s" % (ex,))
-        sys.exit(1)
-
-    if os.fork() > 0:
-        os._exit(0)
-
-    os.chdir("/")
-    os.setsid()
-    os.dup2(null, 0)
-    os.dup2(null, 1)
-    os.dup2(null, 2)
-
-    if os.fork() > 0:
-        os._exit(0)
-
-    pidfd.write("%s\n" % os.getpid())
-    pidfd.close()
 
 
 def parse_options():
@@ -230,7 +139,7 @@ def init(options):
         raise Exception("Coil >= 0.3.0 is required!")
 
     # Set uid/gid/file_limit
-    setup(options.user, options.group, options.file_limit)
+    util.setup(options.user, options.group, options.file_limit)
 
     log.init(options.logfile, options.loglevel)
     config = coil.parse_file(options.config, expand=False)
@@ -261,7 +170,7 @@ def init(options):
         sys.exit(1)
 
     if options.daemon:
-        daemonize(options.pidfile)
+        util.daemonize(options.pidfile)
 
     # redirect stdio to log
     log.init_stdio()
