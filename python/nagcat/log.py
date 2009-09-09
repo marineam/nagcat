@@ -112,6 +112,7 @@ class LogLevelObserver(object):
             self.log_fallback.write("%s" % failure.Failure())
 
 def init(log_name, log_level):
+    """Initialize the logger (in global scope)"""
     global _logger
 
     assert _logger is None
@@ -119,46 +120,23 @@ def init(log_name, log_level):
     _logger.start()
 
 def init_stdio(close=False):
+    """Signal the logger to steal sys.stdout/err"""
     _logger.stdio(close)
 
-def error(text, *args):
-    """Log text at level ERROR"""
-    if _logger and _logger.log_level < 0:
-        return
-    if args:
-        log.msg(text % args, log_level=0)
-    else:
-        log.msg(text, log_level=0)
+def _level_factory(index, name):
+    """Setup the log level helper functions"""
 
-def warn(text, *args):
-    """Log text at level WARN"""
-    if _logger and _logger.log_level < 1:
-        return
-    log.msg(text % args, log_level=1)
+    def msg(text, *args):
+        if _logger and _logger.log_level < index:
+            return
+        if args:
+            text = text % args
+        log.msg(text, log_level=index)
 
-def info(text, *args):
-    """Log text at level INFO"""
-    if _logger and _logger.log_level < 2:
-        return
-    if args:
-        log.msg(text % args, log_level=2)
-    else:
-        log.msg(text, log_level=2)
+    msg.__doc__ = "Log text at level %s" % name
+    msg.__name__ = name.lower()
+    globals()[msg.__name__] = msg
 
-def debug(text, *args):
-    """Log text at level DEBUG"""
-    if _logger and _logger.log_level < 3:
-        return
-    if args:
-        log.msg(text % args, log_level=3)
-    else:
-        log.msg(text, log_level=3)
-
-def trace(text, *args):
-    """Log text at level TRACE"""
-    if _logger and _logger.log_level < 4:
-        return
-    if args:
-        log.msg(text % args, log_level=4)
-    else:
-        log.msg(text, log_level=4)
+for index, name in enumerate(LEVELS):
+    _level_factory(index, name)
+del index, name
