@@ -104,18 +104,25 @@ def daemonize(pid_file):
         pidfd = open(pid_file)
         pid = int(pidfd.readline().strip())
         pidfd.close()
+        os.kill(pid, 0)
+    except (IOError, OSError):
+        pass # Assume all is well if the test raised no errors
+    else:
+        log.error("PID file exits and process %s is running!" % pid)
+        sys.exit(1)
 
-        if os.path.isdir('/proc/%s' % pid):
-            log.error("PID file exits and process %s is running!" % pid)
-            sys.exit(1)
-    except:
-        # Assume all is well if the test fails
-        pass
+    try:
+        null = os.open("/dev/null", os.O_RDWR)
+    except OSError, ex:
+        log.error("Failed to open /dev/null!")
+        log.error("Error: %s" % (ex,))
+        sys.exit(1)
 
     try:
         pidfd = open(pid_file, 'w')
     except IOError, ex:
         log.error("Failed to open PID file %s" % pid_file)
+        log.error("Error: %s" % (ex,))
         sys.exit(1)
 
     if os.fork() > 0:
@@ -123,6 +130,9 @@ def daemonize(pid_file):
 
     os.chdir("/")
     os.setsid()
+    os.dup2(null, 0)
+    os.dup2(null, 1)
+    os.dup2(null, 2)
 
     if os.fork() > 0:
         os._exit(0)
@@ -242,7 +252,6 @@ def init(options):
         sch.prepare()
         reactor.callWhenRunning(sch.start)
 
-        # TODO: somehow start this earlier?
         if options.status_port:
             site = monitor_api.MonitorSite(sch)
             reactor.listenTCP(options.status_port, site)
@@ -251,12 +260,11 @@ def init(options):
         log.error(str(ex))
         sys.exit(1)
 
-    # daemonize and redirect stdio to log
     if options.daemon:
         daemonize(options.pidfile)
-        log.init_stdio(close=True)
-    else:
-        log.init_stdio()
+
+    # redirect stdio to log
+    log.init_stdio()
 
 def main():
     """Start up NagCat, profiling things as requested"""
