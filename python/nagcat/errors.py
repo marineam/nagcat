@@ -92,3 +92,6 @@ class ConfigError(StructError):
 
 class InitError(Exception):
     """Error during startup."""
+
+class PipeError(Exception):
+    """Error while writing to pipe, or in case of a problem with connection."""
