@@ -14,7 +14,6 @@
 
 import os
 from twisted.trial import unittest
-from nagcat.unittests import dummy_server
 from nagcat import errors, query
 from coil.struct import Struct
 

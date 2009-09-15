@@ -14,7 +14,6 @@
 
 import os
 from glob import glob
-import rrdtool
 from twisted.trial import unittest
 from coil.struct import Struct
 from nagcat import trend
