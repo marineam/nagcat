@@ -75,6 +75,9 @@ def parse_options():
             help="directory used to store rrdtool archives")
     parser.add_option("-s", "--status-port", dest="status_port", type="int",
             help="enable the HTTP status port")
+    parser.add_option("-V", "--verify", dest="verify",
+            action="store_true", default=False,
+            help="verify the config but don't start")
     parser.add_option("-t", "--test", dest="test",
             help="only run a single test")
     parser.add_option("-H", "--host", dest="host",
@@ -109,6 +112,12 @@ def parse_options():
     if (not (options.nagios or options.test) or
             (options.nagios and options.test)):
         err.append("either --test or --nagios is required")
+
+    if options.pidfile and options.verify:
+        err.append("--verify shouldn't be used with --pidfile")
+
+    if options.daemon and options.verify:
+        err.append("--verify cannot be used with --daemon")
 
     if options.daemon and options.test:
         err.append("--test cannot be used with --daemon")
@@ -172,6 +181,9 @@ def init(options):
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)
+
+    if options.verify:
+        sys.exit(0)
 
     if options.daemon:
         util.daemonize(options.pidfile)
