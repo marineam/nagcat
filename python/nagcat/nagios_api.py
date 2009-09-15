@@ -92,13 +92,27 @@ class NagiosWriter(abstract.FileDescriptor):
                 reactor.removeWriter(self)
 
         try:
-            self._fd = os.open(self._file,
-                               os.O_WRONLY | os.O_NONBLOCK)
+            self._fd = os.open(self._file, os.O_WRONLY | os.O_NONBLOCK)
             reactor.addWriter(self)
         except OSError, ex:
             raise errors.InitError("Failed to open pipe file %s: %s"
                     % (self._file, ex))
 
+class FileWriter(object):
+    """Dummy replacement for NagiosWriter for files instead of pipes.
+
+    This should only be used for debugging/development work.
+    """
+
+    def __init__(self, filename):
+        """Initialize writer with a file descriptor."""
+        self._file = open(filename, 'a')
+
+    def write(self, data):
+        try:
+            self._file.write(data)
+        except IOError, ex:
+            log.error("Failed to write to command file: %s" % ex)
 
 class NagiosCommander(object):
 
@@ -115,7 +129,11 @@ class NagiosCommander(object):
 
     def __init__(self, command_file):
         """Create writer and add it to the reactor."""
-        self.writer = NagiosWriter(command_file)
+
+        if os.path.isfile(command_file):
+            self.writer = FileWriter(command_file)
+        else:
+            self.writer = NagiosWriter(command_file)
 
     def command(self, cmd_time, cmd_name, *args):
         """Submit a command to Nagios.
