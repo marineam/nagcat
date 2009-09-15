@@ -335,3 +335,15 @@ def daemonize(pid_file):
     pidfd.write("%s\n" % os.getpid())
     pidfd.close()
 
+def write_pid(pid_file):
+    """Write out the current PID"""
+
+    try:
+        pidfd = open(pid_file, 'w')
+    except IOError, ex:
+        log.error("Failed to open PID file %s" % pid_file)
+        log.error("Error: %s" % (ex,))
+        sys.exit(1)
+
+    pidfd.write("%s\n" % os.getpid())
+    pidfd.close()

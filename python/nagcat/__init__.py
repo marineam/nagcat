@@ -141,6 +141,10 @@ def init(options):
     # Set uid/gid/file_limit
     util.setup(options.user, options.group, options.file_limit)
 
+    # Write out the pid to make the verify script happy
+    if options.pidfile:
+        util.write_pid(options.pidfile)
+
     log.init(options.logfile, options.loglevel)
     config = coil.parse_file(options.config, expand=False)
 

@@ -22,6 +22,7 @@ manager as foreground processes rather than using init scripts.
 This script simply waits until /stat/ping responds.
 """
 
+import os
 import sys
 import time
 import urllib2
@@ -30,6 +31,8 @@ from lxml import etree
 
 def parse_options():
     parser = OptionParser()
+    parser.add_option("-p", "--pid-file", dest="pid_file",
+            help="pid file for nagcat to test it is running")
     parser.add_option("-H", "--host", dest="host", default="127.0.0.1",
             help="host to send requests to, defaults to localhost")
     parser.add_option("-P", "--port", dest="port", type="int",
@@ -44,13 +47,44 @@ def parse_options():
 
     return options
 
+def check_pid(pid_file):
+    try:
+        pidfd = open(pid_file)
+        pid = pidfd.readline().strip()
+        pidfd.close()
+    except IOError:
+        return False
+
+    try:
+        pid = int(pid)
+    except ValueError:
+        return False
+
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+
+    return True
+
 def main():
     options = parse_options()
 
     url = "http://%s:%d/stat/ping" % (options.host, options.port)
     stop = time.time() + options.timeout
+    pid_failed = False
 
     while True:
+        # Allow check_pid to fail once to account for race conditions
+        if options.pid_file and not check_pid(options.pid_file):
+            if pid_failed:
+                sys.stderr.write("No nagcat process found.\n")
+                sys.exit(1)
+            else:
+                pid_failed = True
+        else:
+            pid_failed = False
+
         try:
             data = urllib2.urlopen(url, timeout=1)
         except urllib2.URLError, ex:
