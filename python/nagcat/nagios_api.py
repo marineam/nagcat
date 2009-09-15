@@ -18,9 +18,10 @@ import os
 import re
 import time
 import random
+from collections import deque
 
 from twisted.web import xmlrpc
-from twisted.internet import reactor, interfaces, abstract
+from twisted.internet import reactor, abstract
 
 from nagcat import errors, log, nagios_objects
 
@@ -33,7 +34,7 @@ class NagiosWriter(abstract.FileDescriptor):
         self._fd = None
         self._open_file()
 
-        self._data_queue = []
+        self._data_queue = deque([], 100)
         self._busy = False
 
     def fileno(self):
@@ -53,26 +54,22 @@ class NagiosWriter(abstract.FileDescriptor):
         self._busy = False
 
         while not self._busy and len(self._data_queue):
-            data_length = len(self._data_queue[0])
+            data = self._data_queue.popleft()
+            data_length = len(data)
 
             try:
-                data_written = os.write(self._fd, self._data_queue[0])
-            except (OSError, IOError), ex:
-                error_message = getattr(ex, "message")
-                if error_message.find("Errno 11"):
+                data_written = os.write(self._fd, data)
+            except OSError, (errno, errmsg):
+                if errno == 11:
                     self._busy = True
+                    self._data_queue.appendleft(data)
                     return
                 raise errors.PipeError("Failed to write data to pipe file %s: %s"
-                                       % (self._fd, ex))
+                                       % (self._fd, errmsg))
 
-            if data_length == data_written:
-                self._data_queue.pop(0)
-            elif data_length > data_written:
-                self._data_queue[0] = self._data_queue[0][data_written:]
-                self.busy = True
-            else:
-                raise errors.PipeError("Error!!! This should never happen. "
-                      "Length of data written into pipe is greater sent.")
+            if data_length != data_written:
+                self._data_queue.appendleft(data[data_written:])
+                self._busy = True
 
     def write(self, data):
         """
@@ -87,12 +84,17 @@ class NagiosWriter(abstract.FileDescriptor):
         """Open a named pipe file for writing."""
         if self._fd is not None:
             tmp_fd = self._fd
-            self._command_fd = None
+            self._fd = None
             os.close(tmp_fd)
+
+            writers = reactor.getWriters()
+            if self in writers:
+                reactor.removeWriter(self)
 
         try:
             self._fd = os.open(self._file,
-                               os.O_WRONLY | os.O_APPEND | os.O_NONBLOCK)
+                               os.O_WRONLY | os.O_NONBLOCK)
+            reactor.addWriter(self)
         except OSError, ex:
             raise errors.InitError("Failed to open pipe file %s: %s"
                     % (self._file, ex))
@@ -114,7 +116,6 @@ class NagiosCommander(object):
     def __init__(self, command_file):
         """Create writer and add it to the reactor."""
         self.writer = NagiosWriter(command_file)
-        reactor.addWriter(self.writer)
 
     def command(self, cmd_time, cmd_name, *args):
         """Submit a command to Nagios.
