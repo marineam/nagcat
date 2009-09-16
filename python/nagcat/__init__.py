@@ -61,7 +61,7 @@ def parse_options():
     parser.add_option("-l", "--logfile", dest="logfile",
             help="log file, automatically rotated")
     parser.add_option("-p", "--pidfile", dest="pidfile",
-            help="pid file (daemon mode only)")
+            help="pid file")
     parser.add_option("-d", "--daemon", dest="daemon",
             action="store_true", default=False,
             help="run as a daemon")
