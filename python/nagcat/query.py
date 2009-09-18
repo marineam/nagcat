@@ -21,13 +21,14 @@ import os
 import errno
 import signal
 import re
+import cStringIO as StringIO
 
 try:
     import uuid
 except ImportError:
     uuid = None
 
-from twisted.internet import reactor, defer, protocol, process
+from twisted.internet import reactor, defer, protocol, process, threads
 from twisted.internet import error as neterror
 from twisted.web import error as weberror
 from twisted.web.client import HTTPClientFactory
@@ -708,10 +709,11 @@ class _OracleConnectionPool(adbapi.ConnectionPool):
 
 
 class Query_oraclesql(Query):
-    """Use cx_Oracle to execute a query against one of the databases"""
+    """Use oracle sql to execute a query against one of the databases via
+    twisted's adbapi"""
 
     # the field of the configuration struct that we care about
-    CONF_FIELDS = ['user', 'password', 'dsn', 'sql', 'binds', 'maxrows']
+    CONF_FIELDS = ['user', 'password', 'dsn', 'sql', 'binds']
 
     def __init__(self, conf):
         if not etree or not cx_Oracle:
@@ -741,67 +743,219 @@ class Query_oraclesql(Query):
         _DBColumns and 'data' is the actual data returned from the query.
         Convert it to XML and return it
         """
-        self.result = self._result_as_xml(*result)
-        log.debug("Query_oraclesql success: %s", self.result)
+        columns, table = result
+        tree = _result_as_xml(columns, table)
+        self.result = etree.tostring(tree, pretty_print=False)
+        log.debug("Query_oraclesql success: %s rows returned", len(table))
         self._cleanup()
         return self.result
 
-    def _result_as_xml(self, columns, result_table):
+    @errors.callback
+    def _failure_oracle(self, result):
+        """Catch common oracle failures here"""
+        log.debug("Fail! %s", result.value)
+        # cleanup now, since we mightn't be back
+        self._cleanup()
+        raise_oracle_warning(result)
+
+    def _cleanup(self):
+        """Closes the ConnectionPool"""
+        self.dbpool.close()
+
+
+class Query_oracle_plsql(Query):
+    """A query that uses cx_oracle directly (allowing for stored procedure calls)
+    results (via "out" parameters) are returned in XML
+    """
+    # fields we expect to see in the conf
+    CONF_FIELDS = ['user', 'password', 'dsn', 'procedure', 'parameters', 'DBI']
+
+    # these are the orderings for the parameters in the config. I would have
+    # preferred to specify the parameters as dicts, but coil apparently does not
+    # support that yet.
+    IN_PARAMETER_FIELDS = ['direction', 'name', 'value']
+    OUT_PARAMETER_FIELDS = ['direction', 'name', 'type']
+
+    def __init__(self, conf):
+        if not etree or not cx_Oracle:
+            raise errors.InitError(
+                "cx_Oracle and lxml are required for Oracle support.")
+        Query.__init__(self, conf)
+        for fieldname in self.CONF_FIELDS:
+            if fieldname in conf:
+                self.conf[fieldname] = conf.get(fieldname)
+
+        self.check_config(conf)
+
+        # setup the DBI, if we don't have it
+        if "DBI" not in self.conf:
+            self.conf['DBI'] = "%s/%s@%s" % (
+                self.conf['user'], self.conf['password'], self.conf['dsn'])
+
+        # data members to be filled in later
+        self.connection = None
+        self.parameters = None
+        self.cursor = None
+
+
+    def check_config(self, conf):
+        """check the config for semantic errors"""
+
+        if not ('user' in self.conf and 'password' in self.conf
+                and 'dsn' in self.conf) and not 'DBI' in self.conf:
+            raise errors.ConfigError(conf,
+                "needs values for user, password, dsn or for DBI")
+
+        if 'procedure' not in self.conf:
+            raise errors.ConfigError(conf, "needs a 'procedure' name to call")
+
+        # check the format of the parameters list.
+        for param in self.conf['parameters']:
+            if not isinstance(param, list):
+                raise error.ConfigError(conf, '%s should be a list of lists'
+                                        % self.conf['parameters'])
+
+            if len(param) != 3 or not param[0] in ['out', 'in']:
+                msg = ("%s should be a list of three elements: "
+                       "[ <in|out> <param_name> <type|value>" % param)
+                raise error.ConfigError(conf, msg)
+
+
+    def buildparam(self, p):
+        """Parameters in the conf are in list form. Convert them to dicts (including
+        suitable DB variables where relevant) for easier sending/receiving"""
+
+        def makeDBtype(s):
+            "convert to the name of a cx_Oracle type, using the much-dreaded eval()"
+            try:
+                return eval('cx_Oracle.' + s.upper())
+            except AttributeError as err:
+                raise TypeError("'%s' is not a recognized Oracle type" % s)
+
+        if p[0].lower() == 'in':
+            retval = dict(zip(self.IN_PARAMETER_FIELDS, p))
+            retval['db_val'] = retval['value']
+            return retval
+        elif p[0].lower() == 'out':
+            retval = dict(zip(self.OUT_PARAMETER_FIELDS, p))
+            retval['db_val'] = self.cursor.var(makeDBtype(retval['type']))
+            return retval
+        else:
+            raise errors.InitError(
+                "Unrecognized direction '%s' in %s (expected 'in' or 'out')" % (p[0], p))
+
+
+    def _start(self):
+        log.debug("running procedure")
+
+        ## Should do some connection pooling here...
+        self.connection = cx_Oracle.Connection(self.conf['DBI'])
+        self.cursor = self.connection.cursor()
+
+        self.parameters = [self.buildparam(p) for p in self.conf['parameters']]
+        # result is a modified copy of self.parameters
+
+        #result = self.callproc(self.conf['query.procedure'], self.parameters)
+        db_params = [p['db_val']  for p in self.parameters]
+        self.deferred = threads.deferToThread(self.cursor.callproc,
+                                              self.conf['procedure'],
+                                              db_params)
+        self.deferred.addCallback(self._success)
+        self.deferred.addErrback(self._failure_oracle)
+        return self.deferred
+
+    @errors.callback
+    def _failure_oracle(self, result):
+        log.debug("Fail! %s", result.value)
+        self._cleanup()
+        raise_oracle_warning(result)
+
+    def _cleanup(self):
+        """Closes the DB connection"""
+        self.connection.close()
+
+    def _success(self, result):
+        """Callback for the deferred that handles the procedure call"""
+        self.result = self._outparams_as_xml(result)
+        self._cleanup()
+        return self.result
+
+    def _outparams_as_xml(self, result_set):
+        """Convert the 'out' parameters into XML. """
+
+        def only_out_params(resultset):
+            """(too big for a lambda) only convert those parameters that were
+            direction='out', along with their matching definitions from the conf"""
+            return [p for p in zip(self.parameters, result_set)
+                    if p[0]['direction'] == 'out']
+        try:
+            root = etree.Element('result')
+            for param, db_value in only_out_params(result_set):
+                if not isinstance(db_value, cx_Oracle.Cursor):
+                    # for non-cursor results, all is treated as text
+                    tree = etree.Element(param['name'], type="STRING")
+                    if db_value: tree.text = str(db_value)
+                else:
+                    # for cursors, we will convert to tables
+                    columns = map(_DBColumn, db_value.description)
+                    table = db_value.fetchall()
+                    tree = _result_as_xml(columns, table, param['name'])
+                root.append(tree)
+            return etree.tostring(root, pretty_print=False)
+
+        except Exception as err:
+            raise errors.TestCritical("XML conversion error!: %s" % err)
+
+
+def _result_as_xml(columns, result_table, name="queryresult"):
         """Convert an executed query into XML, using the columns to get the
         names and types of the column tags"""
 
         # example query: select 1 as foo from dual
         # returns: '<queryresult><row><foo type="NUMBER">1</foo></row></queryresult>'
         try:
-            tree = etree.Element("queryresult")
+            tree = etree.Element(name)
             for row in result_table:
                 xmlrow = etree.Element('row')
                 for col, val in zip(columns, row):
-                    xmlrow.append(self._xml_element(col, val))
+                    xmlrow.append(_xml_element(col, val))
                 tree.append(xmlrow)
-            return etree.tostring(tree, pretty_print=False)
+            return tree
         except Exception as err:
             raise errors.TestCritical("XML conversion error!: %s" % err)
 
-    def _xml_element(self, col, text):
+
+def _xml_element(col, value):
         name = re.sub("[^\w]","", col.name.lower())
         elt = etree.Element(name, type=col.type.__name__)
-        elt.text = str(text)
+        if value != None:
+            elt.text = str(value)
         return elt
 
-    @errors.callback
-    def _failure_oracle(self, result):
-        """Catch common oracle failures here"""
-        log.debug("Fail! %s", result.value)
 
-        # cleanup now, since we mightn't be back
-        self._cleanup()
+def raise_oracle_warning(failure):
+    """A handy wrapper for handling cx_Oracle failures in Query_* objects"""
 
-        if isinstance(result.value, cx_Oracle.Warning):
-            # Exception raised for important warnings and defined by the DB API
-            # but not actually used by cx_Oracle.
-            raise errors.TestWarning(result.value)
+    if isinstance(failure.value, cx_Oracle.Warning):
+        # Exception raised for important warnings and defined by the DB API
+        # but not actually used by cx_Oracle.
+        raise errors.TestWarning(failure.value)
 
-        if isinstance(result.value, cx_Oracle.InterfaceError):
-            # Exception raised for errors that are related to the database
-            # interface rather than the database itself. It is a subclass of
-            # Error.
-            raise errors.TestCritical(result.value)
+    if isinstance(failure.value, cx_Oracle.InterfaceError):
+        # Exception raised for errors that are related to the database
+        # interface rather than the database itself. It is a subclass of
+        # Error.
+        raise errors.TestCritical(failure.value)
 
-        if isinstance(result.value, cx_Oracle.DatabaseError):
-            # Exception raised for errors that are related to the database. It
-            # is a subclass of Error.
-            raise errors.TestCritical(result.value)
+    if isinstance(failure.value, cx_Oracle.DatabaseError):
+        # Exception raised for errors that are related to the database. It
+        # is a subclass of Error.
+        raise errors.TestCritical(failure.value)
 
-        if isinstance(result.value, cx_Oracle.Error):
-            # Exception that is the base class of all other exceptions
-            # defined by cx_Oracle and is a subclass of the Python
-            # StandardError exception (defined in the module exceptions).
-            raise errors.TestCritical(result.value)
+    if isinstance(failure.value, cx_Oracle.Error):
+        # Exception that is the base class of all other exceptions
+        # defined by cx_Oracle and is a subclass of the Python
+        # StandardError exception (defined in the module exceptions).
+        raise errors.TestCritical(failure.value)
 
-        log.debug("Unhandled failure! %s", result)
-
-    def _cleanup(self):
-        """Closes the ConnectionPool"""
-        self.dbpool.close()
-
+    log.debug("Unhandled failure! %s", failure)
