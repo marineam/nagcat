@@ -14,6 +14,7 @@
 
 import re
 import gc
+from resource import getrusage, RUSAGE_SELF
 
 try:
     from lxml import etree
@@ -109,6 +110,20 @@ class Memory(XMLPage):
         status.close()
         return mem
 
+class Time(XMLPage):
+    """Process stats"""
+
+    def xml(self, request):
+        proc = etree.Element("Time", version="1.0")
+
+        status = getrusage(RUSAGE_SELF)
+        utime = etree.SubElement(proc, "User", units="seconds")
+        utime.text = str(status.ru_utime)
+        stime = etree.SubElement(proc, "System", units="seconds")
+        stime.text = str(status.ru_stime)
+
+        return proc
+
 class Scheduler(XMLPage):
     """Information on objects in the Nagcat scheduler"""
 
@@ -147,6 +162,7 @@ class Stat(XMLPage):
         self.putChild("", self)
         self.putChild("ping", Ping())
         self.putChild("memory", Memory())
+        self.putChild("time", Time())
 
     def putChild(self, path, child):
         XMLPage.putChild(self, path, child)
