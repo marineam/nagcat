@@ -235,6 +235,15 @@ class NoSuchInstance(ExceptionValue):
 class EndOfMibView(ExceptionValue):
     """End of MIB View"""
 
+class PacketError(ExceptionValue):
+    """Packet Error"""
+
+    def __init__(self, code):
+        self.code = code
+
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__doc__, self.code)
+
 class OID(tuple):
     """An OID and various helper methods.
 

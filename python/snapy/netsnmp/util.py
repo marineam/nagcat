@@ -56,40 +56,42 @@ _decoder = {
 def _decode_variable(var):
     if var.type not in _decoder:
         raise Exception("SNMP data type %d not implemented" % var.type)
-    oid = types.OID(var.name, var.name_length)
-    return oid, _decoder[var.type](var)
+    return _decoder[var.type](var)
 
-def _decode_varerror(var, error):
-    oid = types.OID(var.name, var.name_length)
-
+def _decode_error(error):
     if error == const.SNMP_ERR_NOSUCHNAME:
         value = types.NoSuchObject()
     else:
-        # TODO: do a better job here...
-        value = Exception("got error code: %d" % error)
-
-    return (oid, value)
+        value = types.PacketError(error)
+    return value
 
 def decode_result(pdu):
     result = []
 
     # Check for an error
-    last_index = None
+    err_index = None
     if pdu.errstat != const.SNMP_ERR_NOERROR:
-        last_index = pdu.errindex
+        err_index = pdu.errindex
 
     var = pdu.variables
     index = 1
     while var:
-        if last_index is not None and index >= last_index:
-            result.append(_decode_varerror(var.contents, pdu.errstat))
-            break
-        else:
-            result.append(_decode_variable(var.contents))
-            var = var.contents.next_variable
-            index += 1
+        var = var.contents
+        oid = types.OID(var.name, var.name_length)
 
-    return result
+        if err_index is None:
+            result.append((oid, _decode_variable(var)))
+        elif err_index == index:
+            result.append((oid, _decode_error(pdu.errstat)))
+            break
+
+        var = var.next_variable
+        index += 1
+
+    if not result and err_index is not None:
+        return [(types.OID(), _decode_error(pdu.errstat))]
+    else:
+        return result
 
 def compare_results(result1, result2):
     """Useful for sorting the list returned by decode_result"""
