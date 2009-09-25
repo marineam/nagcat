@@ -19,7 +19,11 @@ import ctypes
 from ctypes import byref
 from ctypes.util import find_library
 
-lib = ctypes.CDLL(find_library('netsnmp'), ctypes.RTLD_GLOBAL)
+_lib_name = find_library('netsnmp')
+if not _lib_name:
+    raise ImportError("The netsnmp library was not found.")
+lib = ctypes.CDLL(_lib_name, ctypes.RTLD_GLOBAL)
+del _lib_name
 
 from snapy.netsnmp import const, types, util
 
