@@ -254,6 +254,13 @@ test-name: {
         # to stack on top of each other. Defaults to 'line'.
         display: "line"
 
+	# 'stack' defines whether to stack this value on top of
+	# the previous one (in the order they appear in the coil
+	# config). Useful in compound queries that represent
+	# different kinds of the same sort of value (ie memory).
+	# Should be True or False, defaults to False.
+	stack: False
+
         # 'color' defines a RGB color to use for the line or area.
         # A color will be chosen if not given.
         color: "#000000"

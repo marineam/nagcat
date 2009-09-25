@@ -1,4 +1,4 @@
-#!/usr/bin/env polthon
+#!/usr/bin/env python
 
 import cgitb
 cgitb.enable()
@@ -39,12 +39,12 @@ def pull_cgi_data(cgi_store):
 
 def collect_ds_queries(conf):
     """Returns a set of the data sources referred to in the coil config."""
-    data_sources = set(['_state'])
+    data_sources = ['_state']
     if conf.get('trend.type', False):
-        data_sources.add('_result')
+        data_sources.append('_result')
     for name, sub in conf['query'].iteritems():
         if isinstance(sub, coil.struct.Struct) and sub.get('trend.type', False):
-            data_sources.add(name)
+            data_sources.append(name)
 
     return data_sources
 
@@ -80,10 +80,11 @@ def configure_graph_display(conf, ds, colorator):
     scale = int(dsconf.get('trend.scale', 0))
     display = dsconf.get('trend.display', 'line').lower()
     assert display in ('line', 'area'), "Invalid display configured"
+    stack = dsconf.get('trend.stack', False)
 
-    return (label, color, scale, display)
+    return (label, color, scale, display, stack)
 
-def graph_config_to_arguments(ds, rrd_args, rrd_path, label, color, scale, display):
+def graph_config_to_arguments(ds, rrd_path, label, color, scale, display, stack):
     """Returns rrdgraph arguments corresponding to the graphing
     configuration of a given data source"""
     # Add graph config to rrdgraph command-line arguments
@@ -94,13 +95,15 @@ def graph_config_to_arguments(ds, rrd_args, rrd_path, label, color, scale, displ
     else:
         result.append("DEF:%s=%s:%s:AVERAGE" % (ds, rrd_esc(rrd_path), ds))
 
+    if stack:
+        stack = "STACK"
+    else:
+        stack = ""
+
     if display == 'area':
-        if [arg for arg in rrd_args if arg.startswith("AREA:")]:
-            result.append("AREA:%s%s:%s" % (ds, color, rrd_esc(label)))
-        else:
-            result.append("AREA:%s%s:%s:STACK" % (ds, color, rrd_esc(label)))
+        result.append("AREA:%s%s:%s:%s" % (ds, color, rrd_esc(label), stack))
     elif display == 'line':
-        result.append("LINE2:%s%s:%s" % (ds, color, rrd_esc(label)))
+        result.append("LINE2:%s%s:%s:%s" % (ds, color, rrd_esc(label), stack))
 
     prefix = max(7 - len(label), 0) * " "
     result.append("VDEF:_last_%s=%s,LAST" % (ds, ds))
@@ -147,26 +150,27 @@ def build_rrd_args(rrd_path, period, conf, data_sources):
     """Returns the arguments to be passed to rrdgraph in order to
     graph the given data sources with the given options."""
 
+    extra = set(data_sources)
     rrd_args = build_rrd_args_preamble(rrd_path, period, conf)
 
     # Pull info on the RRD database
     info = rrdtool.info(rrd_path)
     colorator = Colorator()
-    for ds in info['ds']:
-        if ds not in data_sources:
-            rrd_args.append("COMMENT:WARNING\: Unexpected DS %s\\n" % (rrd_esc(ds),))
+    for ds in data_sources:
+        if ds not in info['ds']:
+            rrd_args.append("COMMENT:WARNING\: Missing DS %s\\n" % (rrd_esc(ds),))
             continue
 
-        data_sources.remove(ds)
+        extra.remove(ds)
 
         if ds == '_state':
             continue
 
-        (label, color, scale, display) = configure_graph_display(conf, ds, colorator)
-        rrd_args += graph_config_to_arguments(ds, rrd_args, rrd_path, label, color, scale, display)
+        (label, color, scale, display, stack) = configure_graph_display(conf, ds, colorator)
+        rrd_args += graph_config_to_arguments(ds, rrd_path, label, color, scale, display, stack)
 
-    for ds in data_sources:
-        rrd_args.append("COMMENT:WARNING\: Missing DS %s\\n" % (rrd_esc(ds),))
+    for ds in extra:
+        rrd_args.append("COMMENT:WARNING\: Unexpected DS %s\\n" % (rrd_esc(ds),))
 
     return rrd_args
 
