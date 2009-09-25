@@ -388,6 +388,10 @@ query: {
     # Extra request headers to send, must be a structure with
     # header-name: "value" pairs.
     headers: { Accept: "text/plain" }
+
+    # Use HTTP Basic authentication (adds an Authorization header)
+    username: "user"
+    password: "pass"
 }
 
 Raw TCP/SSL:

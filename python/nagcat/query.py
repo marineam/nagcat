@@ -21,6 +21,7 @@ import os
 import errno
 import signal
 import re
+from base64 import b64encode
 import cStringIO as StringIO
 
 try:
@@ -178,7 +179,7 @@ class Query_http(Query):
         self.conf['port'] = int(conf.get('port', self.port))
         self.conf['path'] = conf.get('path', '/')
         self.conf['data'] = conf.get('data', None)
-        self.conf['headers'] = conf.get('headers', {})
+        headers = conf.get('headers', {})
 
         # Some versions of twisted will send Host twice if it is in the
         # headers dict. Instead we set factory.host.
@@ -189,13 +190,19 @@ class Query_http(Query):
 
         # We need to make sure headers is a dict.
         self.headers = InsensitiveDict()
-        for (key, val) in self.conf['headers'].iteritems():
+        for (key, val) in headers.iteritems():
             if key.lower() == 'host':
                 self.headers_host = val
             else:
                 self.headers[key] = val
 
-        # Also use a convert to a lower-case only dict for self.conf so
+        # Set the Authorization header if user/pass are provided
+        user = conf.get('username', None)
+        if user is not None:
+            auth = b64encode("%s:%s" % (user, conf['password']))
+            self.headers['Authorization'] = "Basic %s" % auth
+
+        # Also convert to a lower-case only dict for self.conf so
         # that queries that differ only by case are still shared.
         self.conf['headers'] = InsensitiveDict(preserve=0)
         self.conf['headers']['host'] = self.headers_host
