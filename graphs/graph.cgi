@@ -9,6 +9,8 @@ import cgi
 import coil
 import rrdtool
 
+from nagcat.trend import rrdtool_info
+
 class Colorator:
     COLORS = ('#002A8F','#DA4725','#008A6D','#00BD27','#CCBB00','#F24AC8')
 
@@ -154,7 +156,7 @@ def build_rrd_args(rrd_path, period, conf, data_sources):
     rrd_args = build_rrd_args_preamble(rrd_path, period, conf)
 
     # Pull info on the RRD database
-    info = rrdtool.info(rrd_path)
+    info = rrdtool_info(rrd_path)
     colorator = Colorator()
     for ds in data_sources:
         if ds not in info['ds']:

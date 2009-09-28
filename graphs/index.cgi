@@ -55,25 +55,36 @@ host_map = {}
 for host in host_list:
     host_map[host['host_name']] = host
 
+def render_host(host):
+    host_url = urllib.quote(host)
+    host_esc = cgi.escape(host)
+    output_esc = cgi.escape(host_map[host]['plugin_output'])
+    status = host_map[host]['current_state']
+    if status == '0':
+        status = "Up"
+    else:
+        status = "Down"
+    return HOST % {'host_url': host_url, 'host_esc': host_esc,
+            'status': status, 'output_esc': output_esc}
+
+ungrouped = set(host_map)
 groups = ""
 for group in group_list:
     if not group['members']:
         continue
     hosts = ""
     for host in group['members'].split(','):
-        host_url = urllib.quote(host)
-        host_esc = cgi.escape(host)
-        output_esc = cgi.escape(host_map[host]['plugin_output'])
-        status = host_map[host]['current_state']
-        if status == '0':
-            status = "Up"
-        else:
-            status = "Down"
-        hosts += HOST % {'host_url': host_url, 'host_esc': host_esc,
-                'status': status, 'output_esc': output_esc}
+        ungrouped.remove(host)
+        hosts += render_host(host)
 
     group_esc = cgi.escape(group['alias'])
     groups += GROUP % {'group_esc': group_esc, 'hosts': hosts}
+
+if ungrouped:
+    hosts = ""
+    for host in sorted(ungrouped):
+        hosts += render_host(host)
+    groups += GROUP % {'group_esc': "(no group)", 'hosts': hosts}
 
 print HEAD
 print

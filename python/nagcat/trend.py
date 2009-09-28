@@ -56,7 +56,7 @@ def init(dir):
 def enabled():
     return bool(_rradir)
 
-def _rrdtool_info(rrd_file):
+def rrdtool_info(rrd_file):
     """Wrapper around rrdtool.info() for version compatibility.
 
     RRDTool changed the format of the data returned by rrdtool.info()
@@ -237,7 +237,7 @@ class Trend(object):
         self.validate()
 
     def validate(self):
-        info = _rrdtool_info(self._rrafile)
+        info = rrdtool_info(self._rrafile)
 
         if info['step'] != self._step:
             raise MismatchError("step has changed")
