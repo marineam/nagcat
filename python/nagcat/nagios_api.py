@@ -21,82 +21,109 @@ import random
 from collections import deque
 
 from twisted.web import xmlrpc
-from twisted.internet import reactor, abstract
+from twisted.internet import reactor, interfaces
+from twisted.python.log import Logger
+from zope.interface import implements
 
 from nagcat import errors, log, nagios_objects
 
-class NagiosWriter(abstract.FileDescriptor):
+class NagiosWriter(Logger, object):
     """Writes out data to fd pipe file when available."""
+
+    implements(interfaces.IWriteDescriptor)
 
     def __init__(self, filename):
         """Initialize writer with a file descriptor."""
+
+        self._data = None
+        self._data_queue = deque((), 100)
         self._file = filename
         self._fd = None
-        self._open_file()
+        self._timer = None
 
-        self._data_queue = deque([], 100)
-        self._busy = False
+        try:
+            self._open_file()
+        except OSError, (errno, errmsg):
+            raise errors.InitError("Failed to open nagios pipe %s: %s"
+                    % (self._file, errmsg))
 
     def fileno(self):
         """Returns the file descriptor."""
         return self._fd
 
     def connectionLost(self, reason):
-        """Gracefully try to reopen the connection. Raise exception if that fails."""
-        try:
-            self._open_file()
-        except errors.InitError, ex:
-            raise errors.PipeError("Connection lost to pipe %s. Can't reopen"
-                                   "Reason is %s: %s" % (self._file, reason, ex))
+        """Gracefully try to reopen the connection."""
+        self._reopen_file()
 
     def doWrite(self):
         """Write data out to the pipe."""
-        self._busy = False
 
-        while not self._busy and len(self._data_queue):
-            data = self._data_queue.popleft()
-            data_length = len(data)
+        while self._data or self._data_queue:
+            if not self._data:
+                self._data = self._data_queue.popleft()
 
             try:
-                data_written = os.write(self._fd, data)
+                data_written = os.write(self._fd, self._data)
             except OSError, (errno, errmsg):
                 if errno == 11:
-                    self._busy = True
-                    self._data_queue.appendleft(data)
+                    # EAGAIN, pause writing until next doWrite()
                     return
-                raise errors.PipeError("Failed to write data to pipe file %s: %s"
-                                       % (self._fd, errmsg))
+                else:
+                    log.warn("Failed to write to nagios pipe: %s" % errmsg)
+                    self._reopen_file()
+                    return
 
-            if data_length != data_written:
-                self._data_queue.appendleft(data[data_written:])
-                self._busy = True
+            if len(self._data) != data_written:
+                self._data = self._data[data_written:]
+                return
+            else:
+                self._data = None
+
+        self.stopWriting()
+
+    def startWriting(self):
+        """Add writer to the reactor"""
+        if self._fd is not None:
+            reactor.addWriter(self)
+
+    def stopWriting(self):
+        """Remove writer from the reactor"""
+        reactor.removeWriter(self)
 
     def write(self, data):
-        """
-        Adding data to the data_queue to be sent into pipe.
-        In the case that the pipe is not busy, call doWrite and write data now.
-        """
+        """Adding data to the data_queue to be sent into the pipe."""
         self._data_queue.append(data)
-        if not self._busy:
-            self.doWrite()
+        self.startWriting()
+
+    def _reopen_file(self):
+        """Attempt to reopen the pipe."""
+
+        if self._timer:
+            if not self._timer.called:
+                self._timer.cancel()
+            self._timer = None
+
+        try:
+            self._open_file()
+        except OSError, (errno, errmsg):
+            log.warn("Failed to reopen nagios pipe: %s" % errmsg)
+            self._timer = reactor.callLater(10.0, self._reopen_file)
+        else:
+            log.info("Reopened nagios pipe, resuming writes.")
 
     def _open_file(self):
         """Open a named pipe file for writing."""
+
         if self._fd is not None:
-            tmp_fd = self._fd
+            self.stopWriting()
+            try:
+                os.close(self._fd)
+            except OSError:
+                pass
             self._fd = None
-            os.close(tmp_fd)
 
-            writers = reactor.getWriters()
-            if self in writers:
-                reactor.removeWriter(self)
-
-        try:
-            self._fd = os.open(self._file, os.O_WRONLY | os.O_NONBLOCK)
-            reactor.addWriter(self)
-        except OSError, ex:
-            raise errors.InitError("Failed to open pipe file %s: %s"
-                    % (self._file, ex))
+        self._fd = os.open(self._file, os.O_WRONLY | os.O_NONBLOCK)
+        self.startWriting()
 
 class FileWriter(object):
     """Dummy replacement for NagiosWriter for files instead of pipes.
