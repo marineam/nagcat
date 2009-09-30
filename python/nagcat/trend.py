@@ -133,8 +133,18 @@ class Trend(object):
 
     def __init__(self, conf, rradir=None, start=None):
         self._step = util.Interval(conf.get("repeat", "1m")).seconds
-        self._ds_list = {'_state': {'type': "GAUGE"}}
+        self._ds_list = {'_state': {'type': "GAUGE", 'min': None, 'max': None}}
         self._start = start
+
+        def parse_limit(new, old, key):
+            limit = old.get(key, None)
+            if limit is not None:
+                try:
+                    limit = float(limit)
+                except ValueError:
+                    raise errors.ConfigError(old,
+                            "Invalid %s: %s" % (key, limit))
+            new[key] = limit
 
         def parse_ds(ds_name, ds_conf):
             if 'trend' not in ds_conf or 'type' not in ds_conf['trend']:
@@ -146,6 +156,9 @@ class Trend(object):
             if new['type'] not in self.TYPES:
                 raise errors.ConfigError(ds_conf['trend'],
                         "Invalid type: %s" % new['type'])
+
+            parse_limit(new, ds_conf['trend'], 'min')
+            parse_limit(new, ds_conf['trend'], 'max')
 
             self._ds_list[ds_name] = new
 
@@ -212,8 +225,14 @@ class Trend(object):
             args += ["--start", str(self._start)]
 
         for ds_name, ds_conf in self._ds_list.iteritems():
-            args.append("DS:%s:%s:%d:U:U"
-                    % (ds_name, ds_conf['type'], self._step*2))
+            ds_min = ds_conf['min']
+            if ds_min is None:
+                ds_min = 'U'
+            ds_max = ds_conf['max']
+            if ds_max is None:
+                ds_max = 'U'
+            args.append("DS:%s:%s:%d:%s:%s" % (ds_name,
+                ds_conf['type'], self._step*2, ds_min, ds_max))
 
         for period, interval in self.RRAS:
             if interval < self._step:
@@ -247,6 +266,13 @@ class Trend(object):
         if new != old:
             raise MismatchError("data source list has changed")
 
+        def check_limit(new, old, key):
+            limit = new[key]
+            if limit == 'U':
+                limit = None
+            if limit != old[key]:
+                raise MismatchError("data source min/max changed")
+
         for ds_name, ds_conf in self._ds_list.iteritems():
             ds_old = info['ds'][ds_name]
 
@@ -256,8 +282,8 @@ class Trend(object):
             if self._step*2 != ds_old['minimal_heartbeat']:
                 raise MismatchError("data source heartbeat has changed")
 
-            if ds_old['min'] is not None or ds_old['max'] is not None:
-                raise MismatchError("data source min/max was set")
+            check_limit(ds_conf, ds_old, 'min')
+            check_limit(ds_conf, ds_old, 'max')
 
         old = list(info['rra'])
         for period, interval in self.RRAS:
