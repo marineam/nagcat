@@ -114,9 +114,6 @@ class NagiosTests(object):
 
             try:
                 testobj = test.Test(testconf)
-                if trend.enabled():
-                    trendobj = trend.Trend(testconf)
-                    testobj.addReportCallback(trendobj.update)
             except (errors.InitError, CoilError), ex:
                 raise errors.InitError(
                         "Error in test %s: %s" % (test_overrides['test'], ex))

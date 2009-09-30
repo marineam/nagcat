@@ -53,9 +53,6 @@ def init(dir):
 
     _rradir = dir
 
-def enabled():
-    return bool(_rradir)
-
 def rrdtool_info(rrd_file):
     """Wrapper around rrdtool.info() for version compatibility.
 
@@ -118,6 +115,15 @@ def rrdtool_info(rrd_file):
         new['rra'].append(value)
 
     return new
+
+def addTrend(testobj, testconf):
+    """Setup a Trend object for the given test.
+
+    Does nothing if trending is not enabled.
+    """
+    if _rradir:
+        trendobj = Trend(testconf)
+        testobj.addReportCallback(trendobj.update)
 
 class Trend(object):
 
@@ -203,6 +209,8 @@ class Trend(object):
                 self.replace()
         else:
             self.create()
+
+        log.debug("Loaded trending config: %s", self._ds_list)
 
     def replace(self):
         assert os.path.exists(self._rrafile)

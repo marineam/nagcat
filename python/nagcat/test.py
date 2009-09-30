@@ -26,7 +26,7 @@ from twisted.internet import defer, reactor
 from twisted.python import failure
 from coil import struct
 
-from nagcat import errors, filters, log, query, scheduler, util
+from nagcat import errors, filters, log, query, scheduler, trend, util
 
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 
@@ -215,6 +215,7 @@ class Test(BaseTest):
             self.addDependency(self._subtests['query'])
 
         self._report_callbacks = []
+        trend.addTrend(self, conf)
 
     def _addDefaults(self, conf):
         """Add default values based on this test to a subtest config"""

@@ -44,9 +44,12 @@ def collect_ds_queries(conf):
     data_sources = ['_state']
     if conf.get('trend.type', False):
         data_sources.append('_result')
-    for name, sub in conf['query'].iteritems():
-        if isinstance(sub, coil.struct.Struct) and sub.get('trend.type', False):
-            data_sources.append(name)
+    if conf['query.type'] == 'compound':
+        for name, sub in conf['query'].iteritems():
+            if isinstance(sub, coil.struct.Struct) and sub.get('trend.type', False):
+                data_sources.append(name)
+    elif conf.get('query.trend.type', False):
+        data_sources.append('query')
 
     return data_sources
 
@@ -72,6 +75,11 @@ def configure_graph_display(conf, ds, colorator):
     if ds == "_result":
         dsconf = conf
         label = conf.get('trend.label', conf.get('label', 'Result'))
+        default_color = "#000000"
+    elif ds == 'query' and conf['query.type'] != 'compound':
+        dsconf = conf
+        label = dsconf.get('query.trend.label', dsconf.get('query.label',
+            conf.get('label', 'Result')))
         default_color = "#000000"
     else:
         dsconf = conf['query.%s' % ds]
