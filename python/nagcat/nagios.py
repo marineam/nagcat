@@ -27,7 +27,8 @@ class NagiosTests(object):
 
         cfg = nagios_objects.ConfigParser(nagios_cfg)
         self._nagios_obj = cfg['object_cache_file']
-        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'])
+        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'],
+                                                      limit=100)
 
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])

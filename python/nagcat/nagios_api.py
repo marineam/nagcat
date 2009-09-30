@@ -32,11 +32,11 @@ class NagiosWriter(Logger, object):
 
     implements(interfaces.IWriteDescriptor)
 
-    def __init__(self, filename):
+    def __init__(self, filename, limit):
         """Initialize writer with a file descriptor."""
 
         self._data = None
-        self._data_queue = deque((), 100)
+        self._data_queue = deque((), limit)
         self._file = filename
         self._fd = None
         self._timer = None
@@ -154,13 +154,17 @@ class NagiosCommander(object):
             'SCHEDULE_SVC_DOWNTIME': 9,
             }
 
-    def __init__(self, command_file):
-        """Create writer and add it to the reactor."""
+    def __init__(self, command_file, limit=None):
+        """Create writer and add it to the reactor.
+
+        command_file is the path to the nagios pipe
+        limit is the maximum number of commands to queue
+        """
 
         if os.path.isfile(command_file):
             self.writer = FileWriter(command_file)
         else:
-            self.writer = NagiosWriter(command_file)
+            self.writer = NagiosWriter(command_file, limit)
 
     def command(self, cmd_time, cmd_name, *args):
         """Submit a command to Nagios.
