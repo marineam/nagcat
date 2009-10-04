@@ -217,7 +217,7 @@ class Session(object):
     def sget(self, oids):
         assert self.sessp
         req = self._create_request(const.SNMP_MSG_GET, oids)
-        response = types.netsnmp_pdu_p()
+        response = ctypes.POINTER(types.netsnmp_pdu)()
 
         if lib.snmp_sess_synch_response(self.sessp, req, byref(response)):
             raise SnmpError("snmp_sess_synch_response")
