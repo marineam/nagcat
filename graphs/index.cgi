@@ -74,7 +74,7 @@ for group in group_list:
         continue
     hosts = ""
     for host in group['members'].split(','):
-        ungrouped.remove(host)
+        ungrouped.discard(host)
         hosts += render_host(host)
 
     group_esc = cgi.escape(group['alias'])
