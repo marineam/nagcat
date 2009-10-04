@@ -13,7 +13,6 @@
 # GNU General Public License for more details.
 
 import sys
-import math
 import select
 import ctypes
 from ctypes import byref
@@ -39,17 +38,6 @@ NoSuchObject = types.NoSuchObject
 NoSuchInstance = types.NoSuchInstance
 EndOfMibView = types.EndOfMibView
 OID = types.OID
-
-# The normal fd limit
-FD_SETSIZE = 1024
-
-def _mkfdset(fd):
-    """Make a fd set of the right size and set fd"""
-    size = max(fd+1, FD_SETSIZE)
-    fd_set_t = ctypes.c_int32 * int(math.ceil(size / 32.0))
-    fd_set = fd_set_t()
-    fd_set[fd // 32] |= 1 << (fd % 32)
-    return fd_set
 
 class Session(object):
     """Wrapper around a single SNMP Session"""
@@ -106,16 +94,20 @@ class Session(object):
         for attr, value in kwargs.iteritems():
             setattr(self.session_template, attr, value)
 
-    def open(self):
-        sess = types.netsnmp_session()
-        ctypes.memmove(byref(sess),
-                byref(self.session_template), ctypes.sizeof(sess))
-
         # We must hold a reference to the callback while it is in use
         self._session_callback = types.netsnmp_callback(self._callback)
-        sess.callback = self._session_callback
+        self.session_template.callback = self._session_callback
 
-        self.sessp = lib.snmp_sess_open(byref(sess))
+    def open(self):
+        #sess = types.netsnmp_session()
+        #ctypes.memmove(byref(sess),
+        #        byref(self.session_template), ctypes.sizeof(sess))
+
+        # We must hold a reference to the callback while it is in use
+        #self._session_callback = types.netsnmp_callback(self._callback)
+        #sess.callback = self._session_callback
+
+        self.sessp = lib.snmp_sess_open(byref(self.session_template))
         if not self.sessp:
             raise SnmpError('snmp_sess_open')
 
@@ -136,20 +128,35 @@ class Session(object):
 
     def timeout(self):
         assert self.sessp
-        fd_max = ctypes.c_int()
-        fd_set = _mkfdset(self.fileno())
         tv = types.timeval()
         block = ctypes.c_int(1) # block = 1 means tv is undefined
 
-        # We only actually need tv and block
-        lib.snmp_sess_select_info(self.sessp,
-                byref(fd_max), byref(fd_set),
-                byref(tv), byref(block))
+        # Note that we have to use a different select_info call
+        # depending on the netsnmp version, also out of the info
+        # it returns we only actually need tv and block. So all
+        # this crap just to handle large fds is pointless. Win.
+        self._timeout_compat(tv, block)
 
         if block:
             return None
         else:
             return tv.tv_sec + tv.tv_usec / 1000000.0
+
+    if types.lib_version_info >= (5,5):
+        def _timeout_compat(self, tv, block):
+            fd_max = ctypes.c_int()
+            fd_set = types.mkfdset2(self.fileno())
+            lib.snmp_sess_select_info2(self.sessp,
+                    byref(fd_max), byref(fd_set),
+                    byref(tv), byref(block))
+            types.rmfdset2(fd_set)
+    else:
+        def _timeout_compat(self, tv, block):
+            fd_max = ctypes.c_int()
+            fd_set = types.mkfdset(self.fileno())
+            lib.snmp_sess_select_info(self.sessp,
+                    byref(fd_max), fd_set,
+                    byref(tv), byref(block))
 
     def _callback(self, operation, sp, reqid, pdu, magic):
         try:
@@ -356,8 +363,17 @@ class Session(object):
 
     def do_read(self):
         assert self.sessp
-        fd_set = _mkfdset(self.fileno())
-        lib.snmp_sess_read(self.sessp, byref(fd_set))
+        self._read_compat()
+
+    if types.lib_version_info >= (5,5):
+        def _read_compat(self):
+            fd_set = types.mkfdset2(self.fileno())
+            lib.snmp_sess_read2(self.sessp, byref(fd_set))
+            types.rmfdset2(fd_set)
+    else:
+        def _read_compat(self):
+            fd_set = types.mkfdset(self.fileno())
+            lib.snmp_sess_read(self.sessp, fd_set)
 
     def wait(self):
         """Wait for any outstanding requests/timeouts"""
