@@ -17,6 +17,15 @@
 import os
 import re
 import time
+import ctypes
+
+from twisted.internet import reactor
+
+try:
+    rrd_th = ctypes.CDLL("librrd_th.so", ctypes.RTLD_GLOBAL)
+    rrd_th.rrd_get_error.restype = ctypes.c_char_p
+except OSError:
+    rrd_th = None
 
 try:
     import rrdtool
@@ -29,6 +38,14 @@ from nagcat import errors, log, util
 class MismatchError(errors.InitError):
     """RRDTool archive mismatch"""
 
+class RRDToolError(Exception):
+    """Error in a rrd_th call"""
+
+    def __init__(self):
+        error = str(rd_th.rrd_get_error())
+        Exception.__init__(self, error)
+        rd_th.rrd_clear_error()
+
 _rradir = None
 
 def init(dir):
@@ -37,6 +54,9 @@ def init(dir):
 
     if rrdtool is None:
         raise errors.InitError("The python module 'rrdtool' is not installed")
+
+    if rrd_th is None:
+        raise errors.InitError("Cannot load the thread-safe rrdtool library")
 
     if not os.path.exists(dir):
         try:
@@ -115,6 +135,28 @@ def rrdtool_info(rrd_file):
         new['rra'].append(value)
 
     return new
+
+def rrdtool_update(filename, template, *args):
+    """Thread safe rrdtool update function.
+
+    The RRDTool Python bindings do not use the thread-safe library.
+    This is a wrapper to the thread-save version using ctypes.
+    """
+
+    # Just a quick sanity check
+    assert filename.__class__ is str
+    assert template.__class__ is str
+
+    argc = len(args)
+    argv_t = ctypes.c_char_p * argc
+    argv = argv_t()
+    for i, arg in enumerate(args):
+        assert arg.__class__ is str
+        argv[i] = arg
+
+    if rrd_th.rrd_update_r(filename, template, argc, argv):
+        raise RRDToolError()
+
 
 def addTrend(testobj, testconf):
     """Setup a Trend object for the given test.
@@ -342,9 +384,12 @@ class Trend(object):
         names = ":".join(ds_values.iterkeys())
         values = ":".join(ds_values.itervalues())
 
-        log.debug("Updating %s with %s %s", self._rrafile, names, values)
-        try:
-            rrdtool.update(self._rrafile, "-t", names,
-                    "%s:%s" % (report['time'], values))
-        except Exception, ex:
-            log.error("rrdupdate for %s failed: %s" % (self._rrafile, ex))
+        def do_update():
+            log.debug("Updating %s with %s %s", self._rrafile, names, values)
+            try:
+                rrdtool_update(self._rrafile, names,
+                        "%s:%s" % (report['time'], values))
+            except RRDToolError, ex:
+                log.error("rrd update to %s failed: %s" % (self._rrafile, ex))
+
+        reactor.callInThread(do_update)
