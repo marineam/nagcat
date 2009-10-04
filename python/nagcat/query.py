@@ -636,34 +636,38 @@ class _Query_snmp_combined(_Query_snmp_common):
         if self.conf['version'] == "1":
             self.conf['oids'] = self.oids
 
+        try:
+            self.client = SnmpSession(
+                    version=self.conf['version'],
+                    community=self.conf['community'],
+                    # Retry after 1 second for 'timeout' retries
+                    timeout=1, retrys=int(self.conf['timeout']),
+                    peername=self.conf['addr'])
+        except netsnmp.SnmpError, ex:
+            raise errors.InitError("Snmp Error: %s" % ex)
+
     def update(self, conf):
         """Update compound query with oids to be retreived from host."""
         self.oids.add(self.check_oid(conf, 'oid'))
 
     def _start(self):
         try:
-            client = SnmpSession(
-                    version=self.conf['version'],
-                    community=self.conf['community'],
-                    # Retry after 1 second for 'timeout' retries
-                    timeout=1, retrys=int(self.conf['timeout']),
-                    peername=self.conf['addr'])
-            client.open()
+            self.client.open()
             if self.conf['walk']:
-                deferred = client.walk(self.oids, strict=True)
+                deferred = self.client.walk(self.oids, strict=True)
             else:
-                deferred = client.get(self.oids)
+                deferred = self.client.get(self.oids)
         except:
             return errors.Failure()
 
-        deferred.addBoth(self._handle_close, client)
+        deferred.addBoth(self._handle_close)
         deferred.addErrback(self._handle_error)
         return deferred
 
     @errors.callback
-    def _handle_close(self, result, client):
+    def _handle_close(self, result):
         """Close the SNMP connection socket"""
-        client.close()
+        self.client.close()
         return result
 
     @errors.callback

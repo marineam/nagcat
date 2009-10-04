@@ -71,7 +71,7 @@ class Session(object):
         self.sessp = None   # single session api pointer
         self.session = None # session struct
         self.session_template = types.netsnmp_session()
-        self._requests = None
+        self._requests = {}
 
         # Initialize session to default values
         lib.snmp_sess_init(byref(self.session_template))
@@ -120,7 +120,6 @@ class Session(object):
             raise SnmpError('snmp_sess_open')
 
         self.session = lib.snmp_sess_session(self.sessp)
-        self._requests = {}
 
     def close(self):
         assert self.sessp
@@ -128,6 +127,7 @@ class Session(object):
         self.sessp = None
         self.session = None
         self._session_callback = None
+        self._requests.clear()
 
     def fileno(self):
         assert self.sessp
