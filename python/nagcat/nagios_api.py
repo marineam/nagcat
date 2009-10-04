@@ -53,7 +53,11 @@ class NagiosWriter(Logger, object):
 
     def connectionLost(self, reason):
         """Gracefully try to reopen the connection."""
-        self._reopen_file()
+
+        if reactor.running:
+            self._reopen_file()
+        else:
+            self._close_file()
 
     def doWrite(self):
         """Write data out to the pipe."""
@@ -114,6 +118,13 @@ class NagiosWriter(Logger, object):
     def _open_file(self):
         """Open a named pipe file for writing."""
 
+        self._close_file()
+        self._fd = os.open(self._file, os.O_WRONLY | os.O_NONBLOCK)
+        self.startWriting()
+
+    def _close_file(self):
+        """Close the named pipe if open"""
+
         if self._fd is not None:
             self.stopWriting()
             try:
@@ -122,8 +133,6 @@ class NagiosWriter(Logger, object):
                 pass
             self._fd = None
 
-        self._fd = os.open(self._file, os.O_WRONLY | os.O_NONBLOCK)
-        self.startWriting()
 
 class FileWriter(object):
     """Dummy replacement for NagiosWriter for files instead of pipes.
