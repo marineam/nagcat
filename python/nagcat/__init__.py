@@ -99,6 +99,8 @@ def parse_options():
     parser.add_option("", "--profile-all", dest="profile_all",
             action="store_true", default=False,
             help="alias for --profile-init --profile-run")
+    parser.add_option("", "--profile-dump", dest="profile_dump",
+            help="dump profiler data rather than displaying it")
 
     (options, args) = parser.parse_args()
 
@@ -211,10 +213,13 @@ def main():
         reactor.run()
 
     if options.profile_init or options.profile_run:
-        import pstats
-        stats = pstats.Stats(profiler)
-        stats.strip_dirs()
-        stats.sort_stats('time', 'cumulative')
-        #stats.sort_stats('calls')
-        stats.print_stats(30)
-        stats.print_callers(30)
+        if options.profile_dump:
+            log.info("Dumping profiler data to %s" % options.profile_dump)
+            profiler.dump_stats(options.profile_dump)
+        else:
+            log.info("Generating profiler stats...")
+            import pstats
+            stats = pstats.Stats(profiler)
+            stats.strip_dirs()
+            stats.sort_stats('time', 'cumulative')
+            stats.print_stats(40)
