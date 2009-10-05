@@ -42,9 +42,9 @@ class RRDToolError(Exception):
     """Error in a rrd_th call"""
 
     def __init__(self):
-        error = str(rd_th.rrd_get_error())
+        error = str(rrd_th.rrd_get_error())
         Exception.__init__(self, error)
-        rd_th.rrd_clear_error()
+        rrd_th.rrd_clear_error()
 
 _rradir = None
 

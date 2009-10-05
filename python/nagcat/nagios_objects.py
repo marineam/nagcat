@@ -108,7 +108,7 @@ class ObjectParser(object):
                                 object_type = None
                                 continue
 
-                    value = self.UNESCAPE(unescape, value)
+                    value = self.UNESCAPE.sub(unescape, value)
                     object[key] = value
         finally:
             input.close()
