@@ -65,7 +65,6 @@ service_info = nagios_objects.ObjectParser(stat_file, ('service',),
 if service_info['long_plugin_output']:
     output = "%s\n%s" % (service_info['plugin_output'],
             service_info['long_plugin_output'])
-    output = output.replace(r'\n', '\n')
     output_esc = cgi.escape(output)
 else:
     output_esc = cgi.escape(service_info['plugin_output'])

@@ -163,6 +163,8 @@ class NagiosCommander(object):
             'SCHEDULE_SVC_DOWNTIME': 9,
             }
 
+    ESCAPE = re.compile(r'(\\|\n|\|)')
+
     def __init__(self, command_file, limit=None):
         """Create writer and add it to the reactor.
 
@@ -197,9 +199,20 @@ class NagiosCommander(object):
             clean_args.append(arg)
 
         # The last argument may contain newlines but they must be escaped
-        # | is not allowed but likely to appear so just replace it
+        # | is not allowed at all so we use \_ as an escape sequence.
+        def escape(match):
+            char = match.group(1)
+            if char == '\\':
+                return r'\\'
+            elif char == '\n':
+                return r'\n'
+            elif char == '|':
+                return r'\_'
+            else:
+                assert 0
+
         if args:
-            arg = args[-1].replace('\n', '\\n').replace('|', '_')
+            arg = self.ESCAPE.sub(escape, args[-1])
             clean_args.append(arg)
 
         formatted = "[%d] %s\n" % (cmd_time, ';'.join(clean_args))

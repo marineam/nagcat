@@ -25,6 +25,8 @@ class ObjectParser(object):
     such objects.cache or status.dat
     """
 
+    UNESCAPE = re.compile(r'(\\\\|\\n|\\_)')
+
     def __init__(self, object_file, object_types=(), object_select=()):
         self._objects = {}
 
@@ -37,6 +39,18 @@ class ObjectParser(object):
                     "Failed to read Nagios object cache: %s" % ex)
 
     def _parse(self, object_file, object_types, object_select):
+
+        def unescape(match):
+            esc = match.group(1)
+            if esc == r'\\':
+                return '\\'
+            elif esc == r'\n':
+                return '\n'
+            elif esc == r'\_':
+                return '|'
+            else:
+                assert 0
+
         for type_ in object_types:
             self._objects[type_] = []
 
@@ -94,6 +108,7 @@ class ObjectParser(object):
                                 object_type = None
                                 continue
 
+                    value = self.UNESCAPE(unescape, value)
                     object[key] = value
         finally:
             input.close()
