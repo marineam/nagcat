@@ -203,12 +203,13 @@ class NagiosCommander(object):
             try:
                 os.makedirs(spool_dir)
             except OSError, ex:
-                raise InitError(
+                raise errors.InitError(
                         "Cannot create directory %s: %s" % (spool_dir, ex))
 
         info = os.stat(command_file)
         if not stat.S_ISFIFO(info.st_mode):
-            raise InitError("Command file %s is not a fifo" % command_file)
+            raise errors.InitError(
+                    "Command file %s is not a fifo" % command_file)
 
         self.spool_dir = spool_dir
         self.writer = NagiosWriter(command_file)
