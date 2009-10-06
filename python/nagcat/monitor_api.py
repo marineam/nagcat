@@ -14,6 +14,7 @@
 
 import re
 import gc
+import threading
 from resource import getrusage, RUSAGE_SELF
 
 try:
@@ -124,6 +125,23 @@ class Time(XMLPage):
 
         return proc
 
+class Threads(XMLPage):
+    """Process threads"""
+
+    def xml(self, request):
+        threads = threading.enumerate()
+        all = etree.Element("Threads", count=str(len(threads)), version="1.0")
+
+        for thread in threads:
+            this = etree.SubElement(all, "Thread")
+            name = etree.SubElement(this, "Name")
+            name.text = str(thread.name)
+            if hasattr(thread, 'ident'):
+                id = etree.SubElement(this, "Id")
+                id.text = str(thread.ident)
+
+        return all
+
 class Scheduler(XMLPage):
     """Information on objects in the Nagcat scheduler"""
 
@@ -163,6 +181,7 @@ class Stat(XMLPage):
         self.putChild("ping", Ping())
         self.putChild("memory", Memory())
         self.putChild("time", Time())
+        self.putChild("threads", Threads())
 
     def putChild(self, path, child):
         XMLPage.putChild(self, path, child)
