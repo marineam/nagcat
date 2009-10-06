@@ -79,6 +79,8 @@ class NagiosWriter(Logger, object):
             if not self._data:
                 self._data = self._data_queue.popleft()
 
+            log.trace("Writing Nagios command to fifo: %s", self._data)
+
             try:
                 data_written = os.write(self._fd, self._data)
             except OSError, (errno, errmsg):
@@ -125,6 +127,7 @@ class NagiosWriter(Logger, object):
                 self._cleanup()
 
     def _cleanup(self):
+        """Drop a command, clean up the temp file if needed."""
         match = self.CLEANUP.match(self._data_queue.popleft())
         if match and os.path.exists(match.group(1)):
             os.unlink(match.group(1))
@@ -190,14 +193,10 @@ class NagiosCommander(object):
         spool_dir is where to write large commands to
         """
 
+        self.spool_dir = spool_dir
         # Create or cleanup the spool dir
         if os.path.isdir(spool_dir):
-            threshold = time.time() - 3600
-            for item in os.listdir(spool_dir):
-                path = "%s/%s" % (spool_dir, item)
-                info = os.stat(path)
-                if info.st_mtime < threshold:
-                    os.unlink(path)
+            self._cleanup_spool()
         else:
             assert not os.path.exists(spool_dir)
             try:
@@ -211,7 +210,6 @@ class NagiosCommander(object):
             raise errors.InitError(
                     "Command file %s is not a fifo" % command_file)
 
-        self.spool_dir = spool_dir
         self.writer = NagiosWriter(command_file)
 
     def command(self, cmd_time, *args):
@@ -233,6 +231,14 @@ class NagiosCommander(object):
             cmd_time = time.time()
         cmd_time = int(cmd_time)
 
+        reactor.callInThread(self._threaded_command, cmd_time, cmd_list)
+
+    def _threaded_command(self, cmd_time, cmd_list):
+        """Write out out the temporary command file from a thread to
+        avoid any momentary delays that may be caused by creating
+        creating the file.
+        """
+
         spool_fd, spool_path = tempfile.mkstemp(dir=self.spool_dir)
         try:
             try:
@@ -243,8 +249,7 @@ class NagiosCommander(object):
 
                 submit = self._format_command(cmd_time,
                         'PROCESS_FILE', spool_path, '1')
-                log.trace("Writing Nagios command to fifo: %s", submit)
-                self.writer.write(submit)
+                reactor.callFromThread(self.writer.write, submit)
             except:
                 os.unlink(spool_path)
                 raise
@@ -291,6 +296,44 @@ class NagiosCommander(object):
 
         return formatted
 
+    def _cleanup_spool(self):
+        """Periodically clean up old things in the spool dir.
+
+        This shouldn't normally be required but if things get screwed
+        up we don't want the directory to get so huge that it keeps
+        things slow after nagios is handling results again.
+        """
+
+        # Note: It is entirely possible that the command to submit
+        # this file is still in the writer queue, if that's the case
+        # nagios will also log an error when it gets around to
+        # reading from the queue.
+
+        # Set the threshold to 5 minutes ago, if nagios hasn't been
+        # able to keep up for the past 5 minutes we have problems.
+        threshold = time.time() - 300
+        count = 0
+        for item in os.listdir(self.spool_dir):
+            path = "%s/%s" % (self.spool_dir, item)
+            try:
+               info = os.stat(path)
+            except:
+                continue
+            if info.st_mtime < threshold:
+                try:
+                    os.unlink(path)
+                except OSError, ex:
+                    log.error("Failed to remove %s: %s" % (path, ex))
+                else:
+                    count += 1
+
+        if count:
+            log.warn("Removed %d stale nagios command files" % count)
+
+        # Schedule the next cleanup to run from a thread in 1 minute
+        reactor.callLater(60, reactor.callInThread, self._cleanup_spool)
+
+
 class NagiosXMLRPC(xmlrpc.XMLRPC):
     """A XMLRPC Protocol for Nagios"""
 
@@ -335,12 +378,6 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         spool = spool_path(cfg['check_result_path'], 'xmlrpc')
         self._cmdobj = NagiosCommander(cfg['command_file'], spool)
         self._status_file = cfg['status_file']
-
-    def _submit(self, cmd_time, commands):
-        try:
-            self._cmdobj.cmdlist(cmd_time, commands)
-        except errors.InitError, ex:
-            raise xmlrpc.Fault(1, "Command failed: %s" % ex)
 
     def _status(self, object_types=(), object_select=()):
         try:
@@ -476,7 +513,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
                 commands.append(('SCHEDULE_SVC_DOWNTIME', host, service,
                         start, stop, 1, 0, 0, user, comment))
 
-        self._submit(now, commands)
+        self._cmdobj.cmdlist(now, commands)
 
         return "%d:%d" % (now, key)
 
@@ -613,8 +650,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
                 commands.append((cmdtype, downtime['downtime_id']))
 
         if delay:
-            reactor.callLater(delay, self._submit, None, commands)
+            reactor.callLater(delay, self._cmdobj.cmdlist, None, commands)
         else:
-            self._submit(None, commands)
+            self.self._cmdobj.cmdlist(None, commands)
 
         return len(commands)
