@@ -17,7 +17,9 @@
 import os
 import re
 import time
+import stat
 import random
+import tempfile
 from collections import deque
 
 from twisted.web import xmlrpc
@@ -27,16 +29,25 @@ from zope.interface import implements
 
 from nagcat import errors, log, nagios_objects
 
+def spool_path(nagios_spool, name):
+    nagios_spool = os.path.abspath(nagios_spool)
+    dir = os.path.dirname(nagios_spool)
+    spool = "%s/%s" % (dir, name)
+    return spool
+
 class NagiosWriter(Logger, object):
     """Writes out data to fd pipe file when available."""
 
     implements(interfaces.IWriteDescriptor)
 
-    def __init__(self, filename, limit):
+    CLEANUP = re.compile('\[\d+\] PROCESS_FILE;([^;]+);1\s*')
+    MAXSIZE = 10000
+
+    def __init__(self, filename):
         """Initialize writer with a file descriptor."""
 
         self._data = None
-        self._data_queue = deque((), limit)
+        self._data_queue = deque()
         self._file = filename
         self._fd = None
         self._timer = None
@@ -46,6 +57,8 @@ class NagiosWriter(Logger, object):
         except OSError, (errno, errmsg):
             raise errors.InitError("Failed to open nagios pipe %s: %s"
                     % (self._file, errmsg))
+
+        reactor.addSystemEventTrigger('after', 'shutdown', self.shutdown)
 
     def fileno(self):
         """Returns the file descriptor."""
@@ -96,8 +109,25 @@ class NagiosWriter(Logger, object):
 
     def write(self, data):
         """Adding data to the data_queue to be sent into the pipe."""
+
+        if len(self._data_queue) >= self.MAXSIZE:
+            self._cleanup()
+
         self._data_queue.append(data)
         self.startWriting()
+
+    def shutdown(self):
+        """Remove any unused spool files"""
+        if self._data_queue:
+            log.info("Removing unsubmitted results")
+
+            while self._data_queue:
+                self._cleanup()
+
+    def _cleanup(self):
+        match = self.CLEANUP.match(self._data_queue.popleft())
+        if match and os.path.exists(match.group(1)):
+            os.unlink(match.group(1))
 
     def _reopen_file(self):
         """Attempt to reopen the pipe."""
@@ -117,7 +147,6 @@ class NagiosWriter(Logger, object):
 
     def _open_file(self):
         """Open a named pipe file for writing."""
-
         self._close_file()
         self._fd = os.open(self._file, os.O_WRONLY | os.O_NONBLOCK)
         self.startWriting()
@@ -134,27 +163,12 @@ class NagiosWriter(Logger, object):
             self._fd = None
 
 
-class FileWriter(object):
-    """Dummy replacement for NagiosWriter for files instead of pipes.
-
-    This should only be used for debugging/development work.
-    """
-
-    def __init__(self, filename):
-        """Initialize writer with a file descriptor."""
-        self._file = open(filename, 'a')
-
-    def write(self, data):
-        try:
-            self._file.write(data)
-        except IOError, ex:
-            log.error("Failed to write to command file: %s" % ex)
-
 class NagiosCommander(object):
 
     ALLOWED_COMMANDS = {
             'DEL_HOST_DOWNTIME': 1,
             'DEL_SVC_DOWNTIME': 1,
+            'PROCESS_FILE': 2,
             'PROCESS_SERVICE_CHECK_RESULT': 4,
             'SCHEDULE_HOSTGROUP_HOST_DOWNTIME': 8,
             'SCHEDULE_HOST_DOWNTIME': 8,
@@ -169,29 +183,74 @@ class NagiosCommander(object):
 
     ESCAPE = re.compile(r'(\\|\n|\|)')
 
-    def __init__(self, command_file, limit=None):
+    def __init__(self, command_file, spool_dir):
         """Create writer and add it to the reactor.
 
         command_file is the path to the nagios pipe
-        limit is the maximum number of commands to queue
+        spool_dir is where to write large commands to
         """
 
-        if os.path.isfile(command_file):
-            self.writer = FileWriter(command_file)
+        # Create or cleanup the spool dir
+        if os.path.isdir(spool_dir):
+            threshold = time.time() - 3600
+            for item in os.listdir(spool_dir):
+                path = "%s/%s" % (spool_dir, item)
+                info = os.stat(path)
+                if info.st_mtime < threshold:
+                    os.unlink(path)
         else:
-            self.writer = NagiosWriter(command_file, limit)
+            assert not os.path.exists(spool_dir)
+            try:
+                os.makedirs(spool_dir)
+            except OSError, ex:
+                raise InitError(
+                        "Cannot create directory %s: %s" % (spool_dir, ex))
 
-    def command(self, cmd_time, cmd_name, *args):
+        info = os.stat(command_file)
+        if not stat.S_ISFIFO(info.st_mode):
+            raise InitError("Command file %s is not a fifo" % command_file)
+
+        self.spool_dir = spool_dir
+        self.writer = NagiosWriter(command_file)
+
+    def command(self, cmd_time, *args):
         """Submit a command to Nagios.
 
-        @param time: a Unix timestamp or None
-        @param cmd: a Nagios command name, must be in ALLOWED_COMMANDS
-        @param *args: the command arguments
+        @param cmd_time: a Unix timestamp or None
+        @param *args: the command name and its arguments arguments
         """
+        self.cmdlist(cmd_time, [args])
+
+    def cmdlist(self, cmd_time, cmd_list):
+        """Submit a list of commands to Nagios.
+
+        @param cmd_time: a Unix timestamp or None
+        @param cmd_list: a sequence of (comandname, arg1...) tuples
+        """
+
         if not cmd_time:
             cmd_time = time.time()
         cmd_time = int(cmd_time)
 
+        spool_fd, spool_path = tempfile.mkstemp(dir=self.spool_dir)
+        try:
+            try:
+                for cmd in cmd_list:
+                    text = self._format_command(cmd_time, *cmd)
+                    log.trace("Writing Nagios command to spool: %s", text)
+                    os.write(spool_fd, text)
+
+                submit = self._format_command(cmd_time,
+                        'PROCESS_FILE', spool_path, '1')
+                log.trace("Writing Nagios command to fifo: %s", submit)
+                self.writer.write(submit)
+            except:
+                os.unlink(spool_path)
+                raise
+        finally:
+            os.close(spool_fd)
+
+    def _format_command(self, cmd_time, cmd_name, *args):
         assert cmd_name in self.ALLOWED_COMMANDS
         assert len(args) == self.ALLOWED_COMMANDS[cmd_name]
 
@@ -229,8 +288,7 @@ class NagiosCommander(object):
             formatted = formatted.rstrip('\\')
             formatted = "%s\n" % formatted
 
-        log.trace("Writing Nagios command: %s", formatted)
-        self.writer.write(formatted)
+        return formatted
 
 class NagiosXMLRPC(xmlrpc.XMLRPC):
     """A XMLRPC Protocol for Nagios"""
@@ -242,7 +300,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         xmlrpc.addIntrospection(self)
 
         cfg = nagios_objects.ConfigParser(nagios_cfg,
-                ('object_cache_file', 'command_file', 'status_file'))
+                ('object_cache_file', 'command_file',
+                 'status_file', 'check_result_path'))
 
         # object types we care about:
         types = ('host', 'service', 'hostgroup', 'servicegroup')
@@ -272,12 +331,13 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             obj['members'] = members
             self._objects['servicegroup'][obj['servicegroup_name']] = obj
 
-        self._cmdobj = NagiosCommander(cfg['command_file'])
+        spool = spool_path(cfg['check_result_path'], 'xmlrpc')
+        self._cmdobj = NagiosCommander(cfg['command_file'], spool)
         self._status_file = cfg['status_file']
 
-    def _cmd(self, *args):
+    def _submit(self, cmd_time, commands):
         try:
-            self._cmdobj.command(*args)
+            self._cmdobj.cmdlist(cmd_time, commands)
         except errors.InitError, ex:
             raise xmlrpc.Fault(1, "Command failed: %s" % ex)
 
@@ -394,6 +454,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         except:
             raise xmlrpc.Fault(1, "start/stop must be integers")
 
+        commands = []
         now = int(time.time())
         key = random.randint(100, 999)
         comment += " key:%d" % key
@@ -407,12 +468,14 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
 
         if type_ == 'host':
             for host in group_set:
-                self._cmd(now, 'SCHEDULE_HOST_DOWNTIME', host,
-                        start, stop, 1, 0, 0, user, comment)
+                commands.append(('SCHEDULE_HOST_DOWNTIME', host,
+                        start, stop, 1, 0, 0, user, comment))
         else:
             for host, service in group_set:
-                self._cmd(now, 'SCHEDULE_SVC_DOWNTIME', host, service,
-                        start, stop, 1, 0, 0, user, comment)
+                commands.append(('SCHEDULE_SVC_DOWNTIME', host, service,
+                        start, stop, 1, 0, 0, user, comment))
+
+        self._submit(now, commands)
 
         return "%d:%d" % (now, key)
 
@@ -542,15 +605,15 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             raise xmlrpc.Fault(1, "Invalid downtime key: %r" % key)
 
         status = self._status([objtype], {'entry_time': timestamp})
-        count = 0
+        commands = []
 
         for downtime in status[objtype]:
             if downtime['comment'].endswith('key:%s' % uid):
-                if delay:
-                    reactor.callLater(delay, self._cmd, None, cmdtype, 
-                                      downtime['downtime_id'])
-                else:
-                    self._cmd(None, cmdtype, downtime['downtime_id'])
-                count += 1
+                commands.append((cmdtype, downtime['downtime_id']))
 
-        return count
+        if delay:
+            reactor.callLater(delay, self._submit, None, commands)
+        else:
+            self._submit(None, commands)
+
+        return len(commands)

@@ -25,10 +25,11 @@ class NagiosTests(object):
     def __init__(self, templates, nagios_cfg, tag=None, url=None):
         """Read given Nagios config file"""
 
-        cfg = nagios_objects.ConfigParser(nagios_cfg)
+        cfg = nagios_objects.ConfigParser(nagios_cfg,
+                ('object_cache_file', 'command_file', 'check_result_path'))
         self._nagios_obj = cfg['object_cache_file']
-        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'],
-                                                      limit=100)
+        spool = nagios_api.spool_path(cfg['check_result_path'], 'nagcat')
+        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'], spool)
 
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])
