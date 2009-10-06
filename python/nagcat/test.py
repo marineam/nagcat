@@ -330,7 +330,7 @@ class Test(BaseTest):
 
         # Grab the first 40 characters of the first line
         if summary:
-            summary = summary.split('\n', 1)[0][:40].rstrip('\\')
+            summary = summary.split('\n', 1)[0][:40]
             if state == "OK" and self.label:
                 summary = "%s %s" % (summary, self.label)
 

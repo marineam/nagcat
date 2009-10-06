@@ -217,11 +217,17 @@ class NagiosCommander(object):
 
         if args:
             arg = self.ESCAPE.sub(escape, args[-1])
+            # Workaround a bug in some Nagios versions
+            arg.rstrip('\\')
             clean_args.append(arg)
 
         formatted = "[%d] %s\n" % (cmd_time, ';'.join(clean_args))
+
+        # Nagios gets grumpy when you give it too much text
         if len(formatted) >= self.MAX_EXTERNAL_COMMAND_LENGTH:
-            formatted = formatted[:self.MAX_EXTERNAL_COMMAND_LENGTH]
+            formatted = formatted[:self.MAX_EXTERNAL_COMMAND_LENGTH-1]
+            formatted = formatted.rstrip('\\')
+            formatted = "%s\n" % formatted
 
         log.trace("Writing Nagios command: %s", formatted)
         self.writer.write(formatted)
