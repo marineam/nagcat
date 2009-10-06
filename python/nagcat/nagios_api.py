@@ -622,13 +622,13 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
     def xmlrpc_delServiceDowntime(self, key, delay=None):
         """Cancel all service downtimes identified by key"""
 
-        return self._delDowntime('servicedowntime', 
+        return self._delDowntime('servicedowntime',
                                  'DEL_SVC_DOWNTIME', key, delay)
-        
+
     def xmlrpc_delHostDowntime(self, key, delay=None):
         """Cancel all host downtimes identified by key"""
-        
-        return self._delDowntime('hostdowntime', 
+
+        return self._delDowntime('hostdowntime',
                                  'DEL_HOST_DOWNTIME', key, delay)
 
     def _delDowntime(self, objtype, cmdtype, key, delay=None):
@@ -648,6 +648,6 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         if delay:
             reactor.callLater(delay, self._cmdobj.cmdlist, None, commands)
         else:
-            self.self._cmdobj.cmdlist(None, commands)
+            self._cmdobj.cmdlist(None, commands)
 
         return len(commands)
