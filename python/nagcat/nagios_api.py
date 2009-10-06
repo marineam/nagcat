@@ -562,20 +562,17 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
                     group_set.append((group_name, service))
 
         elif group_type == 'service':
-            if ':' not in group_name:
-                raise xmlrpc.Fault(1, "Invalid service: %r" % group_name)
+            service = group_name
+            group_set = []
+            for host_name in self._objects['service']:
+                if service in self._objects['service'][host_name]:
+                    if return_type == 'host':
+                        group_set.append(host_name)
+                    else:
+                        group_set.append((host_name, service))
 
-            host_name, service = group_name.split(':', 1)
-
-            if host_name not in self._objects['service']:
-                raise xmlrpc.Fault(1, "Unknown host: %r" % host_name)
-            if service not in self._objects['service'][host_name]:
+            if not group_set:
                 raise xmlrpc.Fault(1, "Unknown service: %r" % service)
-
-            if return_type == 'host':
-                group_set = [host_name]
-            else:
-                group_set = [(host_name, service)]
 
         elif group_type == 'hostgroup':
             if group_name not in self._objects['hostgroup']:
@@ -608,7 +605,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             match = self.EXPR_TOKEN.match(string)
             if match and match.group(1) in ('"', "'"):
                 try:
-                    end = string.index(match.end, match.group(1))
+                    end = string.index(match.group(1), match.end())
                 except ValueError:
                     raise xmlrpc.Fault(1, "Unterminated string: %s" % string)
                 token = string[match.end():end]
@@ -625,7 +622,6 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
     def xmlrpc_delServiceDowntime(self, key, delay=None):
         """Cancel all service downtimes identified by key"""
 
-        
         return self._delDowntime('servicedowntime', 
                                  'DEL_SVC_DOWNTIME', key, delay)
         
