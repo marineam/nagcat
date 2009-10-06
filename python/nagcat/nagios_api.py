@@ -163,6 +163,10 @@ class NagiosCommander(object):
             'SCHEDULE_SVC_DOWNTIME': 9,
             }
 
+    # This must stay in sync with the define in nagios' common.h
+    # I'm setting it to a bit below the limit just to be safe.
+    MAX_EXTERNAL_COMMAND_LENGTH = 8180
+
     ESCAPE = re.compile(r'(\\|\n|\|)')
 
     def __init__(self, command_file, limit=None):
@@ -216,6 +220,9 @@ class NagiosCommander(object):
             clean_args.append(arg)
 
         formatted = "[%d] %s\n" % (cmd_time, ';'.join(clean_args))
+        if len(formatted) >= self.MAX_EXTERNAL_COMMAND_LENGTH:
+            formatted = formatted[:self.MAX_EXTERNAL_COMMAND_LENGTH]
+
         log.trace("Writing Nagios command: %s", formatted)
         self.writer.write(formatted)
 
