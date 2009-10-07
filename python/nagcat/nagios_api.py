@@ -18,8 +18,10 @@ import os
 import re
 import time
 import stat
+import shlex
 import random
 import tempfile
+import cStringIO
 from collections import deque
 
 from twisted.web import xmlrpc
@@ -337,8 +339,6 @@ class NagiosCommander(object):
 class NagiosXMLRPC(xmlrpc.XMLRPC):
     """A XMLRPC Protocol for Nagios"""
 
-    EXPR_TOKEN = re.compile(r"""\s*([\w:-]+|\(|\)|"|')\s*""")
-
     def __init__(self, nagios_cfg):
         xmlrpc.XMLRPC.__init__(self)
         xmlrpc.addIntrospection(self)
@@ -601,23 +601,28 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         return set(group_set)
 
     def _groupTokenizer(self, string):
+        string = cStringIO.StringIO(string)
+        lex = shlex.shlex(string, posix=True)
+        lex.escape = ""
+        lex.wordchars = (
+            "abcdfeghijklmnopqrstuvwxyz"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "0123456789_.-:" )
+        valid = lex.wordchars + "()"
+
         while True:
-            match = self.EXPR_TOKEN.match(string)
-            if match and match.group(1) in ('"', "'"):
-                try:
-                    end = string.index(match.group(1), match.end())
-                except ValueError:
-                    raise xmlrpc.Fault(1, "Unterminated string: %s" % string)
-                token = string[match.end():end]
-                string = string[end+1:]
-                yield token
-            elif match:
-                string = string[match.end():]
-                yield match.group(1)
-            elif string.strip():
-                raise xmlrpc.Fault(1, "Unexpected token: %s" % string)
-            else:
+            try:
+                token = lex.get_token()
+            except ValueError, ex:
+                raise xmlrpc.Fault(1, "Invalid expression: %s" % ex)
+
+            if token is lex.eof:
                 break
+
+            if len(token) == 1 and token not in valid:
+                raise xmlrpc.Fault(1, "Unexpected character: %s" % token)
+
+            yield token
 
     def xmlrpc_delServiceDowntime(self, key, delay=None):
         """Cancel all service downtimes identified by key"""
