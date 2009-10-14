@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import re
 import gc
+import time
 import threading
 from resource import getrusage, RUSAGE_SELF
 
@@ -114,6 +116,29 @@ class Memory(XMLPage):
 class Time(XMLPage):
     """Process stats"""
 
+    def __init__(self):
+        XMLPage.__init__(self)
+        self.start_time = self.proc_start()
+
+    @staticmethod
+    def proc_start():
+        """Find the process start time in seconds since epoch"""
+
+        fd = open("/proc/self/stat")
+        start_clk = int(fd.readline().split()[21])
+        start_sec = start_clk // os.sysconf("SC_CLK_TCK")
+        fd.close()
+
+        fd = open("/proc/stat")
+        boot_sec = None
+        for line in fd:
+            if line.startswith("btime"):
+                boot_sec = int(line.split()[1])
+        assert boot_sec is not None
+        fd.close()
+
+        return boot_sec + start_sec
+
     def xml(self, request):
         proc = etree.Element("Time", version="1.0")
 
@@ -122,6 +147,8 @@ class Time(XMLPage):
         utime.text = str(status.ru_utime)
         stime = etree.SubElement(proc, "System", units="seconds")
         stime.text = str(status.ru_stime)
+        start = etree.SubElement(proc, "Uptime", units="seconds")
+        start.text = str(int(time.time()) - self.start_time)
 
         return proc
 
