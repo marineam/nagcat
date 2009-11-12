@@ -364,14 +364,18 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             self._objects['service'][host_name][description] = obj
 
         for obj in rawobjs['hostgroup']:
-            obj['members'] = obj.get('members',"").split(',')
+            if obj.get('members', None):
+                obj['members'] = obj['members'].split(',')
+            else:
+                obj['members'] = []
             self._objects['hostgroup'][obj['hostgroup_name']] = obj
 
         for obj in rawobjs['servicegroup']:
             members = []
-            members_list = obj.get('members',"").split(',')
-            for i in xrange(0, len(members_list), 2):
-                members.append((members_list[i], members_list[i+1]))
+            if obj.get('members', None):
+                members_list = obj['members'].split(',')
+                for i in xrange(0, len(members_list), 2):
+                    members.append((members_list[i], members_list[i+1]))
             obj['members'] = members
             self._objects['servicegroup'][obj['servicegroup_name']] = obj
 
