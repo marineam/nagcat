@@ -19,6 +19,8 @@ import re
 import time
 import stat
 import shlex
+import struct
+import base64
 import random
 import tempfile
 import cStringIO
@@ -27,6 +29,7 @@ from collections import deque
 from twisted.web import xmlrpc
 from twisted.internet import reactor, interfaces
 from twisted.python.log import Logger
+from twisted.python import failure
 from zope.interface import implements
 
 from nagcat import errors, log, nagios_objects
@@ -222,20 +225,24 @@ class NagiosCommander(object):
         """
         self.cmdlist(cmd_time, [args])
 
-    def cmdlist(self, cmd_time, cmd_list):
+    def cmdlist(self, cmd_time, cmd_list, force=False):
         """Submit a list of commands to Nagios.
 
         @param cmd_time: a Unix timestamp or None
         @param cmd_list: a sequence of (comandname, arg1...) tuples
+        @param force: run the commands now rather than in a thread
         """
 
         if not cmd_time:
             cmd_time = time.time()
         cmd_time = int(cmd_time)
 
-        reactor.callInThread(self._threaded_command, cmd_time, cmd_list)
+        if force:
+            self._threaded_command(cmd_time, cmd_list, True)
+        else:
+            reactor.callInThread(self._threaded_command, cmd_time, cmd_list)
 
-    def _threaded_command(self, cmd_time, cmd_list):
+    def _threaded_command(self, cmd_time, cmd_list, force=False):
         """Write out out the temporary command file from a thread to
         avoid any momentary delays that may be caused by creating
         creating the file.
@@ -251,7 +258,11 @@ class NagiosCommander(object):
 
                 submit = self._format_command(cmd_time,
                         'PROCESS_FILE', spool_path, '1')
-                reactor.callFromThread(self.writer.write, submit)
+                if force:
+                    self.writer.write(submit)
+                    self.writer.doWrite()
+                else:
+                    reactor.callFromThread(self.writer.write, submit)
             except:
                 os.unlink(spool_path)
                 raise
@@ -438,33 +449,17 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         return self._objects['servicegroup'][servicegroup_name]
 
     def xmlrpc_scheduleServiceDowntime(self, expr, start, stop, user, comment):
-        """schedule service downtime
+        """Alias for scheduleDowntime"""
 
-        expr: an expression defining the set to operate on
-            operators:
-                or (the union of two sets)
-                and (the intersection of two sets)
-            identifiers:
-                host:hostname
-                service:hostname:servicename
-                hostgroup:groupname
-                servicegroup:groupname
-
-            Quotes (' or ") must be placed around service
-            descriptions when they contain whitespace.
-        start: date/time to start (in seconds since epoch!)
-        stop: date/time to auto-cancel the downtime
-        user: identifier defining who/what sent this request
-        comment: arbitrary comment about the downtime
-        
-        returns a key to use to cancel this downtime early
-        """
-
-        return self._scheduleDowntime('service',
-                expr, start, stop, user, comment)
+        return self.xmlrpc_scheduleDowntime(expr, start, stop, user, comment)
 
     def xmlrpc_scheduleHostDowntime(self, expr, start, stop, user, comment):
-        """schedule host downtime
+        """Alias for scheduleDowntime"""
+
+        return self.xmlrpc_scheduleDowntime(expr, start, stop, user, comment)
+
+    def xmlrpc_scheduleDowntime(self, expr, start, stop, user, comment):
+        """schedule host and service downtimes
 
         expr: an expression defining the set to operate on
             operators:
@@ -472,12 +467,17 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
                 and (the intersection of two sets)
             identifiers:
                 host:hostname
-                service:hostname:servicename
+                service:servicename
                 hostgroup:groupname
                 servicegroup:groupname
 
-            Quotes (' or ") must be placed around service
-            descriptions when they contain whitespace.
+            Quotes (' or ") must be placed around service names
+            when they contain whitespace.
+
+            If a name contains any of the characters []?*+^$ it
+            will be treated as a regular expression, otherwise it
+            must be an exact match.
+
         start: date/time to start (in seconds since epoch!)
         stop: date/time to auto-cancel the downtime
         user: identifier defining who/what sent this request
@@ -485,43 +485,40 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         
         returns a key to use to cancel this downtime early
         """
-
-        return self._scheduleDowntime('host',
-                expr, start, stop, user, comment)
-
-    def _scheduleDowntime(self, type_, expr, start, stop, user, comment):
         try:
             start = int(start)
             stop = int(stop)
         except:
             raise xmlrpc.Fault(1, "start/stop must be integers")
 
-        commands = []
         now = int(time.time())
-        key = random.randint(100, 999)
-        comment += " key:%d" % key
+        key = base64.urlsafe_b64encode(struct.pack('ib',
+                now, random.randint(-127,127))).strip('=')
+        comment += ' key:%s expr:%s' % (key, expr.strip())
 
-        assert isinstance(type_, str)
         tokenizer = self._groupTokenizer(expr+')')
-        group_set = self._groupParser(tokenizer, type_)
+        group_set = self._groupParser(tokenizer)
 
         if not group_set:
             raise xmlrpc.Fault(1, "expression evaluated to an empty set")
 
-        if type_ == 'host':
-            for host in group_set:
-                commands.append(('SCHEDULE_HOST_DOWNTIME', host,
+        commands = set()
+        for item in group_set:
+            if item[0] == 'host':
+                commands.add(('SCHEDULE_HOST_DOWNTIME', item[1],
                         start, stop, 1, 0, 0, user, comment))
-        else:
-            for host, service in group_set:
-                commands.append(('SCHEDULE_SVC_DOWNTIME', host, service,
+            elif item[0] == 'service':
+                commands.add(('SCHEDULE_SVC_DOWNTIME', item[1], item[2],
                         start, stop, 1, 0, 0, user, comment))
+            else:
+                assert 0
 
+        log.info("Scheduling %s downtimes in Nagios" % len(commands))
         self._cmdobj.cmdlist(now, commands)
 
-        return "%d:%d" % (now, key)
+        return key
 
-    def _groupParser(self, tokenizer, return_type):
+    def _groupParser(self, tokenizer):
         seq = [None, None, None]
         index = 0
         for token in tokenizer:
@@ -533,13 +530,13 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
                 else:
                     raise xmlrpc.Fault(1, "Unexpected token: %r" % token)
             elif token == '(':
-                seq[index] = self._groupParser(tokenizer, return_type)
+                seq[index] = self._groupParser(tokenizer)
             else:
-                seq[index] = self._groupGetSet(token, return_type)
+                seq[index] = self._groupGetSet(token)
 
             if index == 2:
                 if seq[1] == 'and':
-                    seq[0].intersection_update(seq[2])
+                    seq[0] = self._groupIntersection(seq[0], seq[2])
                 elif seq[1] == 'or':
                     seq[0].update(seq[2])
                 index = 1
@@ -548,61 +545,95 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
 
         raise xmlrpc.Fault(1, "Unexpected end of expression")
 
-    def _groupGetSet(self, identifier, return_type):
+    def _groupIntersection(self, a, b):
+        """Taking an intersection across hosts and services
+        is awkward because they are different and yet related...
+
+        We want to be able to do things like:
+            hostgroup:a and (host:b or service:c)
+            (host outage for b and service outage for c if they are in a)
+
+        Or:
+            host:b and service:c
+            (service outage for c if it is on host b)
+
+        Clear as mud? It should generally just do what humans expect,
+        if there is a weird corner case where this function doesn't
+        do what people expect (and that is a reasonable exception)
+        we should figure out how to make it "just work".
+        """
+
+        host_a = set(x for x in a if x[0] == 'host')
+        host_b = set(x for x in b if x[0] == 'host')
+        service_a = a - host_a
+        service_b = b - host_b
+
+        def intersect_service(host1, service1, service2):
+            """Intersection of services.
+
+            Both hosts and services of the other set are considered.
+            For a service to make it from service2 to the return value
+            it must match a host or service in host1/service1 set.
+            """
+            hosts = set(x[1] for x in host1)
+            serviceh = set(x for x in service2 if x[1] in hosts)
+            services = service1.intersection(service2)
+            return serviceh.union(services)
+
+        # Intersect the host lists
+        hosts = host_a.intersection(host_b)
+
+        # Intersect the service lists
+        services = set()
+        services.update(intersect_service(host_b, service_b, service_a))
+        services.update(intersect_service(host_a, service_a, service_b))
+
+        # Now recombine them
+        return hosts.union(services)
+
+    def _groupGetSet(self, identifier):
         if ':' not in identifier:
             raise xmlrpc.Fault(1, "Invalid identifier: %r" % identifier)
 
         group_type, group_name = identifier.split(':', 1)
+        group_set = set()
+
+        if re.search(r'[\[\]?*+^$]', group_name):
+            try:
+               regex = re.compile(group_name)
+               match = regex.match
+            except re.error, ex:
+                raise xmlrpc.Fault(1,
+                        "Invalid regex %r: %s" % (group_name, ex))
+        else:
+            match = lambda x: x == group_name
 
         if group_type == 'host':
-            if group_name not in self._objects['host']:
-                raise xmlrpc.Fault(1, "Unknown host: %r" % group_name)
-
-            if return_type == 'host':
-                group_set = [group_name]
-            else:
-                group_set = []
-                for service in self._objects['service'].get(group_name, []):
-                    group_set.append((group_name, service))
-
+            group_set.update(('host', x)
+                    for x in self._objects['host']
+                        if match(x))
         elif group_type == 'service':
-            service = group_name
-            group_set = []
             for host_name in self._objects['service']:
-                if service in self._objects['service'][host_name]:
-                    if return_type == 'host':
-                        group_set.append(host_name)
-                    else:
-                        group_set.append((host_name, service))
-
-            if not group_set:
-                raise xmlrpc.Fault(1, "Unknown service: %r" % service)
-
+                group_set.update(('service', host_name, x)
+                        for x in self._objects['service'][host_name]
+                            if match(x))
         elif group_type == 'hostgroup':
-            if group_name not in self._objects['hostgroup']:
-                raise xmlrpc.Fault(1, "Unknown hostgroup: %r" % group_name)
-
-            hosts = self._objects['hostgroup'][group_name]['members']
-            if return_type == 'host':
-                group_set = hosts
-            else:
-                group_set = []
-                for host_name in hosts:
-                    services = self._objects['service'].get(host_name,[])
-                    group_set.extend([(host_name, x) for x in services])
-
+            for group, info in self._objects['hostgroup'].iteritems():
+                if match(group):
+                    group_set.update(('host', x)
+                            for x in info.get('members', ()))
         elif group_type == 'servicegroup':
-            if group_name not in self._objects['servicegroup']:
-                raise xmlrpc.Fault(1, "Unknown servicegroup: %r" % group_name)
-
-            group_set = self._objects['servicegroup'][group_name]['members']
-            if return_type == 'host':
-                group_set = [x[0] for x in group_set]
-
+            for group, info in self._objects['servicegroup'].iteritems():
+                if match(group):
+                    group_set.update(('service', x[0], x[1])
+                            for x in info.get('members', ()))
         else:
             raise xmlrpc.Fault(1, "Unknown type: %r" % group_type)
 
-        return set(group_set)
+        if not group_set:
+            raise xmlrpc.Fault(1, "Unknown %s: %r" % (group_type, group_name))
+
+        return group_set
 
     def _groupTokenizer(self, string):
         string = cStringIO.StringIO(string)
@@ -611,7 +642,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         lex.wordchars = (
             "abcdfeghijklmnopqrstuvwxyz"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "0123456789_.-:" )
+            "0123456789_.-:[]?*+^$" )
         valid = lex.wordchars + "()"
 
         while True:
@@ -629,34 +660,85 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             yield token
 
     def xmlrpc_delServiceDowntime(self, key, delay=None):
-        """Cancel all service downtimes identified by key"""
-
-        return self._delDowntime('servicedowntime',
-                                 'DEL_SVC_DOWNTIME', key, delay)
+        """Alias for cancelDowntime"""
+        return self.xmlrpc_cancelDowntime(key, delay)
 
     def xmlrpc_delHostDowntime(self, key, delay=None):
-        """Cancel all host downtimes identified by key"""
+        """Alias for cancelDowntime"""
+        return self.xmlrpc_cancelDowntime(key, delay)
 
-        return self._delDowntime('hostdowntime',
-                                 'DEL_HOST_DOWNTIME', key, delay)
+    def xmlrpc_cancelDowntime(self, key, delay=None):
+        """Cancel a requested service or host downtime.
 
-    def _delDowntime(self, objtype, cmdtype, key, delay=None):
-        try:
-            timestamp, uid = key.split(':', 1)
-            assert int(timestamp) and int(uid)
-        except:
-            raise xmlrpc.Fault(1, "Invalid downtime key: %r" % key)
+        This function searches for anything with the requested key.
+        If key = 'iOkTS3Y' then anything with 'key:iOkTS3Y' will
+        be canceled. The key must be an exact match. The older
+        timestamp:uid format is also supported for compatibility.
 
-        status = self._status([objtype], {'entry_time': timestamp})
-        commands = []
+        delay is a time to sleep before submitting the command to
+        nagios. NOTE: if the daemon is shut-down gracefully before
+        delay expires it will submit the command immediately. If
+        the daemon is shutdown hard (SIGKILL, etc) the pending
+        commands will be lost.
+        """
 
-        for downtime in status[objtype]:
-            if downtime['comment'].endswith('key:%s' % uid):
-                commands.append((cmdtype, downtime['downtime_id']))
+        key = key.strip()
+
+        if ':' in key:
+            try:
+                timestamp, key = key.split(':', 1)
+                assert int(timestamp) and int(key)
+            except:
+                raise xmlrpc.Fault(1, "Invalid downtime key: %r" % key)
+
+            status = self._status(('hostdowntime', 'servicedowntime'),
+                                  {'entry_time': timestamp})
+        else:
+            status = self._status(('hostdowntime', 'servicedowntime'))
+
+        regex = re.compile('\skey:%s(\s|$)' % key)
+        match = lambda x: regex.search(x['comment'])
+
+        commands = set()
+        commands.update(('DEL_HOST_DOWNTIME', x['downtime_id'])
+                for x in status['hostdowntime'] if match(x))
+        commands.update(('DEL_SVC_DOWNTIME', x['downtime_id'])
+                for x in status['servicedowntime'] if match(x))
+
+        if not commands:
+            return 0
+
+        del status
+
+        # We want to run later or at shutdown, whichever comes first.
+        # This really seems like a thing that should be in twisted
+        # but I didn't see anything. Oh well.
+        calls = {'timer': None, 'shutdown': None}
+
+        def do_cmd(force=False):
+            calls['shutdown'] = None
+            calls['timer'] = None
+            log.info("Canceling %s downtimes in Nagios" % len(commands))
+            self._cmdobj.cmdlist(None, commands, force)
+
+        def do_timer():
+            reactor.removeSystemEventTrigger(calls['shutdown'])
+            do_cmd()
+
+        def do_shutdown():
+            calls['timer'].cancel()
+            # This should not abort the daemon shutdown
+            try:
+                do_cmd(force=True)
+            except:
+                fail = failure.failure()
+                log.error(fail)
 
         if delay:
-            reactor.callLater(delay, self._cmdobj.cmdlist, None, commands)
+            calls['timer'] = reactor.callLater(delay, do_timer)
+            calls['shutdown'] = reactor.addSystemEventTrigger(
+                    'before', 'shutdown', do_shutdown)
         else:
-            self._cmdobj.cmdlist(None, commands)
+            do_cmd()
 
         return len(commands)
