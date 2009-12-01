@@ -448,6 +448,35 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
                     "Unknown servicegroup: %r" % servicegroup_name)
         return self._objects['servicegroup'][servicegroup_name]
 
+    def xmlrpc_listDowntimes(self):
+        """Get a list of currently scheduled downtimes"""
+
+        regex = re.compile('^(.*)\skey:(\S+)(\s+expr:(.+))?$')
+        def parse_comment(downtime):
+            match = regex.match(downtime['comment'])
+            if not match:
+                return
+            downtime['comment'] = match.group(1)
+            key = match.group(2)
+            if len(key) == 3 and key.isdigit():
+                downtime['key'] = "%s:%s" % (downtime['entry_time'], key)
+            else:
+               downtime['key'] = key
+            if match.group(3):
+                downtime['expr'] = match.group(4)
+            else:
+                downtime['expr'] = ""
+
+        status = self._status(('hostdowntime', 'servicedowntime'))
+        result = {'host': status['hostdowntime'],
+                  'service': status['servicedowntime'] }
+
+        for dtype in result.itervalues():
+            for downtime in dtype:
+                parse_comment(downtime)
+
+        return result
+
     def xmlrpc_scheduleServiceDowntime(self, expr, start, stop, user, comment):
         """Alias for scheduleDowntime"""
 
