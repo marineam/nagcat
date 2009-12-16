@@ -73,7 +73,7 @@ be found in the docs directory.
 If you are too lazy to cd into the docs directory and just want to get
 started try this:
 
-bin/nagcat -c docs/example.conf -t http_title -H www.w3.org -P 80
+bin/nagcat -c docs/example.coil -t http_title -H www.w3.org -P 80
 
 
 CREDITS
