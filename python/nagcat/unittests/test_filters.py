@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from twisted.trial import unittest
 from nagcat import errors, filters
 
@@ -73,8 +74,9 @@ class XPathTestCase(unittest.TestCase):
 class DateTestCase(unittest.TestCase):
 
     def testBasic(self):
+        timestamp = str(time.mktime(time.strptime("20050505", "%Y%m%d")))
         f = filters.Filter(object(), "date2epoch:%Y%m%d")
-        self.assertEquals(f.filter("20050505"), "1115265600.0")
+        self.assertEquals(f.filter("20050505"), timestamp)
 
     def testBad(self):
         f = filters.Filter(object(), "date2epoch:%Y%m%d")
