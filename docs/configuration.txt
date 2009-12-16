@@ -468,3 +468,16 @@ query: {
     key: "/"
 }
 
+NTP:
+
+For the purposes of testing system time we can do basic NTP queries.
+The result is seconds since the Unix epoch. Unless your test is for
+the NTP server itself you will likely want to override the host
+attribute with your favorite server. See the system_time test in
+example.coil for an example on how to use this with SNMP.
+
+query: {
+    type: "ntp"
+    host: "pool.ntp.org"
+    port: 123
+}

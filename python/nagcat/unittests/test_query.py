@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import time
 from twisted.trial import unittest
 from nagcat.unittests import dummy_server
 from nagcat import errors, query
@@ -220,3 +221,39 @@ class SnmpQueryTestCaseV2c(SnmpQueryTestCaseV1):
 
     version = "2c"
 
+class NTPTestCase(unittest.TestCase):
+
+    skip = "requires network access"
+
+    def testSimple(self):
+        conf = Struct({'type': 'ntp',
+                'host': 'pool.ntp.org',
+                'port': 123})
+        now = time.time()
+        q = query.Query_ntp(conf)
+
+        def check(ignore):
+            # chop off a bunch of time because they won't be exact
+            self.assertEquals(time.time() // 3600,
+                    int(q.result) // 3600)
+
+        d = q.start()
+        d.addCallback(check)
+        return d
+
+    def testRefused(self):
+        conf = Struct({'type': 'ntp',
+                'host': 'localhost',
+                'port': 9})
+        now = time.time()
+        q = query.Query_ntp(conf)
+
+        def check(ignore):
+            self.assertIsInstance(q.result, errors.Failure)
+            self.assertIsInstance(q.result.value, errors.TestCritical)
+
+        d = q.start()
+        d.addCallback(check)
+        return d
+
+    # TODO: test timeout

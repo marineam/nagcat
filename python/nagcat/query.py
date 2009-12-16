@@ -20,6 +20,7 @@ All requests are defined as a Query class which is a Runnable.
 import os
 import errno
 import signal
+import struct
 import re
 from base64 import b64encode
 import cStringIO as StringIO
@@ -676,6 +677,60 @@ class _Query_snmp_combined(_Query_snmp_common):
             raise errors.TestCritical("SNMP request timeout")
         return result
 
+# Unix and NTP have different epoch values
+TIME1970 = 2208988800L
+
+class NTPProtocol(protocol.DatagramProtocol):
+
+    def __init__(self, host, port, deferred):
+        """cb is a function to call with a time"""
+        self.host = host
+        self.port = port
+        self.deferred = deferred
+
+    def startProtocol(self):
+        self.transport.connect(self.host, self.port)
+        self.transport.write('\x1b' + 47 * '\0')
+
+    def datagramReceived(self, data, addr):
+        if len(data) != 12*4:
+            self.deferred.errback(errors.Failure(errors.TestCritical(
+                "Invalid packet size: %s" % len(data))))
+
+        pkt = struct.unpack('!12I', data)
+        self.deferred.callback(str(pkt[10] - TIME1970))
+
+    def connectionRefused(self):
+        self.deferred.errback(errors.Failure(
+            errors.TestCritical("Connection Refused")))
+
+
+class Query_ntp(Query):
+    """Fetch the time from a NTP server"""
+
+    def __init__(self, conf):
+        Query.__init__(self, conf)
+        self.conf['addr'] = self.addr
+        self.conf['port'] = int(conf.get('port', 123))
+
+    def _start(self):
+        deferred = defer.Deferred()
+        protocol = NTPProtocol(self.addr, self.conf['port'], deferred)
+        listener = reactor.listenUDP(0, protocol)
+        timeout = reactor.callLater(self.conf['timeout'],
+                lambda: deferred.errback(errors.Failure(errors.TestCritical(
+                        "Timeout waiting for NTP response"))))
+
+        def stop(result):
+            if timeout.active():
+                timeout.cancel()
+            listener.stopListening()
+            return result
+
+        deferred.addBoth(stop)
+        return deferred
+
+
 ##############################
 # Oracle-specific SQL queries
 ##############################
@@ -823,13 +878,13 @@ class Query_oracle_plsql(Query):
         # check the format of the parameters list.
         for param in self.conf['parameters']:
             if not isinstance(param, list):
-                raise error.ConfigError(conf, '%s should be a list of lists'
+                raise errors.ConfigError(conf, '%s should be a list of lists'
                                         % self.conf['parameters'])
 
             if len(param) != 3 or not param[0] in ['out', 'in']:
                 msg = ("%s should be a list of three elements: "
                        "[ <in|out> <param_name> <type|value>" % param)
-                raise error.ConfigError(conf, msg)
+                raise errors.ConfigError(conf, msg)
 
 
     def buildparam(self, p):

@@ -84,8 +84,7 @@ snmp_system: {
     }
 }
 
-# Not yet working...
-snmp_time: {
+system_time: {
     query: {
         type: "compound"
         system-time: {
@@ -93,10 +92,15 @@ snmp_time: {
             community: "public"
             # HOST-RESOURCES-MIB::hrSystemDate.0
             oid: ".1.3.6.1.2.1.25.1.2.0"
-            filters: [ "regex:^STRING: (\S+)\.\d,.*"
+            filters: [ "regex:^(\S+)\.\d,.*"
                        "date2epoch:%Y-%m-%d,%H:%M:%S" ]
         }
-        return: "abs(int($(NOW)) - $(system-time))"
+        ntp-time: {
+            type: "ntp"
+            host: "pool.ntp.org"
+            port: 123
+        }
+        return: "abs($(ntp-time) - $(system-time))"
     }
 
     warning:  "> 30"
