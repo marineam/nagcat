@@ -60,6 +60,9 @@ class LoggingProtocol(protocol.ProcessProtocol):
 class Server(process.Process):
     """Run snmpd"""
 
+    # Limit snmpd to only load these modules, this speeds things up
+    modules = ('override', 'hr_system')
+
     def __init__(self):
         self._deferred = defer.Deferred()
         self._address = defer.Deferred()
@@ -69,8 +72,10 @@ class Server(process.Process):
 
         proto = LoggingProtocol(self)
         env = {"PATH": "/bin:/sbin:/usr/bin:/usr/sbin"}
-        cmd = ("snmpd", "-f", "-LE6", "-I", "override", "-C", "-c", self.conf,
-                "--noPersistentLoad=1", "--noPersistentSave=1", self.socket)
+        cmd = ("snmpd", "-f", "-LE6", "-C", "-c", self.conf,
+                "-I", ','.join(self.modules),
+                "--noPersistentLoad=1", "--noPersistentSave=1",
+                self.socket)
 
         # Skip test if snmpd doesn't exist
         found = False

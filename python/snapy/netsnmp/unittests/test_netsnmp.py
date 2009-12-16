@@ -11,6 +11,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
+import time
 from twisted.trial import unittest
 from snapy.netsnmp.unittests import TestCase
 from snapy.netsnmp import Session, SnmpError, SnmpTimeout, OID
@@ -90,6 +91,19 @@ class TestSessionV1(TestCase):
 class TestSessionV2c(TestSessionV1):
 
     version = "2c"
+
+    def test_hrSystemDate(self):
+        # This is a special string that gets formatted using the
+        # MIB's DISPLAY-HINT value. Also, strip off everything
+        # other than the date and hour to avoid a race condition.
+        # And one more quirk, these dates are not zero padded
+        # so we must format the date manually, whee...
+        now = time.localtime()
+        now = "%d-%d-%d,%d" % (now[0], now[1], now[2], now[3])
+        result = self.session.sget([OID(".1.3.6.1.2.1.25.1.2.0")])
+        self.assert_(result)
+        value = result[0][1].split(':', 1)[0]
+        self.assertEquals(value, now)
 
 class TestTimeoutsV1(unittest.TestCase):
 

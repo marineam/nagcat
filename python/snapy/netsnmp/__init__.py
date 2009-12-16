@@ -61,6 +61,9 @@ class Session(object):
         self.session_template = types.netsnmp_session()
         self._requests = {}
 
+        # Load the MIB tree if it has not yet
+        lib.netsnmp_init_mib()
+
         # Initialize session to default values
         lib.snmp_sess_init(byref(self.session_template))
 

@@ -51,6 +51,8 @@ u_char_p = c_char_p
 u_char = c_ubyte
 c_int_p = POINTER(c_int)
 
+class tree(Structure): pass
+class enum_list(Structure): pass
 class netsnmp_session(Structure): pass
 class netsnmp_transport(Structure): pass
 class netsnmp_pdu(Structure): pass
@@ -129,6 +131,69 @@ if lib_version_info >= (5,5):
     lib.snmp_sess_select_info2.restype = c_int
     lib.snmp_sess_read2.argtypes = [c_void_p, POINTER(netsnmp_large_fd_set)]
     lib.snmp_sess_read2.restype = c_int
+
+# net-snmp/library/mib.h
+lib.netsnmp_init_mib.argtypes = []
+lib.netsnmp_init_mib.restype = None
+lib.get_tree_head.argtypes = []
+lib.get_tree_head.restype = POINTER(tree)
+lib.get_tree.argtypes = [POINTER(oid), c_size_t, POINTER(tree)]
+lib.get_tree.restype = POINTER(tree)
+lib.snprint_octet_string.argtypes = [
+        c_char_p,   # buf
+        c_size_t,   # buf_len
+        POINTER(netsnmp_variable_list),
+        c_void_p,   # enum_list
+        c_char_p,   # hint
+        c_char_p,   # units
+        ]
+lib.snprint_octet_string.restype = c_int
+# This removes the STRING: prefix when using snprint_octet_string
+# NETSNMP_DS_LIBRARY_ID = 0
+# NETSNMP_DS_LIB_QUICK_PRINT = 13
+lib.netsnmp_ds_set_boolean(0, 13, 1)
+
+
+## Data structures and other random types ##
+
+
+reference = []
+if lib_version_info >= (5,2):
+    reference = [('reference', c_char_p)]
+tree._fields_ = [
+        ('child_list', POINTER(tree)),
+        ('next_peer', POINTER(tree)),
+        ('next', POINTER(tree)),
+        ('parent', POINTER(tree)),
+        ('label', c_char_p),
+        ('subid', c_int),
+        ('modid', c_int),
+        ('number_modules', c_int),
+        ('module_list', c_int_p),
+        ('tc_index', c_int),
+        ('type', c_int),
+        ('access', c_int),
+        ('status', c_int),
+        ('enums', POINTER(enum_list)),
+        ('ranges', c_void_p),
+        ('indexes', c_void_p),
+        ('arguments', c_char_p),
+        ('varbinds', c_void_p),
+        ('hint', c_char_p),
+        ('units', c_char_p),
+        ('printomat', c_void_p),
+        ('printer', c_void_p),
+        ('description', c_char_p),
+        ] + reference + [
+        ('reported', c_int),
+        ('defaultValue', c_char_p),
+        ]
+
+enum_list._fields_ = [
+        ('next', POINTER(enum_list)),
+        ('value', c_int),
+        ('label', c_char_p),
+        ]
 
 
 authenticator = CFUNCTYPE(c_char_p, c_int_p, c_char_p, c_int)
@@ -373,3 +438,34 @@ class OID(tuple):
         if not isinstance(other, OID):
             other = OID(other)
         return self[:len(other)] == other
+
+    def _tree(self):
+        """Internal: get the tree object defined by the MIB"""
+        return lib.get_tree(self.raw, len(self), lib.get_tree_head())
+
+    def hint(self):
+        """MIB info: get the DISPLAY-HINT string, may be None
+
+        Used for formatting special octet string values.
+        """
+        tree = self._tree()
+        if tree:
+            return tree.contents.hint
+        else:
+            return None
+
+    def enums(self):
+        """MIB info: a dict of enum values, may be None.
+
+        Used for converting integers to more useful string values.
+        """
+        tree = self._tree()
+        if not tree or not tree.contents.enums:
+            return None
+
+        mapping = {}
+        enum = tree.contents.enums
+        while enum:
+            mapping[enum.contents.value] = enum.contents.label
+            enum = enum.contents.next
+        return mapping
