@@ -73,6 +73,17 @@ class LogLevelObserver(object):
         try:
             if event.get('isError', False):
                 level = 0 # ERROR
+
+            # HACK! tcp.Port and udp.Port like to announce themselves
+            # loudly but I don't want them to (well UDP at least). This
+            # seemed like an easier option than re-implementing things.
+            elif ('log_level' not in event and 'message' in event and
+                    (event['message'][0].startswith(
+                        'nagcat.query.NTPProtocol starting on') or
+                    (event['message'][0].startswith('(Port ') and
+                     event['message'][0].endswith(' Closed)')))):
+                level = 3 # DEBUG
+
             else:
                 level = event.get('log_level', 2) # INFO
 

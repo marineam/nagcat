@@ -682,6 +682,8 @@ TIME1970 = 2208988800L
 
 class NTPProtocol(protocol.DatagramProtocol):
 
+    noisy = False
+
     def __init__(self, host, port, deferred):
         """cb is a function to call with a time"""
         self.host = host
