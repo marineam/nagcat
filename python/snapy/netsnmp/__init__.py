@@ -37,6 +37,7 @@ ExceptionValue = types.ExceptionValue
 NoSuchObject = types.NoSuchObject
 NoSuchInstance = types.NoSuchInstance
 EndOfMibView = types.EndOfMibView
+OIDValueError = types.OIDValueError
 OID = types.OID
 
 class Session(object):

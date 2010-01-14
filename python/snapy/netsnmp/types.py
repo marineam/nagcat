@@ -411,6 +411,12 @@ class PacketError(ExceptionValue):
 class OIDValueError(Exception):
     """Argument to OID() could not be parsed"""
 
+    def __init__(self, msg):
+        super(OIDValueError, self).__init__(msg)
+
+    def __str__(self):
+        return "Invalid OID: %s" % self.args[0]
+
 class OID(tuple):
     """An OID and various helper methods.
 
@@ -430,11 +436,13 @@ class OID(tuple):
                 seq = [int(v) for v in seq.strip('.').split('.')]
             except ValueError:
                 seq = cls._parse_oid(seq)
-        elif length:
-            seq = [int(seq[i]) for i in xrange(length)]
         else:
-            # Just to make sure everyitng is an int
-            seq = [int(v) for v in seq]
+            if length is not None:
+                seq = [seq[i] for i in xrange(length)]
+            try:
+                seq = [int(v) for v in seq]
+            except (ValueError, TypeError):
+                raise OIDValueError(str(seq))
 
         self = super(OID, cls).__new__(cls, seq)
         self.raw = (oid * len(self))()

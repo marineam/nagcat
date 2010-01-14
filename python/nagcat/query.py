@@ -503,8 +503,8 @@ class _Query_snmp_common(Query):
         """Check/parse an oid"""
         try:
             oid = netsnmp.OID(conf[key])
-        except:
-            raise errors.ConfigError(conf, "Invalid SNMP OID %r" % conf[key])
+        except netsnmp.OIDValueError, ex:
+            raise errors.ConfigError(conf, str(ex))
 
         return oid
 
