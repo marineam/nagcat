@@ -132,9 +132,20 @@ if lib_version_info >= (5,5):
     lib.snmp_sess_read2.argtypes = [c_void_p, POINTER(netsnmp_large_fd_set)]
     lib.snmp_sess_read2.restype = c_int
 
-# net-snmp/library/mib.h
+# net-snmp/mib_api.h
 lib.netsnmp_init_mib.argtypes = []
 lib.netsnmp_init_mib.restype = None
+lib.netsnmp_read_module.argtypes = [c_char_p]
+lib.netsnmp_read_module.restype = POINTER(tree)
+lib.get_module_node.argtypes = [c_char_p, c_char_p,
+                                POINTER(oid), POINTER(c_size_t)]
+lib.get_module_node.restype = c_int
+
+# net-snmp/library/parse.h
+lib.which_module.argtypes = [c_char_p]
+lib.which_module.restype = c_int
+
+# net-snmp/library/mib.h
 lib.get_tree_head.argtypes = []
 lib.get_tree_head.restype = POINTER(tree)
 lib.get_tree.argtypes = [POINTER(oid), c_size_t, POINTER(tree)]
@@ -148,10 +159,14 @@ lib.snprint_octet_string.argtypes = [
         c_char_p,   # units
         ]
 lib.snprint_octet_string.restype = c_int
+
 # This removes the STRING: prefix when using snprint_octet_string
 # NETSNMP_DS_LIBRARY_ID = 0
 # NETSNMP_DS_LIB_QUICK_PRINT = 13
 lib.netsnmp_ds_set_boolean(0, 13, 1)
+
+# Load the MIB tree, various things will expect this
+lib.netsnmp_init_mib()
 
 
 ## Data structures and other random types ##
@@ -393,6 +408,9 @@ class PacketError(ExceptionValue):
     def __str__(self):
         return "%s: %s" % (self.__class__.__doc__, self.code)
 
+class OIDValueError(Exception):
+    """Argument to OID() could not be parsed"""
+
 class OID(tuple):
     """An OID and various helper methods.
 
@@ -408,8 +426,10 @@ class OID(tuple):
         if isinstance(seq, OID):
             return seq
         elif isinstance(seq, basestring):
-            # TODO: Handle strings like: SNMPv2-MIB::sysDescr.0
-            seq = [int(v) for v in seq.strip('.').split('.')]
+            try:
+                seq = [int(v) for v in seq.strip('.').split('.')]
+            except ValueError:
+                seq = cls._parse_oid(seq)
         elif length:
             seq = [int(seq[i]) for i in xrange(length)]
         else:
@@ -422,6 +442,38 @@ class OID(tuple):
             self.raw[i] = v
 
         return self
+
+    @classmethod
+    def _parse_oid(cls, string):
+        buf_len = c_size_t(const.MAX_OID_LEN)
+        buf = (oid * const.MAX_OID_LEN)()
+
+        # It sure would be nice if we could use snmp_parse_oid
+        # but it doesn't provide any sort of useful error codes.
+
+        if ':' in string:
+            module, string = string.split(':', 1)
+            if string.startswith(':'):
+                string = string[1:]
+
+            # This is also done in get_module_node but it doesn't
+            # tell us if this a missing module is why it failed.
+            lib.netsnmp_read_module(module)
+            modid = lib.which_module(module)
+            if modid == -1:
+                raise OIDValueError("Cannot find module %s" % module)
+        else:
+            module = "ANY"
+
+        ret = lib.get_module_node(string, module, buf, byref(buf_len))
+        if ret == 0:
+            if module == "ANY":
+                raise OIDValueError("Cannot find node %s" % string)
+            else:
+                raise OIDValueError("Cannot find node %s in %s" %
+                                    (string, module))
+
+        return [buf[i] for i in xrange(buf_len.value)]
 
     def __str__(self):
         return ".%s" % ".".join(str(i) for i in self)

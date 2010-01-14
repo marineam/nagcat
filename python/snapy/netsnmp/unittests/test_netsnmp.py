@@ -132,3 +132,12 @@ class TestTimeoutsV1(unittest.TestCase):
 class TestTimeoutsV2c(TestTimeoutsV1):
 
     version = "2c"
+
+
+class TestOID(unittest.TestCase):
+
+    def test_oid_name(self):
+        oid = OID("1.3.6.1.2.1.1.1.0")
+        self.assertEquals(oid, OID("SNMPv2-MIB::sysDescr.0"))
+        self.assertEquals(oid, OID("sysDescr.0"))
+
