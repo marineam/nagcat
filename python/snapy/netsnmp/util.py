@@ -37,11 +37,18 @@ def _decode_string(objid, var):
     """
     hint = objid.hint()
     if hint:
-        buf_len = 256 # 256 is what net-snmp tends to use
+        # String hints typically give a size of 256, so we must be
+        # larger than that. (alternatively we could use realloc but meh)
+        buf_len = 260
         buf = ctypes.create_string_buffer(buf_len)
-        lib.snprint_octet_string(buf, buf_len,
+        ret = lib.snprint_octet_string(buf, buf_len,
                 ctypes.byref(var), None, hint, None)
-        return str(buf.value)
+
+        # fallback on printing the raw string if using the hint fails
+        if ret == -1:
+            return _decode_raw_string(objid, var)
+        else:
+            return str(buf.value)
     else:
         return _decode_raw_string(objid, var)
 

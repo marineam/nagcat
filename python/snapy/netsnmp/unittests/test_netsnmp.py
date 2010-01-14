@@ -87,6 +87,12 @@ class TestSessionV1(TestCase):
         self.session.wait()
         self.assertEquals(result.value, [])
 
+    def test_sysDescr(self):
+        result = self.session.sget([OID("SNMPv2-MIB::sysDescr.0")])
+        self.assert_(result)
+        self.assertIsInstance(result[0][1], str)
+        self.assert_(len(result[0][1]) > 0)
+
 
 class TestSessionV2c(TestSessionV1):
 

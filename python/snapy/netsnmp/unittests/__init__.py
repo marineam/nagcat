@@ -61,7 +61,7 @@ class Server(process.Process):
     """Run snmpd"""
 
     # Limit snmpd to only load these modules, this speeds things up
-    modules = ('override', 'hr_system')
+    modules = ('override', 'hr_system', 'system_mib')
 
     def __init__(self):
         self._deferred = defer.Deferred()
