@@ -14,6 +14,7 @@
 
 """NagCat initialization and startup"""
 
+import os
 import sys
 from optparse import OptionParser
 
@@ -90,6 +91,8 @@ def parse_options():
             help="use the given nagios url in reports")
     parser.add_option("-T", "--tag", dest="tag",
             help="only load nagios tests with a specific tag")
+    parser.add_option("-C", "--core-dumps",
+            help="set cwd to the given directory and enable core dumps")
     parser.add_option("", "--profile-init", dest="profile_init",
             action="store_true", default=False,
             help="run profiler during startup")
@@ -150,7 +153,9 @@ def init(options):
         sys.exit(1)
 
     # Set uid/gid/file_limit
-    util.setup(options.user, options.group, options.file_limit)
+    util.setup(options.user, options.group,
+               options.file_limit,
+               options.core_dumps)
 
     # Write out the pid to make the verify script happy
     if options.pidfile:
@@ -187,8 +192,15 @@ def init(options):
     if options.verify:
         sys.exit(0)
 
+    if options.core_dumps:
+        cwd = options.core_dumps
+    else:
+        cwd = "/"
+
     if options.daemon:
-        util.daemonize(options.pidfile)
+        util.daemonize(options.pidfile, cwd)
+    else:
+        os.chdir(cwd)
 
     # redirect stdio to log
     log.init_stdio()

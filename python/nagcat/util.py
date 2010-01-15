@@ -246,7 +246,7 @@ class MathString(str):
         return not self.__eq__(other)
 
 
-def setup(user=None, group=None, file_limit=None):
+def setup(user=None, group=None, file_limit=None, core_dumps=None):
     """Set the processes user, group, and file limits"""
 
     if file_limit:
@@ -288,8 +288,25 @@ def setup(user=None, group=None, file_limit=None):
             log.error("Failed to set uid: %s" % ex)
             sys.exit(1)
 
+    if core_dumps:
+        try:
+            resource.setrlimit(resource.RLIMIT_CORE, (-1, -1))
+        except ValueError, ex:
+            log.error("Failed to set limit on core dumps: %s" % ex)
+            sys.exit(1)
+        if not os.path.isdir(core_dumps):
+            try:
+                os.makedirs(core_dumps)
+            except OSError, ex:
+                log.error("Failed to create directory %s" % core_dumps)
+                sys.exit(1)
+        else:
+            if not os.access(core_dumps, os.R_OK|os.W_OK|os.X_OK):
+                log.error("Insufficient permissions on %s" % core_dumps)
+                sys.exit(1)
 
-def daemonize(pid_file):
+
+def daemonize(pid_file, cwd="/"):
     """Background the current process"""
 
     log.debug("daemonizing process")
@@ -323,7 +340,7 @@ def daemonize(pid_file):
     if os.fork() > 0:
         os._exit(0)
 
-    os.chdir("/")
+    os.chdir(cwd)
     os.setsid()
     os.dup2(null, 0)
     os.dup2(null, 1)
