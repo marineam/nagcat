@@ -311,17 +311,21 @@ def daemonize(pid_file, cwd="/"):
 
     log.debug("daemonizing process")
 
-    try:
-        # A trivial check to see if we are already running
-        pidfd = open(pid_file)
-        pid = int(pidfd.readline().strip())
-        pidfd.close()
-        os.kill(pid, 0)
-    except (IOError, OSError):
-        pass # Assume all is well if the test raised no errors
-    else:
-        log.error("PID file exits and process %s is running!" % pid)
-        sys.exit(1)
+    # BROKEN: the pid file may have already been created by write_pid
+    # however, I'm not even using nagcat in daemon mode right now so
+    # I'll just leave this commented out for now...
+    # Also, this has a major race condition...
+    #try:
+    #    # A trivial check to see if we are already running
+    #    pidfd = open(pid_file)
+    #    pid = int(pidfd.readline().strip())
+    #    pidfd.close()
+    #    os.kill(pid, 0)
+    #except (IOError, OSError):
+    #    pass # Assume all is well if the test raised errors
+    #else:
+    #    log.error("PID file exits and process %s is running!" % pid)
+    #    sys.exit(1)
 
     try:
         null = os.open("/dev/null", os.O_RDWR)
