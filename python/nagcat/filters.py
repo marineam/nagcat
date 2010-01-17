@@ -265,11 +265,11 @@ class Filter_critical(_Filter):
         try:
             if self.test_op == '=~':
                 if self.test_regex.search(true_result):
-                    raise self.error(
-                            "Failed to match regex '%s'" % self.test_val)
+                    raise self.error("Matched regex '%s'" % self.test_val)
             elif self.test_op == '!~':
                 if not self.test_regex.search(true_result):
-                    raise self.error("Matched regex '%s'" % self.test_val)
+                    raise self.error(
+                            "Failed to match regex '%s'" % self.test_val)
             else:
                 eval_dict = {'a':util.MathString(true_result),
                              'b':self.test_val}
