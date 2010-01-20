@@ -199,6 +199,8 @@ class Trend(object):
             if 'trend' not in ds_conf or 'type' not in ds_conf['trend']:
                 return
 
+            ds_conf['trend'].expand()
+
             # Only type supported right now
             new = { 'type': ds_conf['trend.type'].upper() }
 
