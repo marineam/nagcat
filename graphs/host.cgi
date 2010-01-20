@@ -66,7 +66,7 @@ objects = nagios_objects.ObjectParser(obj_file, ('host',), {'host_name': host})
 status = nagios_objects.ObjectParser(stat_file,
         ('host','service'), {'host_name': host})
 host_conf = objects['host'][0]
-host_info_esc = cgi.escape(host_conf['notes'])
+host_info_esc = cgi.escape(host_conf.get('notes', host_conf['alias']))
 
 services = ""
 for service in status['service']:
