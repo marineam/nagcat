@@ -455,7 +455,10 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         def parse_comment(downtime):
             match = regex.match(downtime['comment'])
             if not match:
+                downtime['key'] = None
+                downtime['expr'] = None
                 return
+
             downtime['comment'] = match.group(1)
             key = match.group(2)
             if len(key) == 3 and key.isdigit():
