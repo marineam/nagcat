@@ -56,7 +56,7 @@ for host in host_list:
     host_map[host['host_name']] = host
 
 def render_host(host):
-    host_url = urllib.quote(host)
+    host_url = urllib.quote_plus(host)
     host_esc = cgi.escape(host)
     output_esc = cgi.escape(host_map[host]['plugin_output'])
     status = host_map[host]['current_state']

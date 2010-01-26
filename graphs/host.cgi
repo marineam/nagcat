@@ -6,7 +6,6 @@ cgitb.enable()
 import os
 import cgi
 import urllib
-from glob import glob
 
 from nagcat import nagios_objects
 
@@ -53,7 +52,7 @@ GRAPH = """<div>
 data = cgi.FieldStorage()
 assert 'host' in data
 host = data['host'].value
-host_url = urllib.quote(host)
+host_url = urllib.quote_plus(host)
 host_esc = cgi.escape(host)
 
 obj_file = os.getenv('NAGIOS_OBJECTS')
@@ -71,7 +70,7 @@ host_info_esc = cgi.escape(host_conf.get('notes', host_conf['alias']))
 services = ""
 for service in status['service']:
     service_name = service['service_description']
-    service_url = urllib.quote(service_name)
+    service_url = urllib.quote_plus(service_name)
     service_esc = cgi.escape(service_name)
     output_esc = cgi.escape(service['plugin_output'])
 

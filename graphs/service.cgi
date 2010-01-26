@@ -6,7 +6,6 @@ cgitb.enable()
 import os
 import cgi
 import urllib
-from glob import glob
 
 from nagcat import nagios_objects
 
@@ -46,11 +45,11 @@ This Year:<br />
 data = cgi.FieldStorage()
 assert 'host' in data
 host = data['host'].value
-host_url = urllib.quote(host)
+host_url = urllib.quote_plus(host)
 host_esc = cgi.escape(host)
 assert 'service' in data
 service = data['service'].value
-service_url = urllib.quote(service)
+service_url = urllib.quote_plus(service)
 service_esc = cgi.escape(service)
 
 obj_file = os.getenv('NAGIOS_OBJECTS')
