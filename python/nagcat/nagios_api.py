@@ -455,8 +455,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         def parse_comment(downtime):
             match = regex.match(downtime['comment'])
             if not match:
-                downtime['key'] = None
-                downtime['expr'] = None
+                downtime['key'] = ''
+                downtime['expr'] = ''
                 return
 
             downtime['comment'] = match.group(1)
