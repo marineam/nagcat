@@ -31,6 +31,35 @@ LEVELS = (
 
 _logger = None
 
+class TotalLogFile(logfile.LogFile):
+    """A log file that can optionally steal stdio"""
+
+    def __init__(self, name, directory, steal_stdio=False, **kwargs):
+        self._steal_stdio = steal_stdio
+        self._null_fd = os.open("/dev/null", os.O_RDWR)
+        logfile.LogFile.__init__(self, name, directory, **kwargs)
+
+    def _do_stdio(self):
+        file_fd = self._file.fileno()
+        os.dup2(self._null_fd, 0)
+        os.dup2(file_fd, 1)
+        os.dup2(file_fd, 2)
+
+    def _openFile(self):
+        logfile.LogFile._openFile(self)
+        if self._steal_stdio:
+           self._do_stdio()
+
+    def stdio(self):
+        self._steal_stdio = True
+        if not self.closed:
+            self._do_stdio()
+
+    def close(self):
+        os.dup2(self._null_fd, 1)
+        os.dup2(self._null_fd, 2)
+        logfile.LogFile.close(self)
+
 class LogLevelObserver(object):
     """A file log observer with log levels and rotation"""
 
@@ -39,7 +68,7 @@ class LogLevelObserver(object):
     def __init__(self, log_name=None, log_level="INFO"):
         assert log_level in LEVELS
         self.log_level = list(LEVELS).index(log_level)
-        self.log_fallback = sys.stderr
+        self.stdio_stolen = False
 
         if log_name:
             dirname, basename = os.path.split(os.path.abspath(log_name))
@@ -47,7 +76,7 @@ class LogLevelObserver(object):
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
 
-            self.log_file = logfile.LogFile(basename, dirname,
+            self.log_file = TotalLogFile(basename, dirname,
                     rotateLength=1024*1024*20, maxRotatedFiles=20)
             self.log_stderr = sys.stderr
         else:
@@ -61,9 +90,9 @@ class LogLevelObserver(object):
     def stdio(self):
         """Steal stdout/err and log them"""
 
-        self.log_stderr = None
-        sys.stdout = log.logfile
-        sys.stderr = log.logerr
+        if isinstance(self.log_file, TotalLogFile):
+            self.stdio_stolen = True
+            self.log_file.stdio()
 
     def emit(self, event):
         """Twisted log observer event handler"""
@@ -90,14 +119,7 @@ class LogLevelObserver(object):
             if self.log_level < level:
                 return
 
-            # Use the smarter function if available
-            if hasattr(log, 'textFromEventDict'):
-                text = log.textFromEventDict(event)
-            else:
-                text = "\n".join(event['message'])
-                if not text:
-                    text = str(event.get('failure', ''))
-
+            text = log.textFromEventDict(event)
             text = text.replace("\n", "\n    ")
             date = time.strftime(self.time_format,
                     time.localtime(event.get('time', None)))
@@ -107,11 +129,12 @@ class LogLevelObserver(object):
 
             # During init stderr is used to provide loud errors to the
             # console in addition to the log file to make things obvious.
-            if self.log_stderr and level <= 1:
+            if not self.stdio_stolen and level <= 1:
                 util.untilConcludes(self.log_stderr.write, line)
                 util.untilConcludes(self.log_stderr.flush)
         except:
-            self.log_fallback.write("%s" % failure.Failure())
+            if not self.stdio_stolen:
+                self.log_stderr.write("%s" % failure.Failure())
 
 def init(log_name, log_level):
     """Initialize the logger (in global scope)"""

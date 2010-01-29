@@ -19,6 +19,8 @@ import sys
 from optparse import OptionParser
 
 from twisted.internet import reactor
+from twisted.python import versions
+import twisted
 import coil
 
 from nagcat import errors, log, monitor_api, nagios
@@ -150,6 +152,11 @@ def init(options):
     # Sanity check, make sure we are using >= coil-0.3.8
     if getattr(coil, '__version_info__', (0,0)) < (0,3,8):
         sys.stderr.write("Coil >= 0.3.8 is required!\n")
+        sys.exit(1)
+
+    # Require Twisted >= 8.2, older versions had problematic bugs
+    if twisted.version < versions.Version('twisted', 8, 2, 0):
+        sys.stderr.write("Twisted >= 8.2 is required!\n")
         sys.exit(1)
 
     # Set uid/gid/file_limit

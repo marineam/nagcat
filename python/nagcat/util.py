@@ -328,13 +328,6 @@ def daemonize(pid_file, cwd="/"):
     #    sys.exit(1)
 
     try:
-        null = os.open("/dev/null", os.O_RDWR)
-    except OSError, ex:
-        log.error("Failed to open /dev/null!")
-        log.error("Error: %s" % (ex,))
-        sys.exit(1)
-
-    try:
         pidfd = open(pid_file, 'w')
     except IOError, ex:
         log.error("Failed to open PID file %s" % pid_file)
@@ -346,9 +339,6 @@ def daemonize(pid_file, cwd="/"):
 
     os.chdir(cwd)
     os.setsid()
-    os.dup2(null, 0)
-    os.dup2(null, 1)
-    os.dup2(null, 2)
 
     if os.fork() > 0:
         os._exit(0)
