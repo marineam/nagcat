@@ -797,6 +797,7 @@ class Query_oraclesql(Query):
         self.dbpool = _OracleConnectionPool('cx_Oracle', user=self.conf['user'],
                                           password=self.conf['password'],
                                           dsn=self.conf['dsn'],
+                                          threaded=True,
                                           cp_reconnect=True)
         log.debug("running sql %s", self.conf['sql'])
         self.deferred = self.dbpool.runQuery(self.conf['sql'],
@@ -916,7 +917,7 @@ class Query_oracle_plsql(Query):
         log.debug("running procedure")
 
         ## Should do some connection pooling here...
-        self.connection = cx_Oracle.Connection(self.conf['DBI'])
+        self.connection = cx_Oracle.Connection(self.conf['DBI'], threaded=True)
         self.cursor = self.connection.cursor()
 
         self.parameters = [self.buildparam(p) for p in self.conf['parameters']]
