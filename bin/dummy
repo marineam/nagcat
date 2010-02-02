@@ -18,6 +18,7 @@ import re
 import os
 import sys
 import stat
+import time
 import select
 
 cmd = re.compile('\[\d+\] PROCESS_FILE;([^;]+);1\s*')
@@ -32,16 +33,28 @@ if __name__ == "__main__":
     while True:
         fd = os.open(fifo, os.O_RDONLY | os.O_NONBLOCK)
         try:
-            select.select([fd],[],[])
-            data = os.read(fd, 4096)
-            for line in data.splitlines(True):
-                sys.stdout.write(line)
-                match = cmd.match(line)
-                if match:
-                    path = match.group(1)
-                    cmd_file = open(path)
-                    sys.stdout.write(cmd_file.read())
-                    cmd_file.close()
-                    os.unlink(path)
+            while True:
+                try:
+                    select.select([fd],[],[])
+                    data = os.read(fd, 4096)
+                    if not data:
+                        break
+                    for line in data.splitlines(True):
+                        sys.stdout.write(line)
+                        match = cmd.match(line)
+                        if match:
+                            path = match.group(1)
+                            cmd_file = open(path)
+                            sys.stdout.write(cmd_file.read())
+                            cmd_file.close()
+                            os.unlink(path)
+                except Exception, ex:
+                    print ex
+                    break
         finally:
-            os.close(fd)
+            try:
+                os.close(fd)
+            except:
+                pass
+
+        time.sleep(1)
