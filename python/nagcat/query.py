@@ -23,7 +23,6 @@ import signal
 import struct
 import re
 from base64 import b64encode
-import cStringIO as StringIO
 
 try:
     import uuid
