@@ -17,6 +17,7 @@ import sys
 import pwd
 import time
 import socket
+import urllib
 from cStringIO import StringIO
 from optparse import OptionParser
 from email.mime.text import MIMEText
@@ -38,10 +39,14 @@ RETRY_INTERVAL = 20
 RETRY_LIMIT = 6
 
 DEFAULT_CONFIG = '''
-nagios_url: None
-graphs_url: None
+smtp: {
+    host: "127.0.0.1"
+}
 
-smtp_host: "127.0.0.1"
+urls: {
+    nagios: None
+    graphs: None
+}
 
 host: {
     subject: "{NOTIFICATIONTYPE} {HOSTNAME} is {HOSTSTATE}"
@@ -165,9 +170,6 @@ class Notification(object):
         self.macros = macros
         self.config = config
 
-    def headers(self):
-        return {}
-
     def subject(self):
         return self._format(self.config[self.type]['subject'])
 
@@ -177,6 +179,21 @@ class Notification(object):
             return self._format(self.config[self.type][self.format]['comment'])
         else:
             return self._format(self.config[self.type][self.format]['alert'])
+
+    def urls(self):
+        urls = {}
+        if self.config['urls.nagios']:
+            urls['nagios'] = \
+                    "%s/cgi-bin/extinfo.cgi?type=2&host=%s&service=%s" % (
+                    self.config['nagios_url'].rstrip("/"),
+                    urllib.quote_plus(self.macros['HOSTNAME']),
+                    urllib.quote_plus(self.macros['SERVICEDESC']))
+        if self.config['urls.graphs']:
+            urls['graphs'] = "%s/service.cgi?host=%s&service=%s" % (
+                    self.config['graphs_url'].rstrip("/"),
+                    urllib.quote_plus(self.macros['HOSTNAME']),
+                    urllib.quote_plus(self.macros['SERVICEDESC']))
+        return urls
 
     def graph(self):
         return None
@@ -194,6 +211,7 @@ class Notification(object):
         except KeyError, ex:
             raise MissingMacro(ex.args[0])
 
+
 class EmailNotification(Notification):
 
     def headers(self):
@@ -206,6 +224,18 @@ class EmailNotification(Notification):
             'From': "%s@%s" % (user, host),
             'Date': smtp.rfc822date(local),
         }
+
+    def body(self):
+        text = super(EmailNotification, self).body()
+        if self.format == "long":
+            urls = self.urls()
+            if urls:
+                text += "\n"
+                if 'nagios' in urls:
+                    text += "Nagios: %s\n" % urls['nagios']
+                if 'graphs' in urls:
+                    text += "Graphs: %s\n" % urls['graphs']
+        return text
 
     def send(self):
         headers = self.headers()
@@ -245,7 +275,7 @@ class EmailNotification(Notification):
 
         def try_send():
             msg_text.seek(0)
-            deferred = smtp.sendmail(self.config['smtp_host'],
+            deferred = smtp.sendmail(self.config['smtp.host'],
                     msg['From'], [msg['To']], msg_text)
             deferred.addErrback(retry)
             return deferred
@@ -341,10 +371,14 @@ def main():
         sys.exit(1)
 
     try:
-        # FIXME: load extra config as well
         config = coil.parse(DEFAULT_CONFIG)
+        if options.config:
+            config.merge(coil.parse_file(options.config))
     except coil.error.CoilError, ex:
         log.error("Error parsing config: %s" % ex)
+        sys.exit(1)
+    except IOError, ex:
+        log.error("Error reading config file: %s" % ex)
         sys.exit(1)
 
     if options.host:
