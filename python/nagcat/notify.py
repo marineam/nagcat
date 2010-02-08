@@ -239,12 +239,24 @@ class EmailNotification(Notification):
         local = time.localtime(int(self.macros['TIMET']))
         user = pwd.getpwuid(os.getuid())[0]
         host = socket.getfqdn()
-        return {
+
+        ret = {
             'Subject': self.subject(),
             'To': self.macros['CONTACTEMAIL'],
             'From': "%s@%s" % (user, host),
             'Date': smtp.rfc822date(local),
+            'X-Nagios-Notification-Type': self.macros['NOTIFICATIONTYPE'],
+            'X-Nagios-Host-Name': self.macros['HOSTNAME'],
+            'X-Nagios-Host-State': self.macros['HOSTSTATE'],
+            'X-Nagios-Host-Groups': self.macros['HOSTGROUPNAMES']
         }
+
+        if self.type == "service":
+            ret['X-Nagios-Service-Description'] = self.macros['SERVICEDESC']
+            ret['X-Nagios-Service-State'] = self.macros['SERVICESTATE']
+            ret['X-Nagios-Service-Groups'] = self.macros['SERVICEGROUPNAMES']
+
+        return ret
 
     def body(self):
         text = super(EmailNotification, self).body()
