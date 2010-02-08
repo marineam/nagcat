@@ -108,6 +108,9 @@ def rrdtool_info(rrd_file):
         else:
             new['rra'][index][attr] = value
 
+    if not os.path.isfile(rrd_file):
+        raise errors.InitError("RRDTool file does not exists: %s" % rrd_file)
+
     old = rrdtool.info(rrd_file)
 
     # Verify that we actually got some data back
@@ -421,9 +424,13 @@ class Graph(object):
         path = "%s/%s/%s" % (dir, host, rrd)
         self.rrd_path = "%s.rrd" % path
         self.info = rrdtool_info(self.rrd_path)
-        self.conf = coil.parse_file("%s.coil" % path)
         self.color = Colorator()
         self.period = period
+
+        try:
+            self.conf = coil.parse_file("%s.coil" % path)
+        except IOError, ex:
+            raise errors.InitError("Unable to read coil file: %s" % ex)
 
         if period not in ('day', 'week', 'month', 'year'):
             raise ValueError("Invalid period parameter")

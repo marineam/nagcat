@@ -31,7 +31,7 @@ from twisted.mail import smtp
 
 import coil
 
-from nagcat import log
+from nagcat import errors, log, trend
 
 
 # Attempt to retry after failures 6 times at 20 second intervals
@@ -47,6 +47,8 @@ urls: {
     nagios: None
     graphs: None
 }
+
+rradir: None
 
 host: {
     subject: "{NOTIFICATIONTYPE} {HOSTNAME} is {HOSTSTATE}"
@@ -169,6 +171,19 @@ class Notification(object):
         self.type = type_
         self.macros = macros
         self.config = config
+        self.trend = None
+
+        # Attempt to generate an rrdtool graph if this is a Nagcat service
+        if (type_ == "service" and self.config['rradir']
+                and self.macros.get('_SERVICETEST', None)):
+            try:
+                self.trend = trend.Graph(self.config['rradir'],
+                        self.macros['HOSTNAME'],
+                        self.macros['SERVICEDESC'])
+            except errors.InitError, ex:
+                log.warn("Unable to load RRDTool info for %s/%s: %s" %
+                            (self.macros['HOSTNAME'],
+                             self.macros['SERVICEDESC'], ex))
 
     def subject(self):
         return self._format(self.config[self.type]['subject'])
@@ -196,10 +211,16 @@ class Notification(object):
         return urls
 
     def graph(self):
-        return None
+        if self.trend:
+            return self.trend.graph()
+        else:
+            return None
 
     def coil(self):
-        return None
+        if self.trend:
+            return str(self.trend.conf)
+        else:
+            return None
 
     def send(self):
         pass
@@ -255,9 +276,9 @@ class EmailNotification(Notification):
 
         coilcfg = self.coil()
         if coilcfg:
-            coilcfg = MIMEText(coil)
+            coilcfg = MIMEText(coilcfg)
             coilcfg.add_header('Content-Disposition',
-                    'attachment', filename="graph.png")
+                    'attachment', filename="config.coil")
             msg.attach(coilcfg)
 
         msg_text = StringIO()
