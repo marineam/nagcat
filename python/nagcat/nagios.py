@@ -14,15 +14,13 @@
 
 """NagCat->Nagios connector"""
 
-import urllib
-
 from coil.errors import CoilError
 from nagcat import errors, log, nagios_api, nagios_objects, test, trend
 
 class NagiosTests(object):
     """Setup tests defined by Nagios and report back"""
 
-    def __init__(self, templates, nagios_cfg, tag=None, url=None):
+    def __init__(self, templates, nagios_cfg, tag=None):
         """Read given Nagios config file"""
 
         cfg = nagios_objects.ConfigParser(nagios_cfg,
@@ -34,7 +32,7 @@ class NagiosTests(object):
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])
 
-        test_skels = self._parse_tests(tag, url)
+        test_skels = self._parse_tests(tag)
         self._tests = self._fill_templates(templates, test_skels)
 
     # Provide read-only access to the test list
@@ -47,7 +45,7 @@ class NagiosTests(object):
     def __iter__(self):
         return iter(self._tests)
 
-    def _parse_tests(self, tag, url):
+    def _parse_tests(self, tag):
         """Get the list of NagCat services in the object cache"""
 
         parser = nagios_objects.ObjectParser(
@@ -68,12 +66,6 @@ class NagiosTests(object):
                     'host': service['host_name'],
                     'addr': hosts[service['host_name']]['address'],
                     'name': service['service_description']}
-
-            if url:
-                test_defaults['report_url'] = (
-                    "%s/cgi-bin/extinfo.cgi?type=2&host=%s&service=%s" %
-                    (url, urllib.quote_plus(service['host_name']),
-                    urllib.quote_plus(service['service_description'])))
 
             test_overrides = {}
 

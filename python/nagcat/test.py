@@ -31,8 +31,6 @@ from nagcat import errors, filters, log, query, scheduler, trend, util
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 
 TEMPLATE_OK = """%(test)s %(state)s: %(summary)s
-%(report_url)s
-Host: %(host)s
 Port: %(port)s
 Test: %(test)s
 
@@ -51,8 +49,6 @@ Documentation:
 """
 
 TEMPLATE_BAD = """%(test)s %(state)s: %(summary)s
-%(report_url)s
-Host: %(host)s
 Port: %(port)s
 Test: %(test)s
 
@@ -152,7 +148,6 @@ class Test(BaseTest):
         self._test = conf.get('test', "")
         self._documentation = conf.get('documentation', "")
         self._investigation = conf.get('investigation', "")
-        self._report_url = conf.get('report_url', "")
         self._priority = conf.get('priority', "")
         self._url = conf.get('url', "")
         self._subtests = {}
@@ -162,9 +157,6 @@ class Test(BaseTest):
             self._documentation = "\n".join(self._documentation)
         if isinstance(self._investigation, list):
             self._investigation = "\n".join(self._documentation)
-
-        if self._report_url:
-            self._report_url = "\n%s\n" % self._report_url
 
         if self._priority:
             self._priority = "Priority: %s\n\n" % self._priority
@@ -394,7 +386,6 @@ class Test(BaseTest):
                 'time': self._now,
                 'documentation': self._documentation,
                 'investigation': self._investigation,
-                'report_url': self._report_url,
                 'priority': self._priority,
                 'url': self._url,
                 'results': results,
