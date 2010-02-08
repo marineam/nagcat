@@ -185,12 +185,12 @@ class Notification(object):
         if self.config['urls.nagios']:
             urls['nagios'] = \
                     "%s/cgi-bin/extinfo.cgi?type=2&host=%s&service=%s" % (
-                    self.config['nagios_url'].rstrip("/"),
+                    self.config['urls.nagios'].rstrip("/"),
                     urllib.quote_plus(self.macros['HOSTNAME']),
                     urllib.quote_plus(self.macros['SERVICEDESC']))
         if self.config['urls.graphs']:
             urls['graphs'] = "%s/service.cgi?host=%s&service=%s" % (
-                    self.config['graphs_url'].rstrip("/"),
+                    self.config['urls.graphs'].rstrip("/"),
                     urllib.quote_plus(self.macros['HOSTNAME']),
                     urllib.quote_plus(self.macros['SERVICEDESC']))
         return urls
@@ -374,7 +374,7 @@ def main():
         config = coil.parse(DEFAULT_CONFIG)
         if options.config:
             config.merge(coil.parse_file(options.config))
-    except coil.error.CoilError, ex:
+    except coil.errors.CoilError, ex:
         log.error("Error parsing config: %s" % ex)
         sys.exit(1)
     except IOError, ex:
