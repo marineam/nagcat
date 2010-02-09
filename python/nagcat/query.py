@@ -18,10 +18,11 @@ All requests are defined as a Query class which is a Runnable.
 """
 
 import os
+import re
 import errno
 import signal
 import struct
-import re
+import urlparse
 from base64 import b64encode
 
 try:
@@ -110,6 +111,9 @@ class Query(scheduler.Runnable):
         # Used by queries that can send a unique request id,
         # currently only HTTP...
         self.request_id = None
+
+        # Used by HTTP queries to report a user-friendly url
+        self.request_url = None
 
         # All queries should handle timeouts
         try:
@@ -212,6 +216,9 @@ class Query_http(Query):
             self.method = "POST"
         else:
             self.method = "GET"
+
+        self.request_url = urlparse.urlunsplit((self.scheme,
+                self.headers_host, self.conf['path'], None, None))
 
     def _start(self):
         # Generate a request id if possible

@@ -125,9 +125,11 @@ class SimpleTest(BaseTest):
     def _start(self):
         deferred = BaseTest._start(self)
 
-        # Save the request id so it will appear in reports
+        # Save the request id and url so it will appear in reports
         if self._query.request_id:
             self.saved['Request ID'] = self._query.request_id
+        if self._query.request_url:
+            self.saved['Request URL'] = self._query.request_url
 
         deferred.callback(self._query.result)
         return deferred
