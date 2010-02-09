@@ -14,6 +14,7 @@
 
 import os
 import time
+from twisted.internet import reactor
 from twisted.trial import unittest
 from nagcat.unittests import dummy_server
 from nagcat import errors, query
@@ -33,8 +34,9 @@ class NoOpQueryTestCase(unittest.TestCase):
 class HTTPQueryTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.server = dummy_server.randomTCP(dummy_server.HTTP())
-        self.config = Struct({'host': "localhost", 'port': self.server.port})
+        self.server = reactor.listenTCP(0, dummy_server.HTTP())
+        self.port = self.server.getHost().port
+        self.config = Struct({'host': "localhost", 'port': self.port})
 
     def testBasic(self):
         q = query.Query_http(self.config)
@@ -55,17 +57,18 @@ class HTTPQueryTestCase(unittest.TestCase):
 
     def endPost(self, ignore, q):
         self.assertEquals(q.result, "post data")
-        
+
     def tearDown(self):
         return self.server.loseConnection()
 
 
 class HTTPEmptyResponseTestCase(unittest.TestCase):
     """Test handling of an empty response from an http request"""
-    
+
     def setUp(self):
-        self.bad_server = dummy_server.randomTCP(dummy_server.QuickShutdown())
-        self.bad_config = Struct({'host': "localhost", 'port': self.bad_server.port})
+        self.bad_server = reactor.listenTCP(0, dummy_server.QuickShutdown())
+        self.bad_port = self.bad_server.getHost().port
+        self.bad_config = Struct({'host': "localhost", 'port': self.bad_port})
 
     def testEmpty(self):
         """test connecting to an HTTP socket that immediately closes"""
@@ -84,8 +87,9 @@ class HTTPEmptyResponseTestCase(unittest.TestCase):
 class TCPQueryTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.server = dummy_server.randomTCP(dummy_server.TCP())
-        self.config = Struct({'host': "localhost", 'port': self.server.port})
+        self.server = reactor.listenTCP(0, dummy_server.TCP())
+        self.port = self.server.getHost().port
+        self.config = Struct({'host': "localhost", 'port': self.port})
 
     def testBasic(self):
         q = query.Query_tcp(self.config)

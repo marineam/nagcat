@@ -65,14 +65,3 @@ class QuickShutdownProtocol(protocol.Protocol):
 
 class QuickShutdown(protocol.Factory):
     protocol = QuickShutdownProtocol
-
-def randomTCP(factory):
-    """Find an arbitrary port and listen on it."""
-
-    for i in xrange(9000, 9998):
-        try:
-            return reactor.listenTCP(i, factory)
-        except error.CannotListenError:
-            pass
-    # One last try, let the exception go this time
-    return reactor.listenTCP(9999, factory)
