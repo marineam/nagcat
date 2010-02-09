@@ -44,8 +44,6 @@ Documentation:
 %(documentation)s
 
 %(url)s
-
-%(date)s
 """
 
 TEMPLATE_BAD = """%(test)s %(state)s: %(summary)s
@@ -68,8 +66,6 @@ Investigation:
 %(investigation)s
 
 %(url)s
-
-%(date)s
 """
 
 
@@ -384,7 +380,6 @@ class Test(BaseTest):
                 'host': self.host,
                 'addr': self.addr,
                 'port': self._port,
-                'date': time.ctime(self._now),
                 'time': self._now,
                 'documentation': self._documentation,
                 'investigation': self._investigation,
