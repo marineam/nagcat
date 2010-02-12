@@ -154,6 +154,22 @@ class MissingMacro(Exception):
         super(MissingMacro, self).__init__("Missing Nagios macro: %s" % name)
 
 class Macros(dict):
+    """Fetch the various Nagios macros from the environment.
+
+    This allows notifications to use the macros as they would appear
+    in Nagios config files which are a little shorter.
+
+    Also provide a special Exception for missing macros.
+    """
+
+    def __init__(self, environ):
+        for key, value in environ.iteritems():
+            if not key.startswith("NAGIOS_"):
+                continue
+            key = key.replace("NAGIOS_", "", 1)
+            if key.startswith("LONG") and key.endswith("OUTPUT"):
+                value = value.replace(r'\n', '\n')
+            self[key] = value
 
     def __getitem__(self, key):
         try:
@@ -197,17 +213,30 @@ class Notification(object):
 
     def urls(self):
         urls = {}
-        if self.config['urls.nagios']:
-            urls['nagios'] = \
-                    "%s/cgi-bin/extinfo.cgi?type=2&host=%s&service=%s" % (
-                    self.config['urls.nagios'].rstrip("/"),
-                    urllib.quote_plus(self.macros['HOSTNAME']),
-                    urllib.quote_plus(self.macros['SERVICEDESC']))
-        if self.config['urls.graphs']:
-            urls['graphs'] = "%s/service.cgi?host=%s&service=%s" % (
-                    self.config['urls.graphs'].rstrip("/"),
-                    urllib.quote_plus(self.macros['HOSTNAME']),
-                    urllib.quote_plus(self.macros['SERVICEDESC']))
+        if self.type == "host":
+            if self.config['urls.nagios']:
+                urls['nagios'] = \
+                        "%s/cgi-bin/status.cgi?host=%s" % (
+                        self.config['urls.nagios'].rstrip("/"),
+                        urllib.quote_plus(self.macros['HOSTNAME']))
+            if self.config['urls.graphs']:
+                urls['graphs'] = "%s/host.cgi?host=%s" % (
+                        self.config['urls.graphs'].rstrip("/"),
+                        urllib.quote_plus(self.macros['HOSTNAME']))
+        elif self.type == "service":
+            if self.config['urls.nagios']:
+                urls['nagios'] = \
+                        "%s/cgi-bin/extinfo.cgi?type=2&host=%s&service=%s" % (
+                        self.config['urls.nagios'].rstrip("/"),
+                        urllib.quote_plus(self.macros['HOSTNAME']),
+                        urllib.quote_plus(self.macros['SERVICEDESC']))
+            if self.config['urls.graphs']:
+                urls['graphs'] = "%s/service.cgi?host=%s&service=%s" % (
+                        self.config['urls.graphs'].rstrip("/"),
+                        urllib.quote_plus(self.macros['HOSTNAME']),
+                        urllib.quote_plus(self.macros['SERVICEDESC']))
+        else:
+            assert 0
         return urls
 
     def graph(self):
@@ -323,6 +352,7 @@ class PagerNotification(EmailNotification):
     def headers(self):
         headers = super(PagerNotification, self).headers()
         headers['To'] = self.macros['CONTACTPAGER']
+        return headers
 
     def graph(self):
         return None
@@ -330,25 +360,6 @@ class PagerNotification(EmailNotification):
     def config(self):
         return None
 
-
-def nagios_macros(environ):
-    """Fetch the various Nagios macros from the environment.
-    
-    This allows notifications to use the macros as they would appear
-    in Nagios config files which are a little shorter.
-    """
-
-    macros = Macros()
-
-    for key, value in environ.iteritems():
-        if not key.startswith("NAGIOS_"):
-            continue
-        key = key.replace("NAGIOS_", "", 1)
-        if key.startswith("LONG") and key.endswith("OUTPUT"):
-            value = value.replace(r'\n', '\n')
-        macros[key] = value
-
-    return macros
 
 def parse_options():
     parser = OptionParser()
@@ -386,7 +397,7 @@ def parse_options():
 
 def main():
     options = parse_options()
-    macros = nagios_macros(os.environ)
+    macros = Macros(os.environ)
 
     log.init(options.logfile, options.loglevel)
 
