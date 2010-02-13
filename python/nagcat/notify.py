@@ -25,7 +25,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.generator import Generator
 
-from twisted.internet import reactor, task
+from twisted.internet import defer, reactor, task
 from twisted.python import failure
 from twisted.mail import smtp
 
@@ -41,6 +41,7 @@ RETRY_LIMIT = 6
 DEFAULT_CONFIG = '''
 smtp: {
     host: "127.0.0.1"
+    port: 25
 }
 
 urls: {
@@ -262,6 +263,44 @@ class Notification(object):
             raise MissingMacro(ex.args[0])
 
 
+class PatientSMTPSenderFactory(smtp.SMTPSenderFactory):
+    """The standard SMTPSender/SMTPSenderFactory pair will fire the
+    deferred as soon as message sending is complete *OR* the connection
+    was unexpectedly lost. Note that this means the deferred gets fired
+    *BEFORE* the connection is closed if the send was successful. This
+    makes for very grumpy unit tests and thus a very grumpy coder.
+    """
+
+    def __init__(self, fromEmail, toEmail, file, deferred,
+                 retries=5, timeout=None):
+        result = defer.Deferred()
+        smtp.SMTPSenderFactory.__init__(self, fromEmail, toEmail, file,
+                                        result, retries, timeout)
+        self.connection_closed = deferred
+        self.connection_closed.addBoth(lambda x: result)
+
+    def _processConnectionError(self, connector, err):
+        smtp.SMTPSenderFactory._processConnectionError(self, connector, err)
+        self.connection_closed.callback(None)
+
+def sendmail(smtphost, from_addr, to_addrs, msg,
+             senderDomainName=None, port=25):
+    """A copy/paste of smtp.sendmail() using PatientSMTPSenderFactory"""
+
+    if not hasattr(msg,'read'):
+        msg = StringIO(str(msg))
+
+    d = defer.Deferred()
+    factory = PatientSMTPSenderFactory(from_addr, to_addrs, msg, d)
+
+    if senderDomainName is not None:
+        factory.domain = senderDomainName
+
+    reactor.connectTCP(smtphost, port, factory)
+
+    return d
+
+
 class EmailNotification(Notification):
 
     def headers(self):
@@ -337,8 +376,9 @@ class EmailNotification(Notification):
 
         def try_send():
             msg_text.seek(0)
-            deferred = smtp.sendmail(self.config['smtp.host'],
-                    msg['From'], [msg['To']], msg_text)
+            deferred = sendmail(self.config['smtp.host'],
+                    msg['From'], [msg['To']], msg_text,
+                    port=self.config['smtp.port'])
             deferred.addErrback(retry)
             return deferred
 

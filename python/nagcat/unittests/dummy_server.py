@@ -14,9 +14,13 @@
 
 """Various dummy servers for use in unit tests."""
 
+
+from email.parser import FeedParser
 from zope.interface import implements
-from twisted.internet import interfaces, protocol, reactor, error
+from twisted.internet import defer, interfaces, protocol, error
+from twisted.python import failure
 from twisted.web import resource, server
+from twisted.mail import smtp
 
 class Root(resource.Resource):
     """Root directory of the dummy web server"""
@@ -65,3 +69,54 @@ class QuickShutdownProtocol(protocol.Protocol):
 
 class QuickShutdown(protocol.Factory):
     protocol = QuickShutdownProtocol
+
+class SMTPMessageParser(FeedParser):
+    """Parse the email message and store the resulting MIME
+    document in the original SMTP factory object."""
+
+    implements(smtp.IMessage)
+
+    def __init__(self, factory):
+        self.factory = factory
+        FeedParser.__init__(self)
+
+    def lineReceived(self, line):
+        self.feed("%s\n" % line)
+
+    def eomReceived(self):
+        self.factory.callback(self.close())
+        return defer.succeed(None)
+
+    def connectionLost(self):
+        self.factory.callback(failure.Failure(error.ConnectionLost()))
+
+class SMTPMessageDelivery(object):
+    """Accept all messages"""
+
+    implements(smtp.IMessageDelivery)
+
+    def __init__(self, factory):
+        self.factory = factory
+
+    def receivedHeader(self, helo, origin, recipients):
+        return "Received: Dummy SMTP Server"
+
+    def validateFrom(self, helo, origin):
+        return origin
+
+    def validateTo(self, user):
+        return lambda: SMTPMessageParser(self.factory)
+
+class SMTP(smtp.SMTPFactory):
+
+    def __init__(self):
+        self.message = defer.Deferred()
+        self.delivery = SMTPMessageDelivery(self)
+
+    def buildProtocol(self, addr):
+        p = smtp.SMTPFactory.buildProtocol(self, addr)
+        p.delivery = self.delivery
+        return p
+
+    def callback(self, result):
+        self.message.callback(result)
