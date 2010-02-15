@@ -13,11 +13,8 @@
 # limitations under the License.
 
 import re
-from email.message import Message
-from twisted.internet import reactor
 from twisted.trial import unittest
 from nagcat import notify
-from nagcat.unittests import dummy_server
 import coil
 
 ENVIRONMENT_HOST = {
@@ -230,47 +227,8 @@ class NotificationTest(unittest.TestCase):
             self.assert_(urls['nagios'].startswith(config['urls.nagios']))
             self.assert_(urls['graphs'].startswith(config['urls.graphs']))
 
-class EmailNotificationTest(unittest.TestCase):
+class PluginTest(unittest.TestCase):
 
-    notification = notify.EmailNotification
-    address = ENVIRONMENT_HOST['NAGIOS_CONTACTEMAIL']
-
-    def setUp(self):
-        self.macros = {
-                'host': notify.Macros(ENVIRONMENT_HOST),
-                'service': notify.Macros(ENVIRONMENT_SERVICE)}
-        self.factory = dummy_server.SMTP()
-        self.server = reactor.listenTCP(0, self.factory)
-        self.config = coil.parse(notify.DEFAULT_CONFIG)
-        self.config['smtp.port'] = self.server.getHost().port
-
-    def testNotifyHost(self):
-        return self._send('host', self.config)
-
-    def testNotifyServce(self):
-        return self._send('service', self.config)
-
-    def _send(self, type_, config):
-        obj = self.notification(type_, self.macros[type_], self.config)
-
-        def check(msg):
-            macros = self.macros[type_]
-            self.assertIsInstance(msg, Message)
-            self.assertEquals(msg['Subject'], obj.subject())
-            self.assertEquals(msg['To'], self.address)
-            self.assertEquals(msg['X-Nagios-Notification-Type'],
-                              macros['NOTIFICATIONTYPE'])
-            return msg
-
-        d = obj.send()
-        d.addCallback(lambda x: self.factory.message)
-        d.addCallback(check)
-        return d
-
-    def tearDown(self):
-        return self.server.loseConnection()
-
-class PagerNotificationTest(EmailNotificationTest):
-
-    notification = notify.PagerNotification
-    address = ENVIRONMENT_HOST['NAGIOS_CONTACTPAGER']
+    def testGetPlugins(self):
+        plugins = notify.get_notify_plugins()
+        self.assert_(plugins)

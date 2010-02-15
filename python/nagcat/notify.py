@@ -14,24 +14,17 @@
 
 import os
 import sys
-import pwd
-import time
-import socket
 import urllib
-from cStringIO import StringIO
 from optparse import OptionParser
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.generator import Generator
 
-from twisted.internet import defer, reactor, task
+from zope.interface import Interface, Attribute, implements
+from twisted.internet import reactor
 from twisted.python import failure
-from twisted.mail import smtp
+from twisted.plugin import IPlugin, getPlugins
 
 import coil
 
-from nagcat import errors, log, trend
+from nagcat import errors, log, trend, plugins
 
 
 # Attempt to retry after failures 6 times at 20 second intervals
@@ -39,11 +32,6 @@ RETRY_INTERVAL = 20
 RETRY_LIMIT = 6
 
 DEFAULT_CONFIG = '''
-smtp: {
-    host: "127.0.0.1"
-    port: 25
-}
-
 urls: {
     nagios: None
     graphs: None
@@ -181,7 +169,15 @@ class Macros(dict):
 class Notification(object):
     """Base notification class...."""
 
+    #: Name of this notification method
+    name = None
+
+    #: Format to use for generating text
     format = "long"
+
+    #: Default config options for this class.
+    #  (may be a string, dict, or Struct)
+    defaults = {}
 
     def __init__(self, type_, macros, config):
         assert type_ in ('host', 'service')
@@ -263,150 +259,47 @@ class Notification(object):
             raise MissingMacro(ex.args[0])
 
 
-class PatientSMTPSenderFactory(smtp.SMTPSenderFactory):
-    """The standard SMTPSender/SMTPSenderFactory pair will fire the
-    deferred as soon as message sending is complete *OR* the connection
-    was unexpectedly lost. Note that this means the deferred gets fired
-    *BEFORE* the connection is closed if the send was successful. This
-    makes for very grumpy unit tests and thus a very grumpy coder.
+class INotificationFactory(Interface):
+    """A factory for Notification objects."""
+
+    name = Attribute("The name of this notification method")
+    defaults = Attribute("Default coil configuration to add in")
+
+    def notification(event_type, macros, config):
+        """Create a new Notification object"""
+
+class NotificationFactory(object):
+    """Base class implementing INotificationFactory
+
+    Since pretty much every plugin would wind up providing a nearly
+    useless factory simply to conform to Twisted's plugin system we
+    will provide a generic one everyone can use.
     """
 
-    def __init__(self, fromEmail, toEmail, file, deferred,
-                 retries=5, timeout=None):
-        result = defer.Deferred()
-        smtp.SMTPSenderFactory.__init__(self, fromEmail, toEmail, file,
-                                        result, retries, timeout)
-        self.connection_closed = deferred
-        self.connection_closed.addBoth(lambda x: result)
+    implements(IPlugin, INotificationFactory)
 
-    def _processConnectionError(self, connector, err):
-        smtp.SMTPSenderFactory._processConnectionError(self, connector, err)
-        self.connection_closed.callback(None)
+    def __init__(self, cls):
+        self._cls = cls
 
-def sendmail(smtphost, from_addr, to_addrs, msg,
-             senderDomainName=None, port=25):
-    """A copy/paste of smtp.sendmail() using PatientSMTPSenderFactory"""
+    name = property(lambda self: self._cls.name)
+    defaults = property(lambda self: self._cls.defaults)
 
-    if not hasattr(msg,'read'):
-        msg = StringIO(str(msg))
-
-    d = defer.Deferred()
-    factory = PatientSMTPSenderFactory(from_addr, to_addrs, msg, d)
-
-    if senderDomainName is not None:
-        factory.domain = senderDomainName
-
-    reactor.connectTCP(smtphost, port, factory)
-
-    return d
+    def notification(event_type, macros, config):
+        return self._cls(event_type, macros, config)
 
 
-class EmailNotification(Notification):
-
-    def headers(self):
-        local = time.localtime(int(self.macros['TIMET']))
-        user = pwd.getpwuid(os.getuid())[0]
-        host = socket.getfqdn()
-
-        ret = {
-            'Subject': self.subject(),
-            'To': self.macros['CONTACTEMAIL'],
-            'From': "%s@%s" % (user, host),
-            'Date': smtp.rfc822date(local),
-            'X-Nagios-Notification-Type': self.macros['NOTIFICATIONTYPE'],
-            'X-Nagios-Host-Name': self.macros['HOSTNAME'],
-            'X-Nagios-Host-State': self.macros['HOSTSTATE'],
-            'X-Nagios-Host-Groups': self.macros['HOSTGROUPNAMES']
-        }
-
-        if self.type == "service":
-            ret['X-Nagios-Service-Description'] = self.macros['SERVICEDESC']
-            ret['X-Nagios-Service-State'] = self.macros['SERVICESTATE']
-            ret['X-Nagios-Service-Groups'] = self.macros['SERVICEGROUPNAMES']
-
-        return ret
-
-    def body(self):
-        text = super(EmailNotification, self).body()
-        if self.format == "long":
-            urls = self.urls()
-            if urls:
-                text += "\n"
-                if 'nagios' in urls:
-                    text += "Nagios: %s\n" % urls['nagios']
-                if 'graphs' in urls:
-                    text += "Graphs: %s\n" % urls['graphs']
-        return text
-
-    def send(self):
-        headers = self.headers()
-        msg = MIMEMultipart()
-        for key, value in headers.iteritems():
-            msg[key] = value
-
-        body = MIMEText(self.body())
-        msg.attach(body)
-
-        graph = self.graph()
-        if graph:
-            graph = MIMEImage(graph)
-            graph.add_header('Content-Disposition',
-                    'attachment', filename="graph.png")
-            msg.attach(graph)
-
-        coilcfg = self.coil()
-        if coilcfg:
-            coilcfg = MIMEText(coilcfg)
-            coilcfg.add_header('Content-Disposition',
-                    'attachment', filename="config.coil")
-            msg.attach(coilcfg)
-
-        msg_text = StringIO()
-        gen = Generator(msg_text, mangle_from_=False)
-        gen.flatten(msg)
-
-        retry_limit = [RETRY_LIMIT]
-        def retry(result):
-            retry_limit[0] -= 1
-            if retry_limit[0] < 0:
-                return result
-            else:
-                return task.deferLater(reactor,
-                        RETRY_INTERVAL, try_send)
-
-        def try_send():
-            msg_text.seek(0)
-            deferred = sendmail(self.config['smtp.host'],
-                    msg['From'], [msg['To']], msg_text,
-                    port=self.config['smtp.port'])
-            deferred.addErrback(retry)
-            return deferred
-
-        return try_send()
-
-
-class PagerNotification(EmailNotification):
-
-    format = "short"
-
-    def headers(self):
-        headers = super(PagerNotification, self).headers()
-        headers['To'] = self.macros['CONTACTPAGER']
-        return headers
-
-    def graph(self):
-        return None
-
-    def config(self):
-        return None
-
+def get_notify_plugins():
+    """Find all notification plugins, return a dict"""
+    return dict(dict((p.name, p) for p in
+        getPlugins(INotificationFactory, plugins)))
 
 def parse_options():
+    notify_plugins = get_notify_plugins()
+    notify_list = ", ".join(notify_plugins)
+
     parser = OptionParser()
-    parser.add_option("--email", action="store_true", default=False,
-            help="send full email notice")
-    parser.add_option("--pager", action="store_true", default=False,
-            help="send shorter email notice for sms/pagers")
+    parser.add_option("-m", "--method",
+            help="notification method: %s" % notify_list)
     parser.add_option("-H", "--host", action="store_true", default=False,
             help="this is a host notification")
     parser.add_option("-S", "--service", action="store_true", default=False,
@@ -419,29 +312,33 @@ def parse_options():
             help="set a specific log level")
     parser.add_option("-d", "--daemonize", action="store_true",
             help="daemonize to avoid blocking nagios")
+    parser.add_option("-D", "--dump", action="store_true",
+            help="just dump the config")
     options, args = parser.parse_args()
 
     if args:
         parser.error("unknown extra arguments: %s" % args)
 
-    if 1 != sum([options.email, options.pager]):
-        parser.error("choose one and only one: email, pager")
+    if not options.method:
+        parser.error("--method is required")
 
-    if 1 != sum([options.host, options.service]):
+    if options.method not in notify_plugins:
+        parser.error("invalid method, choose from: %s" % notify_list)
+
+    if not options.dump and 1 != sum([options.host, options.service]):
         parser.error("choose one and only one: host, service")
 
     if options.daemonize and not options.logfile:
         parser.error("--daemonize requires --log-file")
 
-    return options
+    return options, notify_plugins[options.method]
 
 def main():
-    options = parse_options()
-    macros = Macros(os.environ)
+    options, plugin = parse_options()
 
     log.init(options.logfile, options.loglevel)
 
-    if options.daemonize:
+    if not options.dump and options.daemonize:
         if os.fork() > 0:
             os._exit(0)
         os.chdir("/")
@@ -450,12 +347,13 @@ def main():
             os._exit(0)
         log.init_stdio()
 
-    if not macros:
-        log.error("No Nagios environment variables found.")
-        sys.exit(1)
-
     try:
         config = coil.parse(DEFAULT_CONFIG)
+        if plugin.defaults:
+            if isinstance(plugin.defaults, str):
+                config.merge(coil.parse(plugin.defaults))
+            else:
+                config.merge(coil.struct.Struct(plugin.defaults))
         if options.config:
             config.merge(coil.parse_file(options.config))
     except coil.errors.CoilError, ex:
@@ -465,6 +363,15 @@ def main():
         log.error("Error reading config file: %s" % ex)
         sys.exit(1)
 
+    if options.dump:
+        print str(config)
+        sys.exit(0)
+
+    macros = Macros(os.environ)
+    if not macros:
+        log.error("No Nagios environment variables found.")
+        sys.exit(1)
+
     if options.host:
         event_type = "host"
     elif options.service:
@@ -472,12 +379,7 @@ def main():
     else:
         assert 0
 
-    if options.email:
-        notifier = EmailNotification(event_type, macros, config)
-    elif options.pager:
-        notifier = PagerNotification(event_type, macros, config)
-    else:
-        assert 0
+    notifier = plugin.notification(event_type, macros, config)
 
     exit_code = [-1]
 
