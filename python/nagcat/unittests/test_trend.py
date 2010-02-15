@@ -20,6 +20,9 @@ from nagcat import trend
 
 class TrendDataTestCase(unittest.TestCase):
 
+    if trend.rrdtool is None:
+        skip = "rrdtool is not installed"
+
     def setUp(self):
         self.tmpdir = self.mktemp()
         os.mkdir(self.tmpdir)
@@ -93,6 +96,9 @@ class TrendDataTestCase(unittest.TestCase):
         data2.close()
 
 class TrendDataTestCase(unittest.TestCase):
+
+    if trend.rrdtool is None:
+        skip = "rrdtool is not installed"
 
     def setUp(self):
         self.tmpdir = self.mktemp()
