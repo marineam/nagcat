@@ -284,7 +284,7 @@ class NotificationFactory(object):
     name = property(lambda self: self._cls.name)
     defaults = property(lambda self: self._cls.defaults)
 
-    def notification(event_type, macros, config):
+    def notification(self, event_type, macros, config):
         return self._cls(event_type, macros, config)
 
 
