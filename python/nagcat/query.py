@@ -738,6 +738,12 @@ class Query_ntp(Query):
         deferred.addBoth(stop)
         return deferred
 
+    def __str__(self):
+        # disable query grouping for ntp, it is light weight enough
+        # and this allows snmp+ntp to be used without scheduling all
+        # snmp tests at once as would happen if ntp queries are shared.
+        return repr(self)
+
 
 ##############################
 # Oracle-specific SQL queries
