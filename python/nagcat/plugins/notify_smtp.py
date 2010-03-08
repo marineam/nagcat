@@ -169,7 +169,3 @@ class PagerNotification(EmailNotification):
 
     def config(self):
         return None
-
-
-email = notify.NotificationFactory(EmailNotification)
-pager = notify.NotificationFactory(PagerNotification)

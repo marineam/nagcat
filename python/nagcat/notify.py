@@ -17,14 +17,12 @@ import sys
 import urllib
 from optparse import OptionParser
 
-from zope.interface import Interface, Attribute, implements
 from twisted.internet import reactor
 from twisted.python import failure
-from twisted.plugin import IPlugin, getPlugins
 
 import coil
 
-from nagcat import errors, log, trend, plugins
+from nagcat import errors, log, trend, plugin
 
 
 # Attempt to retry after failures 6 times at 20 second intervals
@@ -167,7 +165,8 @@ class Macros(dict):
             raise MissingMacro(key)
 
 class Notification(object):
-    """Base notification class...."""
+    __metaclass__ = plugin.NagcatPlugin
+    """Pluggable base notification class."""
 
     #: Name of this notification method
     name = None
@@ -259,39 +258,9 @@ class Notification(object):
             raise MissingMacro(ex.args[0])
 
 
-class INotificationFactory(Interface):
-    """A factory for Notification objects."""
-
-    name = Attribute("The name of this notification method")
-    defaults = Attribute("Default coil configuration to add in")
-
-    def notification(event_type, macros, config):
-        """Create a new Notification object"""
-
-class NotificationFactory(object):
-    """Base class implementing INotificationFactory
-
-    Since pretty much every plugin would wind up providing a nearly
-    useless factory simply to conform to Twisted's plugin system we
-    will provide a generic one everyone can use.
-    """
-
-    implements(IPlugin, INotificationFactory)
-
-    def __init__(self, cls):
-        self._cls = cls
-
-    name = property(lambda self: self._cls.name)
-    defaults = property(lambda self: self._cls.defaults)
-
-    def notification(self, event_type, macros, config):
-        return self._cls(event_type, macros, config)
-
-
 def get_notify_plugins():
     """Find all notification plugins, return a dict"""
-    return dict(dict((p.name, p) for p in
-        getPlugins(INotificationFactory, plugins)))
+    return plugin.search(Notification)
 
 def parse_options():
     notify_plugins = get_notify_plugins()
@@ -334,7 +303,7 @@ def parse_options():
     return options, notify_plugins[options.method]
 
 def main():
-    options, plugin = parse_options()
+    options, method = parse_options()
 
     log.init(options.logfile, options.loglevel)
 
@@ -349,11 +318,11 @@ def main():
 
     try:
         config = coil.parse(DEFAULT_CONFIG)
-        if plugin.defaults:
-            if isinstance(plugin.defaults, str):
-                config.merge(coil.parse(plugin.defaults))
+        if method.defaults:
+            if isinstance(method.defaults, str):
+                config.merge(coil.parse(method.defaults))
             else:
-                config.merge(coil.struct.Struct(plugin.defaults))
+                config.merge(coil.struct.Struct(method.defaults))
         if options.config:
             config.merge(coil.parse_file(options.config))
     except coil.errors.CoilError, ex:
@@ -379,7 +348,7 @@ def main():
     else:
         assert 0
 
-    notifier = plugin.notification(event_type, macros, config)
+    notifier = method(event_type, macros, config)
 
     exit_code = [-1]
 
