@@ -21,6 +21,73 @@ from nagcat import errors, query
 from coil.struct import Struct
 from snapy.netsnmp.unittests import TestCase as SnmpTestCase
 
+class FilteredQueryCase(unittest.TestCase):
+
+    def testOk(self):
+        config = Struct({
+                'type': "noop",
+                'data': "something",
+            })
+
+        t = query.FilteredQuery(config)
+        d = t.start()
+        d.addBoth(self.endOk, t)
+        return d
+
+    def endOk(self, result, t):
+        self.assertEquals(result, None)
+        self.assertEquals(t.result, "something")
+
+    def testWarning(self):
+        config = Struct({
+                'type': "noop",
+                'data': "something",
+                'warning': "= something",
+            })
+
+        t = query.FilteredQuery(config)
+        d = t.start()
+        d.addBoth(self.endWarning, t)
+        return d
+
+    def endWarning(self, result, t):
+        self.assertEquals(result, None)
+        self.assertIsInstance(t.result, errors.Failure)
+        self.assertIsInstance(t.result.value, errors.TestWarning)
+        self.assertEquals(t.result.result, "something")
+
+    def testCritical(self):
+        config = Struct({
+                'type': "noop",
+                'data': "something",
+                'warning': "= something",
+                'critical': "= something",
+            })
+
+        t = query.FilteredQuery(config)
+        d = t.start()
+        d.addBoth(self.endCritical, t)
+        return d
+
+    def endCritical(self, result, t):
+        self.assertEquals(result, None)
+        self.assertIsInstance(t.result, errors.Failure)
+        self.assertIsInstance(t.result.value, errors.TestCritical)
+        self.assertEquals(t.result.result, "something")
+
+    def testFilterCritical(self):
+        config = Struct({
+                'type': "noop",
+                'data': "something",
+                'filters': [ "warning: = something", "critical: = something" ],
+            })
+
+        t = query.FilteredQuery(config)
+        d = t.start()
+        d.addBoth(self.endCritical, t)
+        return d
+
+
 class NoOpQueryTestCase(unittest.TestCase):
 
     def testBasic(self):

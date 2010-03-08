@@ -61,7 +61,7 @@ except ImportError:
 from snapy import netsnmp
 from snapy.twisted import Session as SnmpSession
 
-from nagcat import errors, log, scheduler
+from nagcat import errors, filters, log, scheduler
 
 _queries = {}
 
@@ -158,6 +158,51 @@ class Query(scheduler.Runnable):
         not need to be used but may be useful for the tricky cases.
         """
         pass
+
+class FilteredQuery(Query):
+    """A query that wraps another query and applies filters to it"""
+
+    def __init__(self, conf):
+        Query.__init__(self, conf)
+
+        self._port = conf.get('port', None)
+        # Used by the save filter and report
+        self.saved = {}
+
+        # Create the filter objects
+        filter_list = conf.get('filters', [])
+        self._filters = [filters.Filter(self, x) for x in filter_list]
+
+        # Add final critical and warning tests
+        if 'critical' in conf:
+            self._filters.append(
+                    filters.Filter_critical(self, None, conf['critical']))
+        if 'warning' in conf:
+            self._filters.append(
+                    filters.Filter_warning(self, None, conf['warning']))
+
+        self._query = addQuery(conf)
+        self.addDependency(self._query)
+
+    def _start(self):
+        self.saved.clear()
+        # Save the request id and url so it will appear in reports
+        if self._query.request_id:
+            self.saved['Request ID'] = self._query.request_id
+        if self._query.request_url:
+            self.saved['Request URL'] = self._query.request_url
+
+        deferred = defer.Deferred()
+        deferred.callback(self._query.result)
+
+        for filter in self._filters:
+            if filter.handle_errors:
+                deferred.addBoth(filter.filter)
+            else:
+                deferred.addCallback(filter.filter)
+
+        return deferred
+
 
 class Query_noop(Query):
     """Dummy query useful for testing."""

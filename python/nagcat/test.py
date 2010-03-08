@@ -107,29 +107,6 @@ class BaseTest(scheduler.Runnable):
 
         return deferred
 
-class SimpleTest(BaseTest):
-    """Used only as sub-tests"""
-
-    def __init__(self, conf):
-        """conf is a coil config defining the test"""
-
-        BaseTest.__init__(self, conf)
-
-        self._query = query.addQuery(conf)
-        self.addDependency(self._query)
-
-    def _start(self):
-        deferred = BaseTest._start(self)
-
-        # Save the request id and url so it will appear in reports
-        if self._query.request_id:
-            self.saved['Request ID'] = self._query.request_id
-        if self._query.request_url:
-            self.saved['Request URL'] = self._query.request_url
-
-        deferred.callback(self._query.result)
-        return deferred
-
 
 class ChildError(errors.TestError):
     """This is used to tell Test._report that the error happened in
@@ -169,7 +146,7 @@ class Test(BaseTest):
                     continue
 
                 self._addDefaults(qconf)
-                self._subtests[name] = SimpleTest(qconf)
+                self._subtests[name] = query.FilteredQuery(qconf)
                 self.addDependency(self._subtests[name])
 
             if not self._subtests:
@@ -201,7 +178,7 @@ class Test(BaseTest):
             self._compound = False
             qconf = conf.get('query')
             self._addDefaults(qconf)
-            self._subtests['query'] = SimpleTest(qconf)
+            self._subtests['query'] = query.FilteredQuery(qconf)
             self.addDependency(self._subtests['query'])
 
         self._report_callbacks = []
