@@ -14,14 +14,16 @@
 
 import os
 from twisted.trial import unittest
-from nagcat import errors, query
+from nagcat import errors, query, plugin
 from coil.struct import Struct
 
 # NOTE: user/pw/sid are not included here, for security reasons.  Please set the
 # following environment variables accordingly when running this test:
 # ORA_USER, ORA_PASS, ORA_DSN
 class OracleTestCase(unittest.TestCase):
-    if not query.cx_Oracle or not query.etree:
+    try:
+        import cx_Oracle, lxml
+    except ImportError:
         skip = "Missing cx_Oracle or lxml"
 
     def setUp(self):
@@ -41,7 +43,8 @@ class OracleTestCase(unittest.TestCase):
         conf = self.config.copy()
         conf['sql'] = 'select 1 as data from dual'
 
-        q = query.Query_oraclesql(conf)
+        qcls = plugin.search(query.IQuery, "oraclesql")
+        q = qcls(conf)
         d = q.start()
         d.addBoth(self.endSimple, q)
         return d
@@ -58,7 +61,8 @@ class OracleTestCase(unittest.TestCase):
         conf = self.config.copy()
         conf['sql'] = 'select 1 from dual'
 
-        q = query.Query_oraclesql(conf)
+        qcls = plugin.search(query.IQuery, "oraclesql")
+        q = qcls(conf)
         d = q.start()
         d.addBoth(self.endBadQuery, q)
         return d
@@ -68,7 +72,9 @@ class OracleTestCase(unittest.TestCase):
 
 
 class OracleBadLoginTestCase(unittest.TestCase):
-    if not query.cx_Oracle or not query.etree:
+    try:
+        import cx_Oracle, lxml
+    except ImportError:
         skip = "Missing cx_Oracle or lxml"
 
     def setUp(self):
@@ -78,7 +84,8 @@ class OracleBadLoginTestCase(unittest.TestCase):
                               'sql':'select 1 from dual'})
 
     def testBadQuery(self):
-        q = query.Query_oraclesql(self.config)
+        qcls = plugin.search(query.IQuery, "oraclesql")
+        q = qcls(conf)
         d = q.start()
         d.addBoth(self.endBadQuery, q)
         return d

@@ -17,7 +17,7 @@ import time
 from twisted.internet import reactor
 from twisted.trial import unittest
 from nagcat.unittests import dummy_server
-from nagcat import errors, query
+from nagcat import errors, query, plugin
 from coil.struct import Struct
 from snapy.netsnmp.unittests import TestCase as SnmpTestCase
 
@@ -91,7 +91,8 @@ class FilteredQueryCase(unittest.TestCase):
 class NoOpQueryTestCase(unittest.TestCase):
 
     def testBasic(self):
-        q = query.Query_noop(Struct({'data': "bogus data"}))
+        qcls = plugin.search(query.IQuery, 'noop')
+        q = qcls(Struct({'data': "bogus data"}))
         d = q.start()
         d.addBoth(self.endBasic, q)
 
@@ -106,7 +107,8 @@ class HTTPQueryTestCase(unittest.TestCase):
         self.config = Struct({'host': "localhost", 'port': self.port})
 
     def testBasic(self):
-        q = query.Query_http(self.config)
+        qcls = plugin.search(query.IQuery, 'http')
+        q = qcls(self.config)
         d = q.start()
         d.addBoth(self.endBasic, q)
         return d
@@ -117,7 +119,8 @@ class HTTPQueryTestCase(unittest.TestCase):
     def testPost(self):
         config = self.config.copy()
         config['data'] = "post data"
-        q = query.Query_http(config)
+        qcls = plugin.search(query.IQuery, 'http')
+        q = qcls(config)
         d = q.start()
         d.addBoth(self.endPost, q)
         return d
@@ -139,7 +142,8 @@ class HTTPEmptyResponseTestCase(unittest.TestCase):
 
     def testEmpty(self):
         """test connecting to an HTTP socket that immediately closes"""
-        q = query.Query_http(self.bad_config)
+        qcls = plugin.search(query.IQuery, 'http')
+        q = qcls(self.bad_config)
         d = q.start()
         d.addBoth(self.endEmpty, q)
         return d
@@ -159,7 +163,8 @@ class TCPQueryTestCase(unittest.TestCase):
         self.config = Struct({'host': "localhost", 'port': self.port})
 
     def testBasic(self):
-        q = query.Query_tcp(self.config)
+        qcls = plugin.search(query.IQuery, 'tcp')
+        q = qcls(self.config)
         d = q.start()
         d.addBoth(self.endBasic, q)
         return d
@@ -170,7 +175,8 @@ class TCPQueryTestCase(unittest.TestCase):
     def testPost(self):
         config = self.config.copy()
         config['data'] = "post data"
-        q = query.Query_tcp(config)
+        qcls = plugin.search(query.IQuery, 'tcp')
+        q = qcls(config)
         d = q.start()
         d.addBoth(self.endPost, q)
         return d
@@ -184,7 +190,8 @@ class TCPQueryTestCase(unittest.TestCase):
 class SubprocessQueryTestCase(unittest.TestCase):
 
     def testBasic(self):
-        q = query.Query_subprocess(Struct({'command': "echo hello"}))
+        qcls = plugin.search(query.IQuery, 'subprocess')
+        q = qcls(Struct({'command': "echo hello"}))
         d = q.start()
         d.addBoth(self.endBasic, q)
         return d
@@ -193,7 +200,8 @@ class SubprocessQueryTestCase(unittest.TestCase):
         self.assertEquals(q.result, "hello\n")
 
     def testTrue(self):
-        q = query.Query_subprocess(Struct({'command': "true"}))
+        qcls = plugin.search(query.IQuery, 'subprocess')
+        q = qcls(Struct({'command': "true"}))
         d = q.start()
         d.addBoth(self.endTrue, q)
         return d
@@ -202,7 +210,8 @@ class SubprocessQueryTestCase(unittest.TestCase):
         self.assertEquals(q.result, "")
 
     def testFalse(self):
-        q = query.Query_subprocess(Struct({'command': "false"}))
+        qcls = plugin.search(query.IQuery, 'subprocess')
+        q = qcls(Struct({'command': "false"}))
         d = q.start()
         d.addBoth(self.endFalse, q)
         return d
@@ -214,7 +223,8 @@ class SubprocessQueryTestCase(unittest.TestCase):
     def testEnvGood(self):
         c = {'command': "test_subprocess_path", 'environment': {
                 'PATH': os.path.dirname(__file__) } }
-        q = query.Query_subprocess(Struct(c))
+        qcls = plugin.search(query.IQuery, 'subprocess')
+        q = qcls(Struct(c))
         d = q.start()
         d.addBoth(self.endEnvGood, q)
         return d
@@ -223,7 +233,8 @@ class SubprocessQueryTestCase(unittest.TestCase):
         self.assertEquals(q.result, "")
 
     def testEnvBad(self):
-        q = query.Query_subprocess(Struct({'command': "test_subprocess_path"}))
+        qcls = plugin.search(query.IQuery, 'subprocess')
+        q = qcls(Struct({'command': "test_subprocess_path"}))
         d = q.start()
         d.addBoth(self.endEnvBad, q)
         return d
@@ -252,7 +263,8 @@ class SnmpQueryTestCaseV1(SnmpTestCase):
     def testBasicGood(self):
         c = self.conf.copy()
         c['oid'] = ".1.3.6.1.4.2.1.1";
-        q = query.Query_snmp(c)
+        qcls = plugin.search(query.IQuery, 'snmp')
+        q = qcls(c)
 
         def check(ignore):
             self.assertEquals(q.result, "1")
@@ -264,7 +276,8 @@ class SnmpQueryTestCaseV1(SnmpTestCase):
     def testBasicBad(self):
         c = self.conf.copy()
         c['oid'] = ".1.3.6.1.4.2.1";
-        q = query.Query_snmp(c)
+        qcls = plugin.search(query.IQuery, 'snmp')
+        q = qcls(c)
 
         def check(ignore):
             self.assertIsInstance(q.result, errors.Failure)
@@ -279,7 +292,8 @@ class SnmpQueryTestCaseV1(SnmpTestCase):
         c['oid_base'] = ".1.3.6.1.4.2.3";
         c['oid_key']  = ".1.3.6.1.4.2.2";
         c['key'] = 'two'
-        q = query.Query_snmp(c)
+        qcls = plugin.search(query.IQuery, 'snmp')
+        q = qcls(c)
 
         def check(ignore):
             self.assertEquals(q.result, "2")
@@ -301,7 +315,8 @@ class NTPTestCase(unittest.TestCase):
                 'host': 'pool.ntp.org',
                 'port': 123})
         now = time.time()
-        q = query.Query_ntp(conf)
+        qcls = plugin.search(query.IQuery, 'ntp')
+        q = qcls(conf)
 
         def check(ignore):
             # chop off a bunch of time because they won't be exact
@@ -317,7 +332,8 @@ class NTPTestCase(unittest.TestCase):
                 'host': 'localhost',
                 'port': 9})
         now = time.time()
-        q = query.Query_ntp(conf)
+        qcls = plugin.search(query.IQuery, 'ntp')
+        q = qcls(conf)
 
         def check(ignore):
             self.assertIsInstance(q.result, errors.Failure)
