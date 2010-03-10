@@ -164,9 +164,11 @@ class Macros(dict):
         except KeyError:
             raise MissingMacro(key)
 
+class INotification(plugin.INagcatPlugin):
+    """Interface provided by Notification plugin classes"""
+
 class Notification(object):
-    __metaclass__ = plugin.NagcatPlugin
-    """Pluggable base notification class."""
+    """Base notification class."""
 
     #: Name of this notification method
     name = None
@@ -258,12 +260,8 @@ class Notification(object):
             raise MissingMacro(ex.args[0])
 
 
-def get_notify_plugins():
-    """Find all notification plugins, return a dict"""
-    return plugin.search(Notification)
-
 def parse_options():
-    notify_plugins = get_notify_plugins()
+    notify_plugins = plugin.search(INotification)
     notify_list = ", ".join(notify_plugins)
 
     parser = OptionParser()

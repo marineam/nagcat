@@ -15,8 +15,7 @@
 from email.message import Message
 from twisted.internet import reactor
 from twisted.trial import unittest
-from nagcat import notify
-from nagcat.plugins import notify_smtp
+from nagcat import notify, plugin
 from nagcat.unittests import dummy_server
 from nagcat.unittests import test_notify
 import coil
@@ -24,10 +23,11 @@ import coil
 
 class EmailNotificationTest(unittest.TestCase):
 
-    notification = notify_smtp.EmailNotification
+    name = 'email'
     address = test_notify.ENVIRONMENT_HOST['NAGIOS_CONTACTEMAIL']
 
     def setUp(self):
+        self.notification = plugin.search(notify.INotification, self.name)
         self.macros = {
                 'host': notify.Macros(test_notify.ENVIRONMENT_HOST),
                 'service': notify.Macros(test_notify.ENVIRONMENT_SERVICE)}
@@ -36,10 +36,6 @@ class EmailNotificationTest(unittest.TestCase):
         self.config = coil.parse(notify.DEFAULT_CONFIG)
         self.config.merge(coil.struct.Struct(self.notification.defaults))
         self.config['smtp.port'] = self.server.getHost().port
-
-    def testPlugin(self):
-        plugins = notify.get_notify_plugins()
-        self.assertIn(self.notification.name, plugins)
 
     def testNotifyHost(self):
         return self._send('host', self.config)
@@ -69,5 +65,5 @@ class EmailNotificationTest(unittest.TestCase):
 
 class PagerNotificationTest(EmailNotificationTest):
 
-    notification = notify_smtp.PagerNotification
+    name = "pager"
     address = test_notify.ENVIRONMENT_HOST['NAGIOS_CONTACTPAGER']

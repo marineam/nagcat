@@ -12,36 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from zope.interface import Interface, Attribute, implements
+from zope.interface import Attribute
 from twisted.plugin import IPlugin, getPlugins
 
 from nagcat import plugins
 
-class INagcatPlugin(Interface):
-    """Interface used to find plugin classes"""
+class INagcatPlugin(IPlugin):
+    """Interface for Nagcat plugin classes, should be sub-classed"""
 
     name = Attribute("Name of this plugin")
 
-class NagcatPlugin(type):
-    """Metaclass implementing INagcatPlugin for plugin classes.
-    
-    The Twisted plugin system searches for objects that are instances
-    of a class implementing a particular Interface. Using a metaclass
-    allows us to find classes based on this search system rather than
-    the objects themselves.
+_missing = object()
+def search(interface, name=None, default=_missing):
+    """Search for a plugin providing a given interface.
+
+    If name is provided return the specific plugin, otherwise
+    return a dict containing everything providing the interface.
     """
 
-    implements(IPlugin, INagcatPlugin)
+    assert issubclass(interface, INagcatPlugin)
 
-    # plugin classes should provide this.
-    name = None
-
-def search(base_class):
     found = {}
-    for cls in getPlugins(INagcatPlugin, plugins):
-        if issubclass(cls, base_class):
-            if cls.name is None:
-                continue
-            else:
-                found[cls.name] = cls
-    return found
+    for cls in getPlugins(interface, plugins):
+        if cls.name is None:
+            continue
+        else:
+            found[cls.name] = cls
+
+    if name:
+        if default is not _missing:
+            return found.get(name, default)
+        else:
+            return found[name]
+    else:
+        return found

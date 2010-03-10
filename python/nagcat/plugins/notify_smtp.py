@@ -22,6 +22,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.generator import Generator
 
+from zope.interface import classProvides
 from twisted.internet import defer, reactor, task
 from twisted.mail import smtp
 
@@ -68,6 +69,8 @@ def sendmail(smtphost, from_addr, to_addrs, msg,
 
 class EmailNotification(notify.Notification):
     """Send notifications via email"""
+
+    classProvides(notify.INotification)
 
     name = "email"
     defaults = {'smtp': {'host': "127.0.0.1", 'port': 25}}
@@ -155,6 +158,8 @@ class EmailNotification(notify.Notification):
 
 
 class PagerNotification(EmailNotification):
+
+    classProvides(notify.INotification)
 
     name = "pager"
     format = "short"

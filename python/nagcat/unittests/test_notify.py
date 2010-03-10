@@ -226,9 +226,3 @@ class NotificationTest(unittest.TestCase):
             urls = obj.urls()
             self.assert_(urls['nagios'].startswith(config['urls.nagios']))
             self.assert_(urls['graphs'].startswith(config['urls.graphs']))
-
-class PluginTest(unittest.TestCase):
-
-    def testGetPlugins(self):
-        plugins = notify.get_notify_plugins()
-        self.assert_(plugins)
