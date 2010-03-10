@@ -175,11 +175,11 @@ class FilteredQuery(Query):
 
         # Add final critical and warning tests
         if 'critical' in conf:
-            self._filters.append(
-                    filters.Filter_critical(self, None, conf['critical']))
+            self._filters.append(filters.get_filter(
+                self, 'critical', None, conf['critical']))
         if 'warning' in conf:
-            self._filters.append(
-                    filters.Filter_warning(self, None, conf['warning']))
+            self._filters.append(filters.get_filter(
+                self, 'warning', None, conf['warning']))
 
         self._query = addQuery(conf)
         self.addDependency(self._query)
