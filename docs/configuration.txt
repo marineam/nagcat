@@ -457,15 +457,21 @@ query: {
     version: "2c"
 
     # OID number, required for single oid requests
+    # Both the textual name and the raw numbers work.
     oid: ".1.3.6.1.2.1.1.1.0"   # SNMPv2-MIB::sysDescr.0
 
     # Instead of the above oid attribute use the following for tables:
     # HOST-RESOURCES-MIB::hrStorageSize
-    oid_base: ".1.3.6.1.2.1.25.2.3.1.5"
-    # HOST-RESOURCES-MIB::hrStorageDescr
-    oid_key: ".1.3.6.1.2.1.25.2.3.1.3"
+    oid_base: "HOST-RESOURCES-MIB::hrStorageSize"
+    oid_key: "HOST-RESOURCES-MIB::hrStorageDescr"
     # Fetch root's storage size
     key: "/"
+
+    # With either the oid or oid_base/oid_key you can provide
+    # oid_scale to fetch the units of the value and scale it
+    # appropriately. This is needed for hrStorage* because it
+    # returns sizes in anything from 1024 to 65536 Bytes.
+    oid_scale: "HOST-RESOURCES-MIB::hrStorageAllocationUnits"
 }
 
 NTP:

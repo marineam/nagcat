@@ -21,7 +21,7 @@ from twisted.python import failure
 from snapy import netsnmp
 from snapy.twisted import Session as SnmpSession
 
-from nagcat import errors, query
+from nagcat import errors, query, util
 
 class SNMPCommon(query.Query):
     """Parent class for both SNMPQuery and SNMPCombined."""
@@ -88,21 +88,29 @@ class SNMPQuery(SNMPCommon):
             self.conf['oid_base'] = self.check_oid(conf, 'oid_base')
             self.conf['oid_key'] = self.check_oid(conf, 'oid_key')
             self.conf['key'] = conf['key']
+            conf['walk'] = True
 
             base = conf.copy()
-            base['walk'] = True
             base['oid'] = self.conf['oid_base']
             self.query_base = query.addQuery(base, qcls=SNMPCombined)
             self.addDependency(self.query_base)
 
             key = conf.copy()
-            key['walk'] = True
             key['oid'] = self.conf['oid_key']
             self.query_key = query.addQuery(key, qcls=SNMPCombined)
             self.addDependency(self.query_key)
         else:
             raise errors.ConfigError(conf,
                     "oid or oid_base, oid_key, and key are required")
+
+        if "oid_scale" in conf:
+            self.conf['oid_scale'] = self.check_oid(conf, 'oid_scale')
+            scale = conf.copy()
+            scale['oid'] = self.conf['oid_scale']
+            self.query_scale = query.addQuery(scale, qcls=SNMPCombined)
+            self.addDependency(self.query_scale)
+        else:
+            self.query_scale = None
 
     def _start(self):
         """Get and filter the result the from combined query."""
@@ -115,6 +123,20 @@ class SNMPQuery(SNMPCommon):
         except:
             return errors.Failure()
 
+    def _do_scale(self, scale, value):
+        """Scale a numeric value"""
+
+        # Use MathString so this even works if the OID returns
+        # a number as a string, uncommon but possible.
+        try:
+            scale = util.MathString(scale)
+            value = util.MathString(value)
+        except util.MathError:
+            raise errors.TestCritical(
+                "oid_scale is set but result(s) are not numbers")
+
+        return value * scale
+
     def _get_result(self):
         """Get a single oid value"""
 
@@ -126,8 +148,17 @@ class SNMPQuery(SNMPCommon):
         result = dict(self.query_oid.result)
         if oid not in result:
             raise errors.TestCritical("No value received for %s" % (oid,))
+        result = result[oid]
 
-        return str(result[oid])
+        if self.query_scale:
+            oid = self.conf['scale_oid']
+            scale = dict(self.query_scale.result)
+            if oid not in result:
+                raise errors.TestCritical("No value received for %s" % (oid,))
+            scale = scale[oid]
+            result = self._do_scale(scale, result)
+
+        return str(result)
 
     def _get_result_set(self):
         """Get the requested value from the oid_base set.
@@ -156,6 +187,8 @@ class SNMPQuery(SNMPCommon):
         try:
             base = filter_result(self.query_base.result, "oid_base")
             keys = filter_result(self.query_key.result, "oid_key")
+            if self.query_scale:
+                scale = filter_result(self.query_scale.result, "oid_scale")
         except Return, ex:
             return ex.args[0]
 
@@ -164,6 +197,8 @@ class SNMPQuery(SNMPCommon):
             if value == self.conf["key"]:
                 index = oid[len(self.conf["oid_key"]):]
                 final = self.conf['oid_base'] + index
+                if self.query_scale:
+                    final_scale = self.conf['oid_scale'] + index
                 break
 
         if final is None:
@@ -172,7 +207,16 @@ class SNMPQuery(SNMPCommon):
         if final not in base:
             raise errors.TestCritical("No value received for %s" % (final,))
 
-        return str(base[final])
+        result = base[final]
+
+        if self.query_scale:
+            if final_scale not in scale:
+                raise errors.TestCritical(
+                        "No value received for %s" % (final_scale,))
+            scale = scale[final_scale]
+            result = self._do_scale(scale, result)
+
+        return str(result)
 
 
 class SNMPCombined(SNMPCommon):
