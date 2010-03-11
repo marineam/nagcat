@@ -85,7 +85,7 @@ class OracleBadLoginTestCase(unittest.TestCase):
 
     def testBadQuery(self):
         qcls = plugin.search(query.IQuery, "oraclesql")
-        q = qcls(conf)
+        q = qcls(self.config)
         d = q.start()
         d.addBoth(self.endBadQuery, q)
         return d
