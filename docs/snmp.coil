@@ -1,0 +1,272 @@
+snmp_template: {
+    type: "snmp"
+    version: "2c"
+    community: "public"
+    timeout: 30
+
+    trend: { type: "gauge" }
+}
+
+snmp_system: {
+    query: {
+        @extends: @root.snmp_template
+        ~trend
+        oid: "SNMPv2-MIB::sysDescr.0"
+        filters: [ "regex:^\S+ \S+ \S+" ]
+    }
+
+    documentation:
+    """Purpose: Check that SNMP is responding on the host.
+
+    Causes:
+     - snmpd process may not be running
+     - host overloaded such that snmpd was too slow to respond
+     - network or firewall issues may interfere with communication w/snmp port
+
+    Impact: If SNMP is not responding, other tests will fail.
+    """
+
+    investigation:
+    """Check that snmpd is running.
+    Check that you can query the snmp port, for example:
+    snmpget -v2c -c ${query.community} ${host} SNMPv2-MIB::sysDescr.0
+    """
+}
+
+snmp_load_average: {
+    query: {
+        type: "compound"
+        load_1_min: {
+            @extends: @root.snmp_template
+            oid: "UCD-SNMP-MIB::laLoad.1"
+            warning: "> 12"
+            critical: "> 16"
+            label: "1 Min"
+        }
+        load_5_min: {
+            @extends: ..load_1_min
+            oid: "UCD-SNMP-MIB::laLoad.2"
+            label: "5 Min"
+        }
+        load_15_min: {
+            @extends: ..load_1_min
+            oid: "UCD-SNMP-MIB::laLoad.3"
+            label: "15 Min"
+        }
+
+        return: "', '.join(($(load_1_min), $(load_5_min), $(load_15_min)))"
+    }
+
+    # Don't let the graph scale to less than 1
+    trend: { axis_max: 1 }
+
+    documentation: "The system load average."
+    investigation: "Check what processes are working so hard."
+}
+
+snmp_cpu: {
+    query: {
+        type: "compound"
+        user: {
+            @extends: @root.snmp_template
+            oid: "UCD-SNMP-MIB::ssCpuRawUser.0"
+            trend: { type: "counter" }
+        }
+        nice: {
+            @extends: ..user
+            oid: "UCD-SNMP-MIB::ssCpuRawNice.0"
+        }
+        system: {
+            @extends: ..user
+            oid: "UCD-SNMP-MIB::ssCpuRawSystem.0"
+        }
+        io_wait: {
+            @extends: ..user
+            oid: "UCD-SNMP-MIB::ssCpuRawWait.0"
+            trend.label: "IO Wait"
+        }
+        current_user: {
+            @extends: @root.snmp_template
+            oid: "UCD-SNMP-MIB::ssCpuUser.0"
+            ~trend
+        }
+        current_system: {
+            @extends: ..current_user
+            oid: "UCD-SNMP-MIB::ssCpuSystem.0"
+        }
+        return: "$(current_user) + $(current_system)"
+    }
+
+    trend: {
+        axis_label: "CPU Percent"
+        axis_max: 99
+    }
+
+    label: "% used"
+    warning: "> 95"
+
+    documentation: "The system CPU usage."
+    investigation: "Check what processes are eating so much CPU time."
+}
+
+snmp_memory: {
+    query: {
+        type: "compound"
+        total: {
+            @extends: @root.snmp_template
+            oid: "UCD-SNMP-MIB::memTotalReal.0"
+            trend.base: 1024  # 1k is 1024, not 1000
+            trend.scale: 1024 # convert from kB to bytes
+            trend.display: "area"
+            trend.color: "#FF0000"
+        }
+        buffers: {
+            @extends: ..total
+            oid: "UCD-SNMP-MIB::memBuffer.0"
+            trend.color: "#0000FF"
+        }
+        cache: {
+            @extends: ..total
+            oid: "UCD-SNMP-MIB::memCached.0"
+            trend.color: "#00FFFF"
+            trend.stack: True
+        }
+        free: {
+            @extends: ..total
+            oid: "UCD-SNMP-MIB::memAvailReal.0"
+            trend.color: "#00FF00"
+            trend.stack: True
+        }
+        return: "(($(total) - $(free) - $(buffers) - $(cache)) / $(total))*100"
+    }
+
+    trend: {
+        axis_label: "Bytes"
+    }
+
+    label: "% used"
+    warning: "> 80"
+    critical: "> 90"
+
+    documentation: "The system memory usage (in kB)"
+    investigation: "Check what processes are eating so much memory."
+}
+
+snmp_swap: {
+    query: {
+        type: "compound"
+        total: {
+            @extends: @root.snmp_template
+            oid: "UCD-SNMP-MIB::memTotalSwap.0"
+            trend.base: 1024  # 1k is 1024, not 1000
+            trend.scale: 1024 # convert from kB to bytes
+            trend.display: "area"
+            trend.color: "#FF0000"
+        }
+        free: {
+            @extends: ..total
+            oid: "UCD-SNMP-MIB::memAvailSwap.0"
+            trend.color: "#00FF00"
+        }
+        return: "(($(total) - $(free)) / $(total))*100"
+    }
+
+    trend: {
+        axis_label: "Bytes"
+    }
+
+    label: "% used"
+    warning: "> 80"
+    critical: "> 90"
+
+    documentation: "The system swap usage (in kB)"
+    investigation: "Check what processes are eating so much memory."
+}
+
+snmp_disk_space: {
+     query: {
+        type: "compound"
+
+        total: {
+            @extends: @root.snmp_template
+            oid_base: "HOST-RESOURCES-MIB::hrStorageSize"
+            oid_key: "HOST-RESOURCES-MIB::hrStorageDescr"
+            oid_scale: "HOST-RESOURCES-MIB::hrStorageAllocationUnits"
+            key: ...key
+            trend.base: 1024  # 1k is 1024, not 1000
+            trend.color: "#0000FF"
+            trend.display: "area"
+        }
+
+        used: {
+            @extends: ..total
+            oid_base: "HOST-RESOURCES-MIB::hrStorageUsed"
+            key: ...key
+            trend.color: "#FF0000"
+            trend.display: "area"
+        }
+
+        return: "($(used) / $(total))*100"
+    }
+
+    trend: {
+        axis_label: "Bytes"
+    }
+
+    key: "/"
+
+    label: "% used"
+    warning: "> 80"
+    critical: "> 90"
+
+    documentation: "Check free space on the ${key} partition."
+    investigation: "Clean up the ${key} partition."
+}
+
+snmp_time: {
+    query: {
+        type: "compound"
+        system_time: {
+            @extends: @root.snmp_template
+            oid: "HOST-RESOURCES-MIB::hrSystemDate.0"
+            filters: [ "regex:^(\S+)\.\d,.*"
+                       "date2epoch:%Y-%m-%d,%H:%M:%S" ]
+            ~trend
+        }
+        return: "$(system_time) - $(NOW)"
+    }
+
+    # I could use abs() in return above and use simpler thresholds
+    # but this allows us to report ahead/behind rather than just difference
+    filters: [ "warning:>60" "warning:<-60" "critical:>300" "critical:<-300" ]
+    label: "Seconds"
+    trend: { type: "gauge" }
+
+    documentation:
+    """Checks the system time.
+
+    This test uses the monitoring host as the reference.
+    """
+
+    investigation: "Check that ntpd is running properly"
+}
+
+# A variation on the above that uses NTP for the reference point.
+snmp_ntp_time: {
+    @extends: @root.snmp_time
+
+    query.ntp_time: {
+        type: "ntp"
+        host: ...ntp_host
+        port: 123
+    }
+    query.return: "$(system_time) - $(ntp_time)"
+
+    ntp_host: "pool.ntp.org"
+
+    documentation:
+    """Checks the system time against a ntp server.
+
+    ntp host: ${ntp_host}
+    """
+}
