@@ -14,6 +14,8 @@
 
 """XML Filters"""
 
+import os
+
 # Gracefully disable xml/xpath support if not found
 try:
     from lxml import etree
@@ -70,3 +72,47 @@ class XPathFilter(filters._Filter):
                         "Failed to find xml element %s" % self.arguments)
         else:
             return format(data)
+
+class XSLTFilter(filters._Filter):
+    """Transform XML with a given XSLT document"""
+
+    classProvides(filters.IFilter)
+
+    name = "xslt"
+
+    def __init__(self, test, default, arguments):
+        super(XSLTFilter, self).__init__(test, default, arguments)
+
+        if not etree:
+            raise errors.InitError("lxml is required for XSLT support.")
+
+        try:
+            if self.arguments.startswith("/"):
+                document = etree.parse(self.arguments)
+            elif self.arguments.rstrip().startswith("<"):
+                document = etree.fromstring(self.arguments)
+            else:
+                raise errors.InitError(
+                        "Invalid XSLT filter argument: %r" % self.arguments)
+
+            self.xslt = etree.XSLT(document)
+        except IOError, ex:
+            raise errors.InitError("Failed reading XSLT document: %s" % ex)
+        except etree.XMLSyntaxError, ex:
+            raise errors.InitError("Invalid XSLT document: %s" % ex)
+        except etree.XSLTParseError, ex:
+            raise errors.InitError("Invalid XSLT document: %s" % ex)
+
+    @errors.callback
+    def filter(self, result):
+        try:
+            input = etree.fromstring(result)
+        except etree.XMLSyntaxError, ex:
+            raise errors.TestCritical("Invalid XML: %s" % ex)
+
+        try:
+            output = self.xslt(input)
+        except etree.XSLTApplyError, ex:
+            raise errors.TestCritical("XSLT transform failed: %s" % ex)
+
+        return str(output)

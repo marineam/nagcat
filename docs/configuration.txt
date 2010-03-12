@@ -196,6 +196,12 @@ test-name: {
     #
     #       More info here: http://en.wikipedia.org/wiki/XPath_1.0
     #
+    #   "xslt:<path or xml>"
+    #       Transform an XML document using XSLT. The argument here can
+    #       be either an absolute path to the XSLT file or the XSLT XML
+    #       document itself. Remember, use '''style quotes''' for
+    #       multi-line strings.
+    #
     #   "save:<some name>"
     #       Saved the current result as the given name and will be
     #       included with that name in the 'Extra Output' section of the

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from twisted.trial import unittest
 from nagcat import errors, filters
 
@@ -53,3 +54,71 @@ class XPathTestCase(unittest.TestCase):
         f = filters.Filter(object(), "xpath://p")
         self.assertEquals(f.filter(self.example),
                 "<p>Text #1</p>\n<p>Text #2</p>")
+
+class XSLTTestCase(unittest.TestCase):
+
+    # example swiped from wikipedia
+    raw_xml = """<?xml version="1.0"?>
+        <persons>
+          <person username="JS1">
+            <name>John</name>
+            <family-name>Smith</family-name>
+          </person>
+          <person username="MI1">
+            <name>Morka</name>
+            <family-name>Ismincius</family-name>
+          </person>
+        </persons>
+    """
+
+    raw_xslt = """<?xml version="1.0"?>
+        <xsl:stylesheet
+                xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                version="1.0">
+          <xsl:output method="xml" indent="yes"/>
+
+          <xsl:template match="/persons">
+            <root>
+              <xsl:apply-templates select="person"/>
+            </root>
+          </xsl:template>
+
+          <xsl:template match="person">
+            <name username="{@username}">
+              <xsl:value-of select="name" />
+            </name>
+          </xsl:template>
+
+        </xsl:stylesheet>
+    """
+
+    result = ('<?xml version="1.0"?>\n'
+              '<root>\n'
+              '  <name username="JS1">John</name>\n'
+              '  <name username="MI1">Morka</name>\n'
+              '</root>\n')
+
+    def testBasic(self):
+        f = filters.Filter(object(), "xslt:%s" % self.raw_xslt)
+        self.assertEquals(str(f.filter(self.raw_xml)), self.result)
+
+    def testPath(self):
+        path = os.path.abspath(self.mktemp())
+        fd = open(path, "w")
+        fd.write(self.raw_xslt)
+        fd.close()
+
+        f = filters.Filter(object(), "xslt:%s" % path)
+        self.assertEquals(str(f.filter(self.raw_xml)), self.result)
+
+    def testBadXSLTXML(self):
+        self.assertRaises(errors.InitError,
+                filters.Filter, object(), "xslt:blah")
+
+    def testBadXSLT(self):
+        self.assertRaises(errors.InitError,
+                filters.Filter, object(), "xslt:<blah></blah>")
+
+    def testBadInputXML(self):
+        f = filters.Filter(object(), "xslt:%s" % self.raw_xslt)
+        self.assertIsInstance(f.filter("blah"), errors.Failure)
