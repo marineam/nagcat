@@ -32,45 +32,6 @@ class RegexTestCase(unittest.TestCase):
         f = filters.Filter(object(), "regex:^(f)(oo)$")
         self.assertEquals(f.filter("foo"), "f")
 
-class XPathTestCase(unittest.TestCase):
-
-    example = """
-    <html>
-        <head>
-            <title>Test XML</title>
-        </head>
-        <body>
-            <div class="title">This has been a test</div>
-            <p>Text #1</p><p>Text #2</p>
-        </body>
-    </html>
-    """
-
-    def testBasic(self):
-        f = filters.Filter(object(), "xpath://div/text()")
-        self.assertEquals(f.filter(self.example), "This has been a test")
-
-    def testMissing(self):
-        f = filters.Filter(object(), "xpath://span/text()")
-        self.assertIsInstance(f.filter(self.example), errors.Failure)
-
-    def testDefault(self):
-        f = filters.Filter(object(), "xpath[none]://span/text()")
-        self.assertEquals(f.filter(self.example), "none")
-
-    def testBad(self):
-        f = filters.Filter(object(), "xpath://span/text()")
-        self.assertIsInstance(f.filter("<foo></bar>"), errors.Failure)
-
-    def testXML(self):
-        f = filters.Filter(object(), "xpath://title")
-        self.assertEquals(f.filter(self.example), "<title>Test XML</title>")
-
-    def testMultiXML(self):
-        f = filters.Filter(object(), "xpath://p")
-        self.assertEquals(f.filter(self.example),
-                "<p>Text #1</p>\n<p>Text #2</p>")
-
 class DateTestCase(unittest.TestCase):
 
     def testBasic(self):
