@@ -202,6 +202,8 @@ test-name: {
     #       document itself. Remember, use '''style quotes''' for
     #       multi-line strings.
     #
+    #       More info here: http://en.wikipedia.org/wiki/XSLT
+    #
     #   "save:<some name>"
     #       Saved the current result as the given name and will be
     #       included with that name in the 'Extra Output' section of the
