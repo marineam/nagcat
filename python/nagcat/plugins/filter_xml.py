@@ -48,7 +48,7 @@ class XPathFilter(filters._Filter):
     def filter(self, result):
         def format(data):
             if etree.iselement(data):
-                ret = etree.tostring(data)
+                ret = etree.tostring(data, pretty_print=True)
             else:
                 ret = str(data)
             return ret.strip()
@@ -115,4 +115,4 @@ class XSLTFilter(filters._Filter):
         except etree.XSLTApplyError, ex:
             raise errors.TestCritical("XSLT transform failed: %s" % ex)
 
-        return str(output)
+        return etree.tostring(output, pretty_print=True)

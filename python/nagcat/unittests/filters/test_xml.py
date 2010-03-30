@@ -92,8 +92,7 @@ class XSLTTestCase(unittest.TestCase):
         </xsl:stylesheet>
     """
 
-    result = ('<?xml version="1.0"?>\n'
-              '<root>\n'
+    result = ('<root>\n'
               '  <name username="JS1">John</name>\n'
               '  <name username="MI1">Morka</name>\n'
               '</root>\n')

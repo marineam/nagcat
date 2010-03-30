@@ -119,7 +119,7 @@ class OracleBase(query.Query):
         return tree
 
     def _to_string(self, cursor):
-        return etree.tostring(self._to_xml(cursor))
+        return etree.tostring(self._to_xml(cursor), pretty_print=True)
 
 
 class OracleSQL(OracleBase):
@@ -338,7 +338,7 @@ class OraclePLSQL(query.Query):
                     table = db_value.fetchall()
                     tree = _result_as_xml(columns, table, param['name'])
                 root.append(tree)
-            return etree.tostring(root, pretty_print=False)
+            return etree.tostring(root, pretty_print=True)
 
         except Exception as err:
             raise errors.TestCritical("XML conversion error!: %s" % err)

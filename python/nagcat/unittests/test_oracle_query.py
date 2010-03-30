@@ -17,13 +17,18 @@ from twisted.trial import unittest
 from nagcat import errors, query, plugin
 from coil.struct import Struct
 
+try:
+    import cx_Oracle
+    from lxml import etree
+except ImportError:
+    cx_Oracle = None
+    etree = None
+
 # NOTE: user/pw/sid are not included here, for security reasons.  Please set the
 # following environment variables accordingly when running this test:
 # ORA_USER, ORA_PASS, ORA_DSN
 class OracleTestCase(unittest.TestCase):
-    try:
-        import cx_Oracle, lxml
-    except ImportError:
+    if not cx_Oracle or not etree:
         skip = "Missing cx_Oracle or lxml"
 
     def setUp(self):
@@ -48,9 +53,14 @@ class OracleTestCase(unittest.TestCase):
         d.addCallback(lambda x: q.result)
         return d
 
+    def assertEqualsXML(self, result, expect):
+        result = etree.tostring(etree.fromstring(result))
+        expect = etree.tostring(etree.fromstring(result))
+        self.assertEquals(result, expect)
+
     def testSimple(self):
         def check(result):
-            self.assertEquals(result, (
+            self.assertEqualsXML(result, (
                 '<queryresult><row>'
                     '<data type="NUMBER">1</data>'
                 '</row></queryresult>'))
@@ -61,7 +71,7 @@ class OracleTestCase(unittest.TestCase):
 
     def testString(self):
         def check(result):
-            self.assertEquals(result, (
+            self.assertEqualsXML(result, (
                 '<queryresult><row>'
                     '<data type="FIXED_CHAR">foo</data>'
                 '</row></queryresult>'))
