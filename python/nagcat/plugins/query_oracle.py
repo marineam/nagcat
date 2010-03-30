@@ -18,7 +18,9 @@ import re
 
 from zope.interface import classProvides
 from twisted.internet import threads
-from twisted.enterprise import adbapi
+from twisted.python import failure
+from coil.struct import Struct
+
 
 try:
     from lxml import etree
@@ -42,6 +44,9 @@ class _DBColumn:
     CX_VAR_COLUMNS = ('name', 'type', 'display_size', 'internal_size',
                      'precision', 'scale', 'null_ok')
 
+    # used for ensuring the xml is sane
+    CLEAN_NAME_RE = re.compile("[^\w]")
+
     def __init__(self, desc):
         """Take the decription of a cx_Oracle variable, and make it an actual
         object"""
@@ -49,88 +54,145 @@ class _DBColumn:
         # these are the attributes that this item will contain
         for k,v in zip(self.CX_VAR_COLUMNS, desc):
             setattr(self, k, v)
+
+    def element(self, value):
+        """Factory for creating an Element for this column"""
+        name = self.CLEAN_NAME_RE.sub("", self.name.lower())
+
+        # XML tags may not start with a digit
+        if name[0].isdigit():
+            name = "_%s" % name
+
+        elt = etree.Element(name, type=self.type.__name__)
+        if value is not None:
+            elt.text = str(value)
+        return elt
+
     def __str__(self):
         return "<_DBColumn %s:%s>" % (self.name, self.type)
+
     def __repr__(self):
         return str(self)
 
 
-class _OracleConnectionPool(adbapi.ConnectionPool):
-    """a specialized connectionPool, with a modified _runQuery that fires with
-    the variables of the cursor as well as the the result"""
-
-    #! this makes me twitch, but I can't think of a better way to get the list of
-    #! variables out of the otherwise inaccessible cursor
-    def _runQuery(self, cursor, *args, **kwargs):
-        """Override the adbpapi.ConnectionPool._runQuery, to remember and return
-        the cursor, as well as the resulting data"""
-
-        # the parent-class _runQuery() returns the result of cursor.fetchall(),
-        # which might be dangerous if a rogue query were to return a huge dataset.
-        result = adbapi.ConnectionPool._runQuery(self, cursor, *args, **kwargs)
-        columns = map(lambda c: _DBColumn(c), cursor.description)
-        return (columns, result)
-
-
-class OracleSQL(query.Query):
-    """Use oracle sql to execute a query against one of the databases via
-    twisted's adbapi"""
-
-    classProvides(query.IQuery)
-
-    name = "oraclesql"
-
-    # the field of the configuration struct that we care about
-    CONF_FIELDS = ['user', 'password', 'dsn', 'sql', 'binds']
+class OracleBase(query.Query):
+    """Base query code for both SQL and PL/SQL queries."""
 
     def __init__(self, conf):
         if not etree or not cx_Oracle:
             raise errors.InitError(
                     "cx_Oracle and lxml are required for Oracle support.")
 
-        super(OracleSQL, self).__init__(conf)
-        # need to make this take a tnsname system instead of just a DBI
-        for fieldname in self.CONF_FIELDS:
-            if fieldname in conf:
-                self.conf[fieldname] = conf.get(fieldname)
+        super(OracleBase, self).__init__(conf)
 
-    def _start(self):
-        self.dbpool = _OracleConnectionPool('cx_Oracle', user=self.conf['user'],
-                                          password=self.conf['password'],
-                                          dsn=self.conf['dsn'],
-                                          threaded=True,
-                                          cp_good_sql='select 1 as data from dual',
-                                          cp_reconnect=True)
-        log.debug("running sql %s", self.conf['sql'])
-        self.deferred = self.dbpool.runQuery(self.conf['sql'],
-                                             self.conf.get('binds', {}))
-        self.deferred.addCallback(self._success)
-        self.deferred.addErrback(self._failure_oracle)
-        return self.deferred
-
-    def _success(self, result):
-        """success receives a (columns, data) pair, where 'columns' is a list of
-        _DBColumns and 'data' is the actual data returned from the query.
-        Convert it to XML and return it
-        """
-        columns, table = result
-        tree = _result_as_xml(columns, table)
-        self.result = etree.tostring(tree, pretty_print=False)
-        log.debug("OracleSQL success: %s rows returned", len(table))
-        self._cleanup()
-        return self.result
+        for param in ('user', 'password', 'dsn'):
+            if param not in conf:
+                raise errors.ConfigError('%s is required but missing' % param)
+            self.conf[param] = conf[param]
 
     @errors.callback
     def _failure_oracle(self, result):
         """Catch common oracle failures here"""
-        log.debug("Fail! %s", result.value)
-        # cleanup now, since we mightn't be back
-        self._cleanup()
+        # TODO: move that function into this method?
         raise_oracle_warning(result)
+        return result
 
-    def _cleanup(self):
-        """Closes the ConnectionPool"""
-        self.dbpool.close()
+
+    def _to_xml(self, cursor, root="queryresult"):
+        """Convert a table to XML Elements
+
+        example: select 1 as foo from dual
+        <queryresult>
+            <row>
+                <foo type="NUMBER">1</foo>
+            </row>
+        </queryresult>
+        """
+
+        columns = map(_DBColumn, cursor.description)
+        tree = etree.Element(root)
+        for row in cursor:
+            xmlrow = etree.Element('row')
+            for col, val in zip(columns, row):
+                xmlrow.append(col.element(val))
+            tree.append(xmlrow)
+        return tree
+
+    def _to_string(self, cursor):
+        return etree.tostring(self._to_xml(cursor))
+
+
+class OracleSQL(OracleBase):
+    """Execute a SQL query in Oracle, the result is formatted as XML"""
+
+    classProvides(query.IQuery)
+
+    name = "oracle_sql"
+
+    def __init__(self, conf):
+        super(OracleSQL, self).__init__(conf)
+        self.conf['sql'] = conf.get('sql', "select 1 as data from dual")
+
+        if 'parameters' in conf:
+            parameters = conf['parameters']
+        elif 'binds' in conf: # binds is an alias
+            parameters = conf['binds']
+        else:
+            parameters = []
+
+        if isinstance(parameters, Struct):
+            parameters.expand()
+            parameters = parameters.dict()
+            for key,value in parameters.iteritems():
+                if not isinstance(value, (str,int,long,float)):
+                    raise errors.ConfigError(
+                        "parameter %s is an invalid type" % key)
+        elif isinstance(parameters, list):
+            for key,value in enumerate(parameters):
+                if not isinstance(value, (str,int,long,float)):
+                    raise errors.ConfigError(
+                        "parameter %s is an invalid type" % key)
+        else:
+            raise errors.ConfigError("parameters must be a list or struct")
+
+        self.conf['parameters'] = parameters
+
+    def _start(self):
+        try:
+            connection = cx_Oracle.Connection(
+                    user=self.conf['user'],
+                    password=self.conf['password'],
+                    dsn=self.conf['dsn'],
+                    threaded=True)
+            cursor = connection.cursor()
+        except cx_Oracle.Error:
+            return self._failure_oracle(failure.Failure())
+
+        deferred = threads.deferToThread(cursor.execute,
+                self.conf['sql'], self.conf['parameters'])
+        deferred.addCallback(self._success, cursor)
+        deferred.addBoth(self._cleanup, connection, cursor)
+        deferred.addErrback(self._failure_oracle)
+        return deferred
+
+    @errors.callback
+    def _success(self, result, cursor):
+        """Got data back! Convert it to XML"""
+        return self._to_string(cursor)
+
+    @errors.callback
+    def _cleanup(self, result, connection, cursor):
+        """Close the cursor and connection"""
+        cursor.close()
+        connection.close()
+        return result
+
+
+class OracleSQL2(OracleSQL):
+    """Alias oraclesql to oracle_sql"""
+
+    classProvides(query.IQuery)
+    name = "oraclesql"
 
 
 class OraclePLSQL(query.Query):

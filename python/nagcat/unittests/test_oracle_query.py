@@ -56,10 +56,8 @@ class OracleTestCase(unittest.TestCase):
         self.assertEquals(q.result, expected)
 
     def testBadQuery(self):
-        raise unittest.SkipTest("Not working yet")
-
         conf = self.config.copy()
-        conf['sql'] = 'select 1 from dual'
+        conf['sql'] = 'select 1'
 
         qcls = plugin.search(query.IQuery, "oraclesql")
         q = qcls(conf)
