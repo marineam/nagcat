@@ -39,34 +39,43 @@ class OracleTestCase(unittest.TestCase):
         else:
             raise unittest.SkipTest("Missing oracle credentials")
 
-    def testSimple(self):
+    def startQuery(self, sql):
         conf = self.config.copy()
-        conf['sql'] = 'select 1 as data from dual'
-
+        conf['sql'] = sql
         qcls = plugin.search(query.IQuery, "oraclesql")
         q = qcls(conf)
         d = q.start()
-        d.addBoth(self.endSimple, q)
+        d.addCallback(lambda x: q.result)
         return d
 
-    def endSimple(self, ignore, q):
-        expected = ('<queryresult><row>'
-                        '<data type="NUMBER">1</data>'
-                    '</row></queryresult>')
-        self.assertEquals(q.result, expected)
+    def testSimple(self):
+        def check(result):
+            self.assertEquals(result, (
+                '<queryresult><row>'
+                    '<data type="NUMBER">1</data>'
+                '</row></queryresult>'))
+
+        d = self.startQuery('select 1 as data from dual')
+        d.addCallback(check)
+        return d
+
+    def testString(self):
+        def check(result):
+            self.assertEquals(result, (
+                '<queryresult><row>'
+                    '<data type="FIXED_CHAR">foo</data>'
+                '</row></queryresult>'))
+
+        d = self.startQuery("select 'foo' as data from dual")
+        d.addCallback(check)
+        return d
 
     def testBadQuery(self):
-        conf = self.config.copy()
-        conf['sql'] = 'select 1'
-
-        qcls = plugin.search(query.IQuery, "oraclesql")
-        q = qcls(conf)
-        d = q.start()
-        d.addBoth(self.endBadQuery, q)
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+        d = self.startQuery('select 1')
+        d.addBoth(check)
         return d
-
-    def endBadQuery(self, ignore, q):
-        self.assertIsInstance(q.result, errors.Failure)
 
 
 class OracleBadLoginTestCase(unittest.TestCase):
