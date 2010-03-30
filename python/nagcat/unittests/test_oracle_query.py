@@ -44,9 +44,10 @@ class OracleTestCase(unittest.TestCase):
         else:
             raise unittest.SkipTest("Missing oracle credentials")
 
-    def startQuery(self, sql):
+    def startQuery(self, sql, **kwargs):
         conf = self.config.copy()
         conf['sql'] = sql
+        conf.update(kwargs)
         qcls = plugin.search(query.IQuery, "oraclesql")
         q = qcls(conf)
         d = q.start()
@@ -66,6 +67,45 @@ class OracleTestCase(unittest.TestCase):
                 '</row></queryresult>'))
 
         d = self.startQuery('select 1 as data from dual')
+        d.addCallback(check)
+        return d
+
+    def testBinds(self):
+        def check(result):
+            self.assertEqualsXML(result, (
+                '<queryresult><row>'
+                    '<data type="NUMBER">1</data>'
+                '</row></queryresult>'))
+
+        d = self.startQuery(
+                'select :blah as data from dual',
+                binds=[1])
+        d.addCallback(check)
+        return d
+
+    def testParams1(self):
+        def check(result):
+            self.assertEqualsXML(result, (
+                '<queryresult><row>'
+                    '<data type="NUMBER">2</data>'
+                '</row></queryresult>'))
+
+        d = self.startQuery(
+                'select :blah as data from dual',
+                parameters=[2])
+        d.addCallback(check)
+        return d
+
+    def testParams2(self):
+        def check(result):
+            self.assertEqualsXML(result, (
+                '<queryresult><row>'
+                    '<data type="NUMBER">2</data>'
+                '</row></queryresult>'))
+
+        d = self.startQuery(
+                'select :blah as data from dual',
+                parameters=Struct({'blah': 2}))
         d.addCallback(check)
         return d
 
