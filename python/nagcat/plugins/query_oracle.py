@@ -99,6 +99,7 @@ class OracleSQL(query.Query):
                                           password=self.conf['password'],
                                           dsn=self.conf['dsn'],
                                           threaded=True,
+                                          cp_good_sql='select 1 as data from dual',
                                           cp_reconnect=True)
         log.debug("running sql %s", self.conf['sql'])
         self.deferred = self.dbpool.runQuery(self.conf['sql'],
