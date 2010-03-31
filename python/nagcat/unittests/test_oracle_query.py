@@ -24,40 +24,62 @@ except ImportError:
     cx_Oracle = None
     etree = None
 
-# NOTE: user/pw/sid are not included here, for security reasons.  Please set the
-# following environment variables accordingly when running this test:
-# ORA_USER, ORA_PASS, ORA_DSN
-class OracleTestCase(unittest.TestCase):
+class OracleBase(unittest.TestCase):
     if not cx_Oracle or not etree:
         skip = "Missing cx_Oracle or lxml"
+    elif not ('ORA_DSN' in os.environ and
+              'ORA_USER' in os.environ and
+              'ORA_PASS' in os.environ):
+        skip = "Missing oracle credentials"
+
+    SQL_SETUP = ()
+    SQL_CLEAN = ()
+
+    QUERY_TYPE = "oracle_sql"
 
     def setUp(self):
+        self.config = Struct({'user':os.environ['ORA_USER'],
+                              'password':os.environ['ORA_PASS'],
+                              'dsn':os.environ['ORA_DSN']})
+        if self.SQL_SETUP:
+            self.execute(self.SQL_SETUP)
 
-        if ('ORA_DSN' in os.environ and
-            'ORA_USER' in os.environ and
-            'ORA_PASS' in os.environ):
+    def tearDown(self):
+        if self.SQL_CLEAN:
+            self.execute(self.SQL_CLEAN)
 
-            self.config = Struct({'user':os.environ['ORA_USER'],
-                                  'password':os.environ['ORA_PASS'],
-                                  'dsn':os.environ['ORA_DSN'],
-                                  'sql':'select 1 as data from dual'})
-        else:
-            raise unittest.SkipTest("Missing oracle credentials")
+    def execute(self, sqlseq):
+        conn = cx_Oracle.Connection(user=self.config['user'],
+                                    password=self.config['password'],
+                                    dsn=self.config['dsn'],
+                                    threaded=True)
+        cursor = conn.cursor()
+        for sql in sqlseq:
+            try:
+                cursor.execute(sql)
+            except cx_Oracle.DatabaseError, ex:
+                raise Exception("%s: %s" % (ex, sql))
+        cursor.close()
+        conn.close()
 
-    def startQuery(self, sql, **kwargs):
+    def startQuery(self, **kwargs):
         conf = self.config.copy()
-        conf['sql'] = sql
         conf.update(kwargs)
-        qcls = plugin.search(query.IQuery, "oraclesql")
+        qcls = plugin.search(query.IQuery, self.QUERY_TYPE)
         q = qcls(conf)
         d = q.start()
         d.addCallback(lambda x: q.result)
         return d
 
     def assertEqualsXML(self, result, expect):
-        result = etree.tostring(etree.fromstring(result))
-        expect = etree.tostring(etree.fromstring(result))
+        # Parse the xml, strip white space, and convert back
+        # this allows us to compare if they are logically equal
+        parser = etree.XMLParser(remove_blank_text=True)
+        result = etree.tostring(etree.XML(result, parser))
+        expect = etree.tostring(etree.XML(expect, parser))
         self.assertEquals(result, expect)
+
+class SimpleTestCase(OracleBase):
 
     def testSimple(self):
         def check(result):
@@ -66,7 +88,7 @@ class OracleTestCase(unittest.TestCase):
                     '<data type="NUMBER">1</data>'
                 '</row></queryresult>'))
 
-        d = self.startQuery('select 1 as data from dual')
+        d = self.startQuery(sql='select 1 as data from dual')
         d.addCallback(check)
         return d
 
@@ -78,7 +100,7 @@ class OracleTestCase(unittest.TestCase):
                 '</row></queryresult>'))
 
         d = self.startQuery(
-                'select :blah as data from dual',
+                sql='select :blah as data from dual',
                 binds=[1])
         d.addCallback(check)
         return d
@@ -91,7 +113,7 @@ class OracleTestCase(unittest.TestCase):
                 '</row></queryresult>'))
 
         d = self.startQuery(
-                'select :blah as data from dual',
+                sql='select :blah as data from dual',
                 parameters=[2])
         d.addCallback(check)
         return d
@@ -104,7 +126,7 @@ class OracleTestCase(unittest.TestCase):
                 '</row></queryresult>'))
 
         d = self.startQuery(
-                'select :blah as data from dual',
+                sql='select :blah as data from dual',
                 parameters=Struct({'blah': 2}))
         d.addCallback(check)
         return d
@@ -116,37 +138,57 @@ class OracleTestCase(unittest.TestCase):
                     '<data type="FIXED_CHAR">foo</data>'
                 '</row></queryresult>'))
 
-        d = self.startQuery("select 'foo' as data from dual")
+        d = self.startQuery(sql="select 'foo' as data from dual")
         d.addCallback(check)
         return d
 
     def testBadQuery(self):
         def check(result):
             self.assertIsInstance(result, errors.Failure)
-        d = self.startQuery('select 1')
+        d = self.startQuery(sql='select 1')
         d.addBoth(check)
         return d
 
-
-class OracleBadLoginTestCase(unittest.TestCase):
-    try:
-        import cx_Oracle, lxml
-    except ImportError:
-        skip = "Missing cx_Oracle or lxml"
-
-    def setUp(self):
-        self.config = Struct({'user':'baduser', 
-                              'password':'pw', 
-                              'dsn':'nodb',
-                              'sql':'select 1 from dual'})
-
-    def testBadQuery(self):
-        qcls = plugin.search(query.IQuery, "oraclesql")
-        q = qcls(self.config)
-        d = q.start()
-        d.addBoth(self.endBadQuery, q)
+    def testBadUser(self):
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+        d = self.startQuery(sql='select 1 from dual', user='baduser')
+        d.addBoth(check)
         return d
 
-    def endBadQuery(self, ignore, q):
-        self.assertIsInstance(q.result, errors.Failure)
+class DataTestCase(OracleBase):
 
+    SQL_SETUP = (
+        "create table test (a number, b varchar2(10))",
+        "insert into test values (1, 'aaa')",
+        "insert into test values (2, 'bbb')",
+        "insert into test values (3, 'ccc')",
+        "insert into test values (4, 'ddd')",
+        "insert into test values (5, 'eee')",
+        "commit")
+
+    SQL_CLEAN = ("drop table test", "commit")
+
+    def testSelectAll(self):
+        def check(result):
+            self.assertEqualsXML(result, """<queryresult>
+                <row><a type="NUMBER">1</a><b type="STRING">aaa</b></row>
+                <row><a type="NUMBER">2</a><b type="STRING">bbb</b></row>
+                <row><a type="NUMBER">3</a><b type="STRING">ccc</b></row>
+                <row><a type="NUMBER">4</a><b type="STRING">ddd</b></row>
+                <row><a type="NUMBER">5</a><b type="STRING">eee</b></row>
+            </queryresult>""")
+
+        d = self.startQuery(sql='select * from test')
+        d.addCallback(check)
+        return d
+
+    def testSelectCount(self):
+        def check(result):
+            self.assertEqualsXML(result, """<queryresult>
+                <row><count type="NUMBER">5</count></row>
+            </queryresult>""")
+
+        d = self.startQuery(sql='select count(*) from test')
+        d.addCallback(check)
+        return d
