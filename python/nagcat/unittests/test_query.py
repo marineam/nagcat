@@ -333,7 +333,8 @@ class NTPTestCase(unittest.TestCase):
     def testRefused(self):
         conf = Struct({'type': 'ntp',
                 'host': 'localhost',
-                'port': 9})
+                'port': 9,
+                'timeout': 2})
         now = time.time()
         qcls = plugin.search(query.IQuery, 'ntp')
         q = qcls(conf)
