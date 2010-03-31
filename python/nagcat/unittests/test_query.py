@@ -308,11 +308,14 @@ class SnmpQueryTestCaseV2c(SnmpQueryTestCaseV1):
 
 class NTPTestCase(unittest.TestCase):
 
-    skip = "requires network access"
+    if 'NTP_HOST' in os.environ:
+        ntp_host = os.environ['NTP_HOST']
+    else:
+        skip = "Set NTP_HOST to run NTP unit tests."
 
     def testSimple(self):
         conf = Struct({'type': 'ntp',
-                'host': 'pool.ntp.org',
+                'host': self.ntp_host,
                 'port': 123})
         now = time.time()
         qcls = plugin.search(query.IQuery, 'ntp')
