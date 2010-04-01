@@ -172,5 +172,5 @@ class PagerNotification(EmailNotification):
     def graph(self):
         return None
 
-    def config(self):
+    def coil(self):
         return None
