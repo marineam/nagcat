@@ -329,9 +329,10 @@ class OraclePLSQL(query.Query):
             root = etree.Element('result')
             for param, db_value in only_out_params(result_set):
                 if not isinstance(db_value, cx_Oracle.Cursor):
-                    # for non-cursor results, all is treated as text
-                    tree = etree.Element(param['name'], type="STRING")
-                    if db_value: tree.text = str(db_value)
+                    # for non-cursor results, it is just one value
+                    tree = etree.Element(param['name'],
+                            type=param['db_val'].__class__.__name__)
+                    if db_value is not None: tree.text = str(db_value)
                 else:
                     # for cursors, we will convert to tables
                     columns = map(_DBColumn, db_value.description)

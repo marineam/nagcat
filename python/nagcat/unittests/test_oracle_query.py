@@ -13,6 +13,10 @@
 # limitations under the License.
 
 import os
+import time
+import subprocess
+
+from twisted.python import log
 from twisted.trial import unittest
 from nagcat import errors, query, plugin
 from coil.struct import Struct
@@ -190,5 +194,80 @@ class DataTestCase(OracleBase):
             </queryresult>""")
 
         d = self.startQuery(sql='select count(*) from test')
+        d.addCallback(check)
+        return d
+
+def _read_sql(name):
+    path = "%s/%s" % (os.path.dirname(os.path.abspath(__file__)), name)
+    fd = open(path)
+    try:
+        text = fd.read()
+    finally:
+        fd.close()
+
+    # Remove the trailing ; and / characters.
+    # They are required for sqlplus, not us.
+    #return text.rstrip("\n\t ;/").replace('\n', ' ')
+    return text
+
+class PLSQLTestCase(OracleBase):
+
+    SQL_CLEAN = ("drop package pltest", "commit")
+
+    QUERY_TYPE = "oracle_plsql"
+
+    def setUp(self):
+        super(PLSQLTestCase, self).setUp()
+
+        sql = ""
+        for path in ("test_oracle_ps.sql", "test_oracle_pb.sql"):
+            path = "%s/%s" % (os.path.dirname(
+                os.path.abspath(__file__)), path)
+            fd = open(path)
+            sql += fd.read()
+            fd.close()
+
+        # For some reason running this SQL via cx_Oracle doesn't
+        # work, but it does with sqlplus. I don't know why. :-(
+        proc = subprocess.Popen(
+            ["sqlplus", "-S", "-L", "%s/%s@%s" % (
+                self.config['user'],
+                self.config['password'],
+                self.config['dsn'])],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+
+        out,bleh = proc.communicate(sql)
+        for line in out.splitlines():
+            line = line.strip()
+            if line:
+                log.msg("[sqlplus] %s" % line)
+
+        assert proc.returncode == 0
+
+    def test1(self):
+        def check(result):
+            xml = etree.fromstring(result)
+            value = float(xml.find("p_out").text)
+            # The value should be the current time but not quite
+            # because the test package doesn't account for timezones
+            # so as long as it is within 25 hours we'll call it good.
+            self.assertApproximates(value, time.time(), 3600*25)
+
+        d = self.startQuery(procedure="pltest.one",
+                parameters=[['out', 'p_out', "number"]])
+        d.addCallback(check)
+        return d
+
+    def test2(self):
+        def check(result):
+            self.assertEqualsXML(result, """<result>
+                <p_out type="NUMBER">3.0</p_out>
+            </result>""")
+
+        d = self.startQuery(procedure="pltest.two",
+                parameters=[['in', 'p_in', 7],
+                    ['out', 'p_out', 'number']])
         d.addCallback(check)
         return d
