@@ -400,7 +400,12 @@ query: {
     # Path to request with either a GET or a POST
     path: "/some/url/path"
 
-    # Data to POST, if missing a GET is used instead.
+    # Method to use. Defaults to GET unless data: is set, in which case
+    # the default is POST. Any HTTP method is allowed but GET/POST are
+    # probably the only ones that will prove to be useful currently.
+    method: "GET"
+
+    # Data to POST.
     data: "some arbitrary data"
 
     # Extra request headers to send, must be a structure with

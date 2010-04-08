@@ -88,10 +88,12 @@ class HTTPQuery(query.Query):
         self.conf['headers']['host'] = self.headers_host
         self.conf['headers'].update(self.headers)
 
-        if self.conf['data']:
-            self.method = "POST"
+        if self.conf['data'] is not None:
+            method = "POST"
         else:
-            self.method = "GET"
+            method = "GET"
+
+        self.conf['method'] = conf.get('method', method)
 
         self.request_url = urlparse.urlunsplit((self.scheme,
                 self.headers_host, self.conf['path'], None, None))
@@ -103,7 +105,7 @@ class HTTPQuery(query.Query):
             self.headers['X-Request-Id'] = self.request_id
 
         factory = HTTPClientFactory(url=self.conf['path'],
-                method=self.method, postdata=self.conf['data'],
+                method=self.conf['method'], postdata=self.conf['data'],
                 headers=self.headers, agent=self.agent,
                 timeout=self.conf['timeout'], followRedirect=0)
         factory.host = self.headers_host
