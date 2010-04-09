@@ -138,7 +138,7 @@ class Test(BaseTest):
 
         if conf['query.type'] == "compound":
             self._compound = True
-            conf.expand(recursive=False)
+            conf['query'].expand(recursive=False)
             self._return = conf.get('query.return', None)
 
             for name, qconf in conf['query'].iteritems():
@@ -167,6 +167,8 @@ class Test(BaseTest):
                     test_values[name] = util.MathString('9999')
 
                 try:
+                    log.trace("Testing expr %r with data=%r" %
+                            (self._return, test_values))
                     eval(self._return, {'data': test_values})
                 except SyntaxError, ex:
                     raise errors.ConfigError(conf['query'],
