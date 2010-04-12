@@ -106,11 +106,14 @@ class LogLevelObserver(object):
             # HACK! tcp.Port and udp.Port like to announce themselves
             # loudly but I don't want them to (well UDP at least). This
             # seemed like an easier option than re-implementing things.
+            # Also catch all starting/stopping factory noise if it exists.
             elif ('log_level' not in event and 'message' in event and
                     (event['message'][0].startswith(
                         'nagcat.query.NTPProtocol starting on') or
                     (event['message'][0].startswith('(Port ') and
-                     event['message'][0].endswith(' Closed)')))):
+                     event['message'][0].endswith(' Closed)'))) or
+                    event['message'][0].startswith('Starting factory') or
+                    event['message'][0].startswith('Stopping factory')):
                 level = 3 # DEBUG
 
             else:
