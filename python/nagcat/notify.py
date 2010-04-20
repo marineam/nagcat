@@ -250,7 +250,7 @@ class Notification(object):
             return None
 
     def send(self):
-        pass
+        raise Exception("unimplemented")
 
     def _format(self, text):
         text = "\n".join(l.strip() for l in text.splitlines())
