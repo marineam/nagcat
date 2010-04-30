@@ -42,10 +42,11 @@ class SubprocessProtocol(protocol.ProcessProtocol):
         self.timedout = True
         self.transport.loseConnection()
         # Kill all processes in the child's process group
-        try:
-            os.kill(-int(self.transport.pid), signal.SIGTERM)
-        except OSError, ex:
-            log.warn("Failed to send TERM to a subprocess: %s", ex)
+        if self.transport.pid:
+            try:
+                os.kill(-int(self.transport.pid), signal.SIGTERM)
+            except OSError, ex:
+                log.warn("Failed to send TERM to a subprocess: %s", ex)
 
     def processEnded(self, reason):
         if isinstance(reason.value, neterror.ProcessDone):
