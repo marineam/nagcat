@@ -19,23 +19,21 @@ from cStringIO import StringIO
 from zope.interface import classProvides
 from nagcat import errors, filters, log
 
-class RegexFilter(filters._Filter):
-    """Filter data based on a regular expression"""
+class TableFilter(filters._Filter):
+    """Select data out of CSV and similarly formatted data"""
 
     classProvides(filters.IFilter)
 
     name = "table"
 
     def __init__(self, test, default, arguments):
-        super(RegexFilter, self).__init__(test, default, arguments)
+        super(TableFilter, self).__init__(test, default, arguments)
 
         args = self.arguments.split(',', 1)
-        self.row = args[0]
-        if args[0] and self.row.isdigit():
+        if args[0] and args[0].isdigit():
             self.row = int(args[0])
         elif args[0]:
-            raise errors.InitError(
-                    "Invalid row number in table filter: %r" % args[0])
+            self.row = args[0]
         else:
             self.row = None
 
@@ -84,11 +82,23 @@ class RegexFilter(filters._Filter):
             col = self.col
 
         if self.row is not None:
-            try:
-                row = table[self.row]
-            except IndexError:
-                raise errors.TestCritical("No such row %s, last row is %s" %
-                        (self.row, len(table)-1))
+            if isinstance(self.row, int):
+                try:
+                    row = table[self.row]
+                except IndexError:
+                    raise errors.TestCritical(
+                            "No such row %s, last row is %s" %
+                            (self.row, len(table)-1))
+            else:
+                row = None
+                for r in table:
+                    if r and r[0] == self.row:
+                        row = r
+                        break
+
+                if row is None:
+                    raise errors.TestCritical(
+                            "No row starting with %s" % (self.row,))
 
             if col is not None:
                 try:

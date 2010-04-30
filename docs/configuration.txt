@@ -211,12 +211,15 @@ test-name: {
     #       Unix /etc/passwd file format works. Row and column are
     #       specified as integers and start at 0. If row 0 contains
     #       column headers then the column can be specified as the name
-    #       as it appears in row 0 rather than it's index. If column is
-    #       empty the whole row is reproduced, separated by the format's
-    #       delimiter. If the row is empty the whole column is
-    #       reproduced, separated by newlines.
+    #       as it appears in row 0 rather than it's index. If column 0
+    #       contains non-numeric keys that identify rows then the row
+    #       can be specified as the name as it appears in column 0. If
+    #       column is empty the whole row is reproduced, separated by
+    #       the format's delimiter. If the row is empty the whole
+    #       column is reproduced, separated by newlines.
+    #
     #       Examples:
-    #           "table:0,3" "table:1,foo" "table:1," "table:,3"
+    #       "table:0,3" "table:1,foo" "table:foo,bar" "table:1," "table:,3"
     #
     #   "save:<some name>"
     #       Saved the current result as the given name and will be

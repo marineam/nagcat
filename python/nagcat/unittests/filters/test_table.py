@@ -62,6 +62,10 @@ class TableTestCase(unittest.TestCase):
         f = filters.Filter(object(), "table:,1")
         self.assertEquals(f.filter(self.csv), "bar\nbuz")
 
-    def getName(self):
+    def testGetColByName(self):
         f = filters.Filter(object(), "table:1,Col2")
         self.assertEquals(f.filter(self.tab), "bar")
+
+    def testGetRowByName(self):
+        f = filters.Filter(object(), "table:daemon,6")
+        self.assertEquals(f.filter(self.pw), "/bin/sh")
