@@ -204,6 +204,20 @@ test-name: {
     #
     #       More info here: http://en.wikipedia.org/wiki/XSLT
     #
+    #   "table:<row>,<column>"
+    #       Select a specific cell, entire row, or entire column from a
+    #       structured table of data. The filter will attempt to detect
+    #       if the data is formatted as CSV or similar format. Even a
+    #       Unix /etc/passwd file format works. Row and column are
+    #       specified as integers and start at 0. If row 0 contains
+    #       column headers then the column can be specified as the name
+    #       as it appears in row 0 rather than it's index. If column is
+    #       empty the whole row is reproduced, separated by the format's
+    #       delimiter. If the row is empty the whole column is
+    #       reproduced, separated by newlines.
+    #       Examples:
+    #           "table:0,3" "table:1,foo" "table:1," "table:,3"
+    #
     #   "save:<some name>"
     #       Saved the current result as the given name and will be
     #       included with that name in the 'Extra Output' section of the
