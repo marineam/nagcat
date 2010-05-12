@@ -164,8 +164,13 @@ class OracleBase(query.Query):
         </queryresult>
         """
 
-        columns = map(_DBColumn, cursor.description)
         tree = etree.Element(root)
+
+        # Return empty XML if this wasn't a SELECT
+        if not isinstance(cursor.description, list):
+            return tree
+
+        columns = map(_DBColumn, cursor.description)
         for row in cursor:
             xmlrow = etree.Element('row')
             for col, val in zip(columns, row):

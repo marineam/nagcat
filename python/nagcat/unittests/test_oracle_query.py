@@ -201,6 +201,15 @@ class DataTestCase(OracleBase):
         d.addCallback(check)
         return d
 
+    def testNonSelect(self):
+        # The result should be empty if we didn't actually select data
+        def check(result):
+            self.assertEqualsXML(result, "<queryresult></queryresult>")
+
+        d = self.startQuery(sql="insert into test values (0, 'xxx')")
+        d.addCallback(check)
+        return d
+
 
 class TimeoutTestCase(OracleBase):
 
