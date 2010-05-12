@@ -197,19 +197,6 @@ class DataTestCase(OracleBase):
         d.addCallback(check)
         return d
 
-def _read_sql(name):
-    path = "%s/%s" % (os.path.dirname(os.path.abspath(__file__)), name)
-    fd = open(path)
-    try:
-        text = fd.read()
-    finally:
-        fd.close()
-
-    # Remove the trailing ; and / characters.
-    # They are required for sqlplus, not us.
-    #return text.rstrip("\n\t ;/").replace('\n', ' ')
-    return text
-
 class PLSQLTestCase(OracleBase):
 
     SQL_CLEAN = ("drop package pltest", "commit")
@@ -218,27 +205,23 @@ class PLSQLTestCase(OracleBase):
 
     def setUp(self):
         super(PLSQLTestCase, self).setUp()
-
-        sql = ""
-        for path in ("test_oracle_ps.sql", "test_oracle_pb.sql"):
-            path = "%s/%s" % (os.path.dirname(
-                os.path.abspath(__file__)), path)
-            fd = open(path)
-            sql += fd.read()
-            fd.close()
+        path = "%s/%s" % (os.path.dirname(os.path.abspath(__file__)),
+                          "test_oracle_package.sql")
 
         # For some reason running this SQL via cx_Oracle doesn't
         # work, but it does with sqlplus. I don't know why. :-(
+        input = open(path)
         proc = subprocess.Popen(
             ["sqlplus", "-S", "-L", "%s/%s@%s" % (
                 self.config['user'],
                 self.config['password'],
                 self.config['dsn'])],
-            stdin=subprocess.PIPE,
+            stdin=input,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
 
-        out,bleh = proc.communicate(sql)
+        input.close()
+        out,bleh = proc.communicate()
         for line in out.splitlines():
             line = line.strip()
             if line:
