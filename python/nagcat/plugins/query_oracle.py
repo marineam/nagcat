@@ -76,7 +76,10 @@ class _DBColumn:
 
 
 class OracleBase(query.Query):
-    """Base query code for both SQL and PL/SQL queries."""
+    """Base query code for both SQL and PL/SQL queries.
+
+    Subclasses must provide _start_oracle()
+    """
 
     def __init__(self, conf):
         if not etree or not cx_Oracle:
@@ -90,13 +93,40 @@ class OracleBase(query.Query):
                 raise errors.ConfigError('%s is required but missing' % param)
             self.conf[param] = conf[param]
 
+    def _start_oracle(self):
+        raise Exception("unimplemented")
+
+    def _start(self):
+        try:
+            self.connection = cx_Oracle.Connection(
+                    user=self.conf['user'],
+                    password=self.conf['password'],
+                    dsn=self.conf['dsn'],
+                    threaded=True)
+        except cx_Oracle.Error:
+            return self._failure_oracle(failure.Failure())
+
+        self.cursor = self.connection.cursor()
+        deferred = self._start_oracle()
+        deferred.addBoth(self._cleanup_oracle)
+        deferred.addErrback(self._failure_oracle)
+        return deferred
+
     @errors.callback
     def _failure_oracle(self, result):
         """Catch common oracle failures here"""
-        # TODO: move that function into this method?
-        raise_oracle_warning(result)
+        if isinstance(failure.value, cx_Oracle.Error):
+            raise errors.TestCritical("Oracle query failed: %s" % failure.value)
         return result
 
+    @errors.callback
+    def _cleanup_oracle(self, result):
+        """Close the cursor and connection"""
+        self.cursor.close()
+        self.cursor = None
+        self.connection.close()
+        self.connection = None
+        return result
 
     def _to_xml(self, cursor, root="queryresult"):
         """Convert a table to XML Elements
@@ -157,35 +187,16 @@ class OracleSQL(OracleBase):
 
         self.conf['parameters'] = parameters
 
-    def _start(self):
-        try:
-            connection = cx_Oracle.Connection(
-                    user=self.conf['user'],
-                    password=self.conf['password'],
-                    dsn=self.conf['dsn'],
-                    threaded=True)
-            cursor = connection.cursor()
-        except cx_Oracle.Error:
-            return self._failure_oracle(failure.Failure())
-
-        deferred = threads.deferToThread(cursor.execute,
+    def _start_oracle(self):
+        deferred = threads.deferToThread(self.cursor.execute,
                 self.conf['sql'], self.conf['parameters'])
-        deferred.addCallback(self._success, cursor)
-        deferred.addBoth(self._cleanup, connection, cursor)
-        deferred.addErrback(self._failure_oracle)
+        deferred.addCallback(self._success)
         return deferred
 
     @errors.callback
-    def _success(self, result, cursor):
+    def _success(self, result):
         """Got data back! Convert it to XML"""
-        return self._to_string(cursor)
-
-    @errors.callback
-    def _cleanup(self, result, connection, cursor):
-        """Close the cursor and connection"""
-        cursor.close()
-        connection.close()
-        return result
+        return self._to_string(self.cursor)
 
 
 class OracleSQL2(OracleSQL):
