@@ -17,7 +17,7 @@
 import re
 
 from zope.interface import classProvides
-from twisted.internet import threads
+from twisted.internet import threads, reactor
 from twisted.python import failure
 from coil.struct import Struct
 
@@ -107,6 +107,13 @@ class OracleBase(query.Query):
             return self._failure_oracle(failure.Failure())
 
         self.cursor = self.connection.cursor()
+        self.query_timeout = reactor.callLater(
+                self.conf['timeout'],
+                self.connection.cancel)
+        self.query_shutdown = reactor.addSystemEventTrigger(
+                'before', 'shutdown',
+                self.connection.cancel)
+
         deferred = self._start_oracle()
         deferred.addBoth(self._cleanup_oracle)
         deferred.addErrback(self._failure_oracle)
@@ -115,17 +122,35 @@ class OracleBase(query.Query):
     @errors.callback
     def _failure_oracle(self, result):
         """Catch common oracle failures here"""
-        if isinstance(failure.value, cx_Oracle.Error):
-            raise errors.TestCritical("Oracle query failed: %s" % failure.value)
+        if isinstance(result.value, cx_Oracle.Error):
+            error = result.value.args[0]
+            # ORA-01013: user requested cancel of current operation
+            # This happens when a query times out and is canceled.
+            if error.code == 1013:
+                raise errors.TestCritical(
+                        "Oracle query timed out after %s seconds" %
+                        self.conf['timeout'])
+            else:
+                raise errors.TestCritical(
+                        "Oracle query failed: %s" % result.value)
         return result
 
     @errors.callback
     def _cleanup_oracle(self, result):
         """Close the cursor and connection"""
+
+        reactor.removeSystemEventTrigger(self.query_shutdown)
+        if self.query_timeout.active():
+            self.query_timeout.cancel()
+
+        self.query_shutdown = None
+        self.query_timeout = None
+
         self.cursor.close()
         self.cursor = None
         self.connection.close()
         self.connection = None
+
         return result
 
     def _to_xml(self, cursor, root="queryresult"):

@@ -16,6 +16,7 @@ import os
 import time
 import subprocess
 
+from twisted.internet import reactor
 from twisted.python import log
 from twisted.trial import unittest
 from nagcat import errors, query, plugin
@@ -57,6 +58,10 @@ class OracleBase(unittest.TestCase):
                                     password=self.config['password'],
                                     dsn=self.config['dsn'],
                                     threaded=True)
+        self.execute_in_connection(sqlseq, conn)
+        conn.close()
+
+    def execute_in_connection(self, sqlseq, conn):
         cursor = conn.cursor()
         for sql in sqlseq:
             try:
@@ -64,7 +69,6 @@ class OracleBase(unittest.TestCase):
             except cx_Oracle.DatabaseError, ex:
                 raise Exception("%s: %s" % (ex, sql))
         cursor.close()
-        conn.close()
 
     def startQuery(self, **kwargs):
         conf = self.config.copy()
@@ -196,6 +200,58 @@ class DataTestCase(OracleBase):
         d = self.startQuery(sql='select count(*) from test')
         d.addCallback(check)
         return d
+
+
+class TimeoutTestCase(OracleBase):
+
+    def setUp(self):
+        super(TimeoutTestCase, self).setUp()
+
+        self.locked_conn = cx_Oracle.Connection(
+                user=self.config['user'],
+                password=self.config['password'],
+                dsn=self.config['dsn'],
+                threaded=True)
+        self.execute_in_connection((
+                "create table test (a number)",
+                "commit",
+                "lock table test in exclusive mode",
+                ), self.locked_conn)
+
+        # This unit test would dead-lock if it failed,
+        # to be friendly we only lock for 5 seconds.
+        self.lock_timeout = reactor.callLater(5, self.do_timeout)
+
+    def do_timeout(self):
+        # Commit the transaction to release the lock
+        self.execute_in_connection(("commit",), self.locked_conn)
+        self.fail("Query failed to time out!")
+
+    def tearDown(self):
+        super(TimeoutTestCase, self).tearDown()
+        self.execute_in_connection((
+                "drop table test",
+                "commit",
+                ), self.locked_conn)
+        self.locked_conn.close()
+        self.locked_conn = None
+        if self.lock_timeout.active():
+            self.lock_timeout.cancel()
+        self.lock_timeout = None
+
+    def test_timeout(self):
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assert_(
+                    str(result.value).startswith("Oracle query timed out"),
+                    "Wrong error, got: %s" % result.value)
+
+        deferred = self.startQuery(
+                sql='lock table test in exclusive mode',
+                timeout=0.5)
+        deferred.addBoth(check)
+        return deferred
+
 
 class PLSQLTestCase(OracleBase):
 
