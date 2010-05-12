@@ -187,8 +187,22 @@ class Scheduler(XMLPage):
         etree.SubElement(lat, "Minimum").text = "%f" % data['latency']['min']
         etree.SubElement(lat, "Average").text = "%f" % data['latency']['avg']
 
-        tasks = etree.SubElement(sch, 'Tasks')
-        etree.SubElement(tasks, "Groups").text = str(data['tasks']['groups'])
+        tasks = etree.SubElement(sch, 'Tasks',
+                count=str(data['tasks']['count']))
+        etree.SubElement(tasks, "Group",
+                count=str(data['tasks']['Group']['count']))
+        etree.SubElement(tasks, "Test",
+                count=str(data['tasks']['Test']['count']))
+        query = etree.SubElement(tasks, "Query",
+                count=str(data['tasks']['Query']['count']))
+        for query_type in data['tasks']['Query']:
+            if query_type == "count":
+                continue
+            etree.SubElement(query, "Query", type=query_type,
+                    count=str(data['tasks']['Query'][query_type]['count']))
+        if 'Other' in data['tasks']:
+            etree.SubElement(tasks, "Other",
+                    count=str(data['tasks']['Other']['count']))
 
         return sch
 

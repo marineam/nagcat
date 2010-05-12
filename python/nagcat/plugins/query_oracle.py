@@ -194,6 +194,11 @@ class OracleSQL2(OracleSQL):
     classProvides(query.IQuery)
     name = "oraclesql"
 
+    def __init__(self, conf):
+        super(OracleSQL2, self).__init__(conf)
+        # So the scheduler's stats are correct
+        self.name = "oracle_sql"
+
 
 class OraclePLSQL(query.Query):
     """A query that uses cx_oracle directly (allowing for stored procedure calls)

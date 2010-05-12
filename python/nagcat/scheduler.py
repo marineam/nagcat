@@ -52,6 +52,12 @@ class Scheduler(object):
         self._startup = True
         self._running = False
         self._latency = deque([0], 60)
+        self._task_stats = {
+                'count': 0,
+                'Group': {'count': 0},
+                'Test':  {'count': 0},
+                'Query': {'count': 0},
+            }
 
     def register(self, runnable):
         """Register a top level Runnable to be run directly by the scheduler"""
@@ -76,16 +82,12 @@ class Scheduler(object):
     def stats(self):
         """Get a variety of stats to report on"""
 
-        data = {}
+        data = {'tasks': self._task_stats}
         data['latency'] = {
                 'period':  60, # Approximate but close enough
                 'max': max(self._latency),
                 'min': min(self._latency),
                 'avg': sum(self._latency) / len(self._latency),
-            }
-
-        data['tasks'] = {
-                'groups': len(self._registered),
             }
 
         return data
@@ -97,6 +99,25 @@ class Scheduler(object):
         added as dependencies to a dummy Runnable object that is then
         registered.
         """
+
+        def update_stats(runnable):
+            self._task_stats['count'] += 1
+            if isinstance(runnable, query.Query):
+                self._task_stats['Query']['count'] += 1
+                if runnable.name in self._task_stats['Query']:
+                    self._task_stats['Query'][runnable.name]['count'] += 1
+                else:
+                    self._task_stats['Query'][runnable.name] = {'count': 1}
+            elif isinstance(runnable, test.Test):
+                self._task_stats['Test']['count'] += 1
+            elif isinstance(runnable, RunnableGroup):
+                self._task_stats['Group']['count'] += 1
+            else: # shouldn't happen, but just in case...
+                if 'Other' in self._task_stats:
+                    self._task_stats['Other']['count'] += 1
+                else:
+                    self._task_stats['Other'] = {'count': 1}
+
         groups_by_member = {} # indexed by id()
         groups = set()
 
@@ -116,6 +137,9 @@ class Scheduler(object):
                 if old_group is not None:
                     new_group.update(old_group)
                     groups.discard(old_group)
+                else:
+                    # This dep hasn't been seen yet so record it
+                    update_stats(dep)
 
             # switch to frozenset to make group hashable
             new_group = frozenset(new_group)
@@ -141,6 +165,7 @@ class Scheduler(object):
 
             # Setup the meta-runnable
             group_runnable = RunnableGroup(group_registered)
+            update_stats(group_runnable)
             self.register(group_runnable)
 
     def prepare(self):
@@ -152,9 +177,18 @@ class Scheduler(object):
 
         tests = len(self._registered)
         self._create_groups()
+
         if tests > 1:
-            log.info("There are %s tests configured in %s groups" %
-                    (tests, len(self._registered)))
+            log.info("Tasks: %s", self._task_stats['count'])
+            log.info("Groups: %s", self._task_stats['Group']['count'])
+            log.info("Queries: %s", self._task_stats['Query']['count'])
+            for query_type in self._task_stats['Query']:
+                if query_type == "count":
+                    continue
+                log.info("Query %s: %s", query_type,
+                        self._task_stats['Query'][query_type]['count'])
+            if 'Other' in self._task_stats:
+                log.info("Other: %s", self._task_stats['Other']['count'])
 
         self._startup = False
 
@@ -398,3 +432,5 @@ class RunnableGroup(Runnable):
         for dependency in group:
             self.addDependency(dependency)
 
+# import late due to circular imports
+import test, query

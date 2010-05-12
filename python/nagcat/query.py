@@ -125,6 +125,9 @@ class Query(scheduler.Runnable):
 class FilteredQuery(Query):
     """A query that wraps another query and applies filters to it"""
 
+    # For the scheduler stats
+    name = "filter"
+
     def __init__(self, conf):
         Query.__init__(self, conf)
 
