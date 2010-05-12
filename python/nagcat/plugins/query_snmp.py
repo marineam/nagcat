@@ -222,6 +222,9 @@ class SNMPQuery(SNMPCommon):
 class SNMPCombined(SNMPCommon):
     """Combined Query used to send just one query to common host."""
 
+    # For the scheduler stats
+    name = "snmp_combined"
+
     def __init__(self, conf):
         """Initialize query with oids and host port information."""
         super(SNMPCombined, self).__init__(conf)
