@@ -294,23 +294,22 @@ class PLSQLTestCase(OracleBase):
 
         assert proc.returncode == 0
 
-    def test1(self):
+    def test_1(self):
         def check(result):
-            xml = etree.fromstring(result)
-            value = float(xml.find("p_out").text)
-            # The value should be the current time but not quite
-            # because the test package doesn't account for timezones
-            # so as long as it is within 25 hours we'll call it good.
-            self.assertApproximates(value, time.time(), 3600*25)
+            self.assertEqualsXML(result,
+            """<result>
+                <p_out type="NUMBER">1.0</p_out>
+            </result>""")
 
         d = self.startQuery(procedure="pltest.one",
                 parameters=[['out', 'p_out', "number"]])
         d.addCallback(check)
         return d
 
-    def test2(self):
+    def test_2(self):
         def check(result):
-            self.assertEqualsXML(result, """<result>
+            self.assertEqualsXML(result,
+            """<result>
                 <p_out type="NUMBER">3.0</p_out>
             </result>""")
 
@@ -319,3 +318,80 @@ class PLSQLTestCase(OracleBase):
                     ['out', 'p_out', 'number']])
         d.addCallback(check)
         return d
+
+    def test_3(self):
+        def check(result):
+            self.assertEqualsXML(result,
+            """<result>
+                <p_out>
+                    <row><level type="NUMBER">1</level></row>
+                    <row><level type="NUMBER">2</level></row>
+                    <row><level type="NUMBER">3</level></row>
+                    <row><level type="NUMBER">4</level></row>
+                    <row><level type="NUMBER">5</level></row>
+                    <row><level type="NUMBER">6</level></row>
+                    <row><level type="NUMBER">7</level></row>
+                    <row><level type="NUMBER">8</level></row>
+                    <row><level type="NUMBER">9</level></row>
+                    <row><level type="NUMBER">10</level></row>
+                </p_out>
+            </result>""")
+
+        d = self.startQuery(procedure="pltest.three",
+                parameters=[['out', 'p_out', 'cursor']])
+        d.addCallback(check)
+        return d
+
+    def test_4(self):
+        def check(result):
+            self.assertEqualsXML(result,
+            """<result>
+                <p_one>
+                    <row><level type="NUMBER">1</level></row>
+                    <row><level type="NUMBER">2</level></row>
+                    <row><level type="NUMBER">3</level></row>
+                    <row><level type="NUMBER">4</level></row>
+                    <row><level type="NUMBER">5</level></row>
+                    <row><level type="NUMBER">6</level></row>
+                    <row><level type="NUMBER">7</level></row>
+                    <row><level type="NUMBER">8</level></row>
+                    <row><level type="NUMBER">9</level></row>
+                    <row><level type="NUMBER">10</level></row>
+                </p_one>
+                <p_two>
+                    <row><level type="NUMBER">1</level></row>
+                    <row><level type="NUMBER">2</level></row>
+                    <row><level type="NUMBER">3</level></row>
+                    <row><level type="NUMBER">4</level></row>
+                    <row><level type="NUMBER">5</level></row>
+                    <row><level type="NUMBER">6</level></row>
+                    <row><level type="NUMBER">7</level></row>
+                    <row><level type="NUMBER">8</level></row>
+                    <row><level type="NUMBER">9</level></row>
+                    <row><level type="NUMBER">10</level></row>
+                </p_two>
+            </result>""")
+
+        d = self.startQuery(procedure="pltest.four",
+                parameters=[['out', 'p_one', 'cursor'],
+                            ['out', 'p_two', 'cursor']])
+        d.addCallback(check)
+        return d
+
+    def test_5(self):
+        def check(result):
+            # The current behavior of the conversion to XML is to
+            # represent NULL as an empty element. But what about
+            # NULL vs empty strings? Do we care?
+            self.assertEqualsXML(result,
+            """<result>
+                <p_one type="NUMBER">1.0</p_one>
+                <p_two type="NUMBER"/>
+            </result>""")
+
+        d = self.startQuery(procedure="pltest.five",
+                parameters=[['out', 'p_one', 'number'],
+                            ['out', 'p_two', 'number']])
+        d.addCallback(check)
+        return d
+
