@@ -517,3 +517,86 @@ query: {
     host: "pool.ntp.org"
     port: 123
 }
+
+Oracle SQL:
+
+For running Oracle SQL queries (mainly SELECT). Note that the type is
+oracle_sql but the alias oraclesql also works for compatibility with
+older versions of Nagcat.
+
+Results are represented as XML for easy processing using XPath filters.
+For a table that was created with the columns (a number, b varchar2(10))
+the format of a select will look something like this:
+
+<queryresult>
+  <row>
+    <a type="NUMBER">1</a>
+    <b type="STRING">aaa</b>
+  </row>
+  <row>
+    <a type="NUMBER">2</a>
+    <b type="STRING">bbb</b>
+  </row>
+</queryresult>
+
+query: {
+    type: "oracle_sql"
+    user: "username"
+    password: "password"
+
+    # dsn defines the database to connect to, in the simple case it is
+    # a host name and database name but if tnsnames.ora is in use then
+    # any identifier in it can be used.
+    dsn: "dbhost/dbname"
+
+    # Although in theory you *could* put statements other than SELECT
+    # such as UPDATE or INSERT I have no idea why you would want to.
+    sql: "SELECT :bind AS value FROM dual"
+
+    # The above query has a bind value named 'bind', we can specify it
+    # with the attribute binds as a list or struct:
+    binds: [ 1 ]
+    binds: { bind: 1 }
+
+    # The attribute 'parameters' is an alias to binds for the sake of
+    # semi-consistency with the plsql query type.
+    parameters: [ 1 ]
+}
+
+Oracle PL/SQL:
+
+It is also possible to run PL/SQL procedures. This query can only
+execute a single procedure, not arbitrary PL/SQL code.
+
+query: {
+    type: "oracle_plsql"
+    user: "username"
+    password: "password"
+    dsn: "dbhost/dbname"
+
+    # Name of the procedure, which is probably in a package.
+    procedure: "monitor_package.procedure_name"
+
+    # Any number of input and output parameters can be passed to the
+    # procedure. To be useful the procedure will need to define at least
+    # one output parameter that gives us data to work with. Each
+    # parameter is defined with a three item list:
+    #       [ direction name value/type ]
+    # where direction is 'in' or 'out, name is the parameter name, and
+    # value/type is the input value for 'in' or the data type to expect.
+    parameters: [
+        ['in' 'this' 1]
+        ['out' 'that' 'number']
+        ['out' 'list' 'cursor']
+    ]
+}
+
+The output XML is similar to the oracle_sql output:
+<result>
+  <that type="NUMBER">2</that>
+  <list>
+    <row>
+      <a type="STRING">foo</a>
+    </row>
+  </list>
+</result>
