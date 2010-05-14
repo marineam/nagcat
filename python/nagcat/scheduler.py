@@ -181,6 +181,7 @@ class Scheduler(object):
         if tests > 1:
             log.info("Tasks: %s", self._task_stats['count'])
             log.info("Groups: %s", self._task_stats['Group']['count'])
+            log.info("Tests: %s", self._task_stats['Test']['count'])
             log.info("Queries: %s", self._task_stats['Query']['count'])
             for query_type in self._task_stats['Query']:
                 if query_type == "count":
