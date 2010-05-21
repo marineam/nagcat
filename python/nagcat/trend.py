@@ -18,6 +18,7 @@ import os
 import re
 import time
 import ctypes
+import shutil
 import tempfile
 
 from twisted.internet import reactor
@@ -262,7 +263,7 @@ class Trend(object):
 
         if rradir is None:
             rradir = _rradir
-        self._rradir = os.path.join(rradir, conf['host'])
+        self._rradir = os.path.abspath(os.path.join(rradir, conf['host']))
         self._rrafile = os.path.join(self._rradir, "%s.rrd" % conf['name'])
 
         if not os.path.exists(self._rradir):
@@ -411,7 +412,18 @@ class Trend(object):
         else:
             dir = "SHRINK"
 
-        rrdtool.resize(self._rrafile, str(index), dir, str(diff))
+        # resize *always* writes to ./resize.rrd which isn't
+        # particularly helpful but we can work with it.
+        cwd = os.getcwd()
+        tmp = tempfile.mkdtemp(dir=self._rradir)
+        try:
+            os.chdir(tmp)
+            rrdtool.resize(self._rrafile, str(index), dir, str(diff))
+            shutil.copymode(self._rrafile, "resize.rrd")
+            os.rename("resize.rrd", self._rrafile)
+        finally:
+            os.chdir(cwd)
+            os.rmdir(tmp)
 
     def update(self, report):
         ds_values = {}
