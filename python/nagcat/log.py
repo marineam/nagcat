@@ -109,7 +109,7 @@ class LogLevelObserver(object):
             # Also catch all starting/stopping factory noise if it exists.
             elif ('log_level' not in event and 'message' in event and
                     (event['message'][0].startswith(
-                        'nagcat.query.NTPProtocol starting on') or
+                        'nagcat.plugins.query_ntp.NTPProtocol starting on') or
                     (event['message'][0].startswith('(Port ') and
                      event['message'][0].endswith(' Closed)'))) or
                     event['message'][0].startswith('Starting factory') or
