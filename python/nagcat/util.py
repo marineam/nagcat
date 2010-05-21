@@ -42,7 +42,7 @@ class Interval(object):
             self.seconds = 0.0
             return
 
-        if isinstance(value, (int, long, float)):
+        if isinstance(value, (int, long, float, Interval)):
             self.seconds = float(value)
             return
         elif not isinstance(value, str):
