@@ -171,17 +171,25 @@ def addTrend(testobj, testconf):
         trendobj = Trend(testconf)
         testobj.addReportCallback(trendobj.update)
 
+# Just to make definitions below easier to read
+_min  = 60
+_hour = _min*60
+_day  = _hour*24
+_week = _day*7
+_mon  = _day*31
+_year = _day*366
+
 class Trend(object):
 
     #: Valid rrdtool data source types
     TYPES = ("GAUGE", "COUNTER", "DERIVE", "ABSOLUTE")
 
-    #: RRAs required for graphing, (period, interval) in seconds
-    RRAS = ((1440, 60),         # 4 hours of 1 minute intervals
-            (86400, 300),       # 1 day of 5 minute intervals
-            (604800, 1800),     # 7 days of 30 minute intervals
-            (2678400, 7200),    # 31 days of 2 hour intervals
-            (31622400, 86400))  # 366 days of 1 day intervals
+    #: RRAs required for graphing, (interval: period) in seconds
+    RRAS = {_min:    _day*2,    # 1 minute intervals for 2 days
+            _min*5:  _week*2,   # 5 minute intervals for 2 weeks
+            _min*30: _mon*2,    # 30 minute intervals for 2 months
+            _hour*2: _year,     # 2 hour intervals for 1 year
+            _day:    _year*6}   # 1 day intervals for 6 years
 
     def __init__(self, conf, rradir=None, start=None):
         self._step = util.Interval(conf.get("repeat", "1m")).seconds
@@ -204,9 +212,7 @@ class Trend(object):
 
             ds_conf['trend'].expand()
 
-            # Only type supported right now
             new = { 'type': ds_conf['trend.type'].upper() }
-
             if new['type'] not in self.TYPES:
                 raise errors.ConfigError(ds_conf['trend'],
                         "Invalid type: %s" % new['type'])
@@ -229,6 +235,30 @@ class Trend(object):
         # Default to a 1 minute step when repeat is useless
         if self._step == 0:
             self._step = 60
+
+        rras = conf.get('trend.rra', None)
+        clean = re.compile('^[^\d]*').sub
+        self._rras = self.RRAS.copy()
+        if isinstance(rras, coil.struct.Struct):
+            for interval, period in rras.iteritems():
+                interval = clean('', interval)
+                try:
+                    interval = int(util.Interval(interval))
+                except util.IntervalError:
+                    raise errors.ConfigError(conf,
+                            "Invalid RRA interval: %r" % interval)
+                try:
+                    period = int(util.Interval(period))
+                except util.IntervalError:
+                    raise errors.ConfigError(conf,
+                            "Invalid RRA period: %r" % period)
+                if not period:
+                    del self._rras[interval]
+                else:
+                    self._rras[interval] = period
+        elif rras is not None:
+            raise errors.ConfigError(conf,
+                    "trend.rra must be a struct, got: %r" % rras)
 
         if rradir is None:
             rradir = _rradir
@@ -290,11 +320,11 @@ class Trend(object):
             args.append("DS:%s:%s:%d:%s:%s" % (ds_name,
                 ds_conf['type'], self._step*2, ds_min, ds_max))
 
-        for period, interval in self.RRAS:
+        for interval, period in sorted(self._rras.iteritems()):
             if interval < self._step:
                 continue
             steps = interval // self._step
-            rows = period // (steps * self._step)
+            rows = period // interval
             args.append("RRA:MAX:0.5:%d:%d" % (steps, rows))
             args.append("RRA:AVERAGE:0.5:%d:%d" % (steps, rows))
 
@@ -342,7 +372,8 @@ class Trend(object):
             check_limit(ds_conf, ds_old, 'max')
 
         old = list(info['rra'])
-        for period, interval in self.RRAS:
+        index = 0
+        for interval, period in sorted(self._rras.iteritems()):
             if interval < self._step:
                 continue
 
@@ -356,13 +387,31 @@ class Trend(object):
             if rra_avg['cf'] != 'AVERAGE':
                 raise MismatchError("rra has an unexpected function")
 
-            for rra in (rra_max, rra_avg):
+            for i, rra in enumerate((rra_max, rra_avg)):
                 if rra['pdp_per_row'] != steps:
-                    MismatchError("rra interval has changed")
+                    raise MismatchError("rra interval has changed")
                 if rra['rows'] != rows:
-                    MismatchError("rra period has changed")
+                    self.resize(index+i, rra['rows'], rows)
                 if rra['xff'] != 0.5:
-                    MismatchError("rra xff has changed")
+                    raise MismatchError("rra xff has changed")
+            index += 2
+        if old:
+            raise MismatchError("%d unexpected RRAs" % len(old))
+
+    def resize(self, index, old, new):
+        """Wrapper around rrdtool resize to add/remove rows from an RRA"""
+
+        log.info("Resizing RRA %d in %s from %d to %d rows" %
+                (index, self._rrafile, old, new))
+
+        assert old != new
+        diff = abs(old - new)
+        if new > old:
+            dir = "GROW"
+        else:
+            dir = "SHRINK"
+
+        rrdtool.resize(self._rrafile, str(index), dir, str(diff))
 
     def update(self, report):
         ds_values = {}

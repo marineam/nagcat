@@ -190,3 +190,99 @@ class TrendDataTestCase(unittest.TestCase):
         trend.Trend(self.conf, self.tmpdir)
         self.assertRRDCount(2)
 
+class TrendRRATestCase(unittest.TestCase):
+
+    if trend.rrdtool is None:
+        skip = "rrdtool is not installed"
+
+    def setUp(self):
+        self.tmpdir = self.mktemp()
+        os.mkdir(self.tmpdir)
+
+        self.conf = Struct({
+            'host': "testhost",
+            'name': "rratest",
+            'repeat': "1m",
+            'query': {'type': "noop"},
+            'trend': {'type': "gauge"},
+        })
+        self.assertRRDCount(0)
+
+    def rrdtool_info(self):
+        rrd_path = "%s/testhost/rratest.rrd" % self.tmpdir
+        return trend.rrdtool_info(rrd_path)
+
+    def assertRRDCount(self, count):
+        rrd_glob = "%s/testhost/rratest.rrd*" % self.tmpdir
+        self.assertEquals(len(glob(rrd_glob)), count)
+
+    def assertRRA(self, rra, cf, steps, rows):
+        self.assertEquals(rra['cf'], cf)
+        self.assertEquals(rra['pdp_per_row'], steps)
+        self.assertEquals(rra['rows'], rows)
+        self.assertEquals(rra['xff'], 0.5)
+
+    def testDefaults(self):
+        trend.Trend(self.conf, self.tmpdir)
+        self.assertRRDCount(1)
+        rra = self.rrdtool_info()['rra']
+        # Should be 2 cf per 5 default intervals
+        self.assertEquals(len(rra), 10)
+
+        # 1 minute intervals for 2 days
+        self.assertRRA(rra[0], 'MAX',     1, 2880)
+        self.assertRRA(rra[1], 'AVERAGE', 1, 2880)
+
+        # 5 minute intervals for 2 weeks
+        self.assertRRA(rra[2], 'MAX',     5, 4032)
+        self.assertRRA(rra[3], 'AVERAGE', 5, 4032)
+
+        # 30 minute intervals for 2 months
+        self.assertRRA(rra[4], 'MAX',     30, 2976)
+        self.assertRRA(rra[5], 'AVERAGE', 30, 2976)
+
+        # 2 hour intervals for 1 year
+        self.assertRRA(rra[6], 'MAX',     120, 4392)
+        self.assertRRA(rra[7], 'AVERAGE', 120, 4392)
+
+        # 1 day intervals for 6 years
+        self.assertRRA(rra[8], 'MAX',     1440, 2196)
+        self.assertRRA(rra[9], 'AVERAGE', 1440, 2196)
+
+    def testGrow(self):
+        self.conf['trend.rra._60'] = 1440
+        trend.Trend(self.conf, self.tmpdir)
+        self.assertRRDCount(1)
+
+        rra = self.rrdtool_info()['rra']
+        self.assertEquals(len(rra), 10)
+        self.assertRRA(rra[0], 'MAX',     1, 24)
+        self.assertRRA(rra[1], 'AVERAGE', 1, 24)
+
+        self.conf['trend.rra._60'] = 14400
+        trend.Trend(self.conf, self.tmpdir)
+        self.assertRRDCount(1)
+
+        rra = self.rrdtool_info()['rra']
+        self.assertEquals(len(rra), 10)
+        self.assertRRA(rra[0], 'MAX',     1, 240)
+        self.assertRRA(rra[1], 'AVERAGE', 1, 240)
+
+    def testShrink(self):
+        self.conf['trend.rra._60'] = 14400
+        trend.Trend(self.conf, self.tmpdir)
+        self.assertRRDCount(1)
+
+        rra = self.rrdtool_info()['rra']
+        self.assertEquals(len(rra), 10)
+        self.assertRRA(rra[0], 'MAX',     1, 240)
+        self.assertRRA(rra[1], 'AVERAGE', 1, 240)
+
+        self.conf['trend.rra._60'] = 1440
+        trend.Trend(self.conf, self.tmpdir)
+        self.assertRRDCount(1)
+
+        rra = self.rrdtool_info()['rra']
+        self.assertEquals(len(rra), 10)
+        self.assertRRA(rra[0], 'MAX',     1, 24)
+        self.assertRRA(rra[1], 'AVERAGE', 1, 24)
