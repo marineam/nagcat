@@ -34,6 +34,9 @@ class IntervalTestcase(unittest.TestCase):
         self.assertEquals(a.seconds, 5)
         a = util.Interval(5.5)
         self.assertEquals(a.seconds, 5.5)
+        a = util.Interval(5)
+        b = util.Interval(a)
+        self.assertEquals(b.seconds, 5)
 
     def testMinutes(self):
         a = util.Interval("5 Minutes")
