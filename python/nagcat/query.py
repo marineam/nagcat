@@ -83,7 +83,7 @@ class Query(scheduler.Runnable):
             interval = util.Interval(conf.get('timeout', 15))
             self.conf['timeout'] = interval.seconds
         except util.IntervalError, ex:
-            raise errors.ConfigError(conf, str(ex))
+            raise errors.ConfigError(conf, "Invalid timeout: %s" % ex)
 
         if self.conf['timeout'] <= 0:
             raise errors.ConfigError(conf,

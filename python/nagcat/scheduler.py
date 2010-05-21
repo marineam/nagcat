@@ -285,7 +285,7 @@ class Runnable(object):
         try:
             self.repeat = util.Interval(conf.get('repeat', '1m'))
         except util.IntervalError, ex:
-            raise errors.ConfigError(conf, str(ex))
+            raise errors.ConfigError(conf, "Invalid repeat: %s" % ex)
 
         if 'addr' in conf:
             self.addr = conf['addr']
