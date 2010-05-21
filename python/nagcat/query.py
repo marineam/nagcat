@@ -22,7 +22,7 @@ import errno
 from twisted.internet import defer
 from twisted.internet import error as neterror
 
-from nagcat import errors, filters, log, plugin, scheduler
+from nagcat import errors, filters, log, plugin, scheduler, util
 
 _queries = {}
 
@@ -80,10 +80,10 @@ class Query(scheduler.Runnable):
 
         # All queries should handle timeouts
         try:
-            self.conf['timeout'] = float(conf.get('timeout', 15))
-        except ValueError:
-            raise errors.ConfigError(conf,
-                    "Invalid timeout value '%s'" % conf.get('timeout'))
+            interval = util.Interval(conf.get('timeout', 15))
+            self.conf['timeout'] = interval.seconds
+        except util.IntervalError, ex:
+            raise errors.ConfigError(conf, str(ex))
 
         if self.conf['timeout'] <= 0:
             raise errors.ConfigError(conf,

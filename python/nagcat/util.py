@@ -42,13 +42,19 @@ class Interval(object):
             self.seconds = 0.0
             return
 
+        if isinstance(value, (int, long, float)):
+            self.seconds = float(value)
+            return
+        elif not isinstance(value, str):
+            raise IntervalError("Invalid time value %r" % value)
+
         match = re.match("^\s*(\d+(\.\d+)?)\s*"
-                "(s|sec|seconds?|m|min|minutes?|h|hours?|d|days?)\s*$",
+                "(s|sec|seconds?|m|min|minutes?|h|hours?|d|days?)?\s*$",
                 str(value), re.IGNORECASE)
         if not match:
-            raise IntervalError("Invalid time interval '%s'" % value)
+            raise IntervalError("Invalid time value %r" % value)
 
-        if match.group(3)[0].lower() == 's':
+        if not match.group(3) or match.group(3)[0].lower() == 's':
             self.seconds = float(match.group(1))
         elif match.group(3)[0].lower() == 'm':
             self.seconds = float(match.group(1)) * 60
