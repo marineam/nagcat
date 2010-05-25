@@ -27,10 +27,10 @@ epollreactor.install()
 
 if __name__ == "__main__":
     try:
-        from nagcat import main
+        from nagcat.main import main
     except ImportError:
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         sys.path.append("%s/python" % root)
-        from nagcat import main
+        from nagcat.main import main
 
     main()
