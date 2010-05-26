@@ -84,6 +84,20 @@ def _class_list(parent, section, objects, refs):
         if refs:
             _class_list(obj, "Referrers", gc.get_referrers(*objs), False)
 
+class Objects(XMLPage):
+    """Process memory usage"""
+
+    def xml(self, request):
+        # include referrers for /stat/memory/referrers
+        # this is *REALY* expensive, marked as dangerous
+        refs = (DANGER and request.postpath and
+                request.postpath[0] == 'referrers')
+
+        mem = etree.Element("Objects", version="1.0")
+        _class_list(mem, "Allocated", gc.get_objects(), refs)
+        _class_list(mem, "Uncollectable", gc.garbage, refs)
+        return mem
+
 class Memory(XMLPage):
     """Process memory usage"""
 
@@ -91,18 +105,8 @@ class Memory(XMLPage):
 
     def xml(self, request):
         mem = etree.Element("Memory", version="1.0")
-
-        referrers = request.postpath and request.postpath[0] == 'referrers'
-
-        # include referrers for /stat/memory/referrers
-        # this is *REALY* expensive, marked as dangerous
-        refs = (DANGER and request.postpath and
-                request.postpath[0] == 'referrers')
-
-        _class_list(mem, "Allocated", gc.get_objects(), refs)
-        _class_list(mem, "Uncollectable", gc.garbage, refs)
-
         status = open("/proc/self/status")
+
         for line in status:
             match = self.vm_regex.match(line)
             if not match:
@@ -219,12 +223,17 @@ class Stat(XMLPage):
         self.order = []
 
         self.putChild("", self)
-        self.putChild("ping", Ping())
-        self.putChild("memory", Memory())
-        self.putChild("time", Time())
-        self.putChild("threads", Threads())
 
-    def putChild(self, path, child):
+        # Pages to include in the complete XML page
+        self.includeChild("ping", Ping())
+        self.includeChild("memory", Memory())
+        self.includeChild("time", Time())
+        self.includeChild("threads", Threads())
+
+        # Pages to exclude from the complete page
+        self.putChild("objects", Objects())
+
+    def includeChild(self, path, child):
         XMLPage.putChild(self, path, child)
         if path not in self.order:
             self.order.append(path)
@@ -233,9 +242,6 @@ class Stat(XMLPage):
         stat = etree.Element("Stat")
 
         for path in self.order:
-            if not path:
-                continue
-
             child = self.children[path]
             stat.append(child.xml(request))
 
@@ -247,7 +253,7 @@ class NagcatStat(Stat):
     def __init__(self, scheduler):
         Stat.__init__(self)
 
-        self.putChild("scheduler", Scheduler(scheduler))
+        self.includeChild("scheduler", Scheduler(scheduler))
 
 class MonitorSite(server.Site):
     """The whole monitoring api wrapped up in dark chocolate"""
