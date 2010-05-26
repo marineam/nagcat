@@ -38,7 +38,7 @@ import socket
 import random
 from collections import deque
 
-from twisted.internet import defer, reactor
+from twisted.internet import defer, reactor, task
 from twisted.python import failure
 from coil.struct import Struct
 
@@ -318,7 +318,7 @@ class Runnable(object):
 
     def __startSelf(self, results):
         log.debug("Starting %s", self)
-        return self._start()
+        return task.deferLater(reactor, 0, self._start)
 
     def start(self):
         """Start a Runnable object"""
