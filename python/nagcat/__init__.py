@@ -25,3 +25,8 @@ if getattr(coil, '__version_info__', (0,0)) < (0,3,14):
 # Require Twisted >= 8.2, older versions had problematic bugs
 if twisted.version < versions.Version('twisted', 8, 2, 0):
     raise ImportError("Twisted >= 8.2 is required")
+
+# These imports hit a magical import ordering that works.
+# Don't remove until the circular imports are fixed.
+from nagcat import errors, log, monitor_api, nagios
+from nagcat import scheduler, test, trend, util
