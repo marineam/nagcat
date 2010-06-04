@@ -53,7 +53,9 @@ class TrendMaster(object):
                     "%r is not readable and/or writeable!" % rradir)
 
         self._rradir = rradir
-        self._rrdapi = RRDTwistedAPI(rrdcache)
+        self._rrdapi = RRDTwistedAPI()
+        if rrdcache:
+            self._rrdapi.open(rrdcache)
 
     def setup_test_trending(self, testobj, testconf):
         """Setup a Trend object for the given test."""

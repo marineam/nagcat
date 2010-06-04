@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from twisted.internet import protocol
+import os
+from twisted.internet import defer, error, protocol, reactor
 from twisted.protocols import basic
-from twisted.python import log
+from twisted.python import failure, log
+from twisted.trial import unittest
+
+from twirrdy import RRDBasicAPI
 
 class DummyCacheProtocol(basic.LineOnlyReceiver, object):
 
@@ -25,7 +29,11 @@ class DummyCacheProtocol(basic.LineOnlyReceiver, object):
         cmd = line.split(None, 1)[0]
         handler = getattr(self, "do_%s" % cmd.upper(), None)
         if handler:
-            handler(line)
+            try:
+                handler(line)
+            except Exception, ex:
+                log.err(failure.Failure())
+                self.sendLine("-1 %s: %s" % (ex.__class__.__name__, ex))
         else:
             self.sendLine("-1 Unknown command: %s" % cmd)
 
@@ -55,3 +63,88 @@ class DummyCacheProtocol(basic.LineOnlyReceiver, object):
 class DummyCacheServer(protocol.ServerFactory, object):
 
     protocol = DummyCacheProtocol
+
+class UpdateCacheProtocol(DummyCacheProtocol):
+    """Like the dummy, but actually updates"""
+
+    def __init__(self):
+        self.api = RRDBasicAPI()
+
+    def do_FLUSH(self, line):
+        self.sendLine("0 Success")
+
+    def do_UPDATE(self, line):
+        line = line.split()
+        assert len(line) == 3
+        path = line[1]
+        args = line[2].split(':')
+        timestamp = args.pop(0)
+        log.msg("SERVER UPDATING: %s" % path)
+        self.api.update(path, timestamp, args)
+        self.sendLine("0 Success")
+
+class UpdateCacheServer(protocol.ServerFactory, object):
+
+    protocol = UpdateCacheProtocol
+
+class LoggingProcessProtocol(protocol.ProcessProtocol):
+    """For running the real rrdcached"""
+
+    def __init__(self, started, stopped):
+        self._started = started
+        self._stopped = stopped
+
+    def outReceived(self, data):
+        log.msg("rrdcached: %r" % data)
+        if "listening for connections" in data:
+            self._started.callback(None)
+            self._started = None
+
+    def errReceived(self, data):
+        self.outReceived(data)
+
+    def processEnded(self, reason):
+        log.msg("rrdcached exited: %s" % reason.value)
+        if self._started:
+            self._started.errback(reason)
+            self._started = None
+        self._stopped.errback(reason)
+        self._stopped = None
+
+class RealCacheServer(object):
+    """Start and stop rrdcached"""
+
+    def __init__(self, address, pidfile):
+        self.daemon = os.environ.get('RRDCACHED_PATH', 'rrdcached')
+        self.cwd = os.getcwd()
+        self.address = os.path.join(self.cwd, address)
+        self.pidfile = os.path.join(self.cwd, pidfile)
+
+    def startListening(self):
+        def startup_failed(result):
+            log.msg("skipping test")
+            raise unittest.SkipTest("unable to start rrdcached")
+
+        def filter_done(result):
+            if isinstance(result.value, error.ProcessDone):
+                return None
+            else:
+                return result
+
+        args = [self.daemon, '-g',
+                '-p', self.pidfile,
+                '-l', self.address,
+                '-b', self.cwd]
+        started = defer.Deferred()
+        started.addErrback(startup_failed)
+        self.stopped = defer.Deferred()
+        self.stopped.addErrback(filter_done)
+        proto = LoggingProcessProtocol(started, self.stopped)
+        self.proc = reactor.spawnProcess(proto, self.daemon, args)
+        return started
+
+    def stopListening(self):
+        self.proc.signalProcess(15)
+        deferred = self.stopped
+        self.stopped = None
+        return deferred

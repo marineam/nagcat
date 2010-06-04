@@ -15,6 +15,7 @@
 """A Twisted (and thread safe) RRDTool library"""
 
 import os
+import time
 import ctypes
 
 # OrderedDict isn't available till 2.7
@@ -34,6 +35,13 @@ rrd_th.rrd_get_error.argtypes = []
 rrd_th.rrd_get_error.restype = ctypes.c_char_p
 rrd_th.rrd_clear_error.argtypes = []
 rrd_th.rrd_clear_error.restype = None
+
+rrd_th.rrd_create_r.argtypes = [
+        ctypes.c_char_p,    # filename
+        ctypes.c_ulong,     # step
+        ctypes.c_long,      # start
+        ctypes.c_int,       # argc
+        c_char_pp]          # argv
 
 rrd_th.rrd_update_r.argtypes = [
         ctypes.c_char_p,    # filename
@@ -100,6 +108,72 @@ class RRDLibraryError(RRDToolError):
 
 class RRDBasicAPI(object):
     """Basic RRDTool API - threadsafe and doesn't require Twisted"""
+
+    def create(self, filename, ds, rra, step=300, start=None):
+        """Create a new RRDTool database.
+
+        COMPUTE data sources and predictive rras aren't supported.
+
+        @param filename: Path to new file, must not exist.
+        @type filename: str
+        @param ds: list or dict of dicts defining data sources:
+            {'name': data source name, not required for dicts of dicts
+             'type': "GAGUE" or "COUNTER" or "DERIVE" or "ABSOLUTE",
+             'heartbeat': int, # 'minimal_heartbeat' is also accepted
+             'min': float or None, # defaults to None
+             'max': float or None} # defaults to None
+        @param rra: list of dicts defining rras:
+            {'cf': "AVERAGE" or "MIN" or "MAX" or "LAST",
+             'xff': float,
+             'pdp_per_row': int,
+             'rows': int}
+        @param step: data feeding rate in seconds
+        @type step: int
+        @param start: start time in seconds, defaults to time() - 10
+        @time start: int or None
+        """
+
+        args = []
+        step = int(step)
+        if not start:
+            start = time.time() - 10
+        else:
+            start = int(start)
+
+        def check_minmax(item, key):
+            value = item.get(key, None)
+            if value is None:
+                item[key] = 'U'
+            else:
+                item[key] = int(value)
+
+        def add_ds(item, name=None):
+            item = item.copy()
+            if name is not None:
+                item.setdefault('name', name)
+            if 'minimal_heartbeat' not in item:
+                item['minimal_heartbeat'] = item['heartbeat']
+            check_minmax(item, 'min')
+            check_minmax(item, 'max')
+            assert ':' not in item['name']
+            args.append(("DS:%(name)s:%(type)s:"
+                "%(minimal_heartbeat)d:%(min)s:%(max)s") % item)
+
+        if hasattr(ds, 'iteritems'):
+            for name, item in ds.iteritems():
+                add_ds(item, name)
+        else:
+            for item in ds:
+                add_ds(item)
+
+        for item in rra:
+            args.append("RRA:%(cf)s:%(xff)f:%(pdp_per_row)d:%(rows)d" % item)
+
+        argc = len(args)
+        argv_t = ctypes.c_char_p * argc
+        argv = argv_t(*args)
+        if rrd_th.rrd_create_r(filename, step, start, argc, argv):
+            raise RRDLibraryError()
 
     def update(self, filename, timestamp, values):
         """Update the given file with a list of values.

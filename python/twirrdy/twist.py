@@ -17,9 +17,10 @@
 import os
 import stat
 
-from twisted.internet import threads
+from twisted.internet import defer, error, reactor, threads
 
 from twirrdy import RRDBasicAPI, RRDToolError
+from twirrdy import protocol
 
 def issock(path):
     mode = os.stat(path)[stat.ST_MODE]
@@ -37,37 +38,107 @@ class RRDTwistedAPI(RRDBasicAPI):
     This class also supports sending updates via rrdcached.
     """
 
-    def __init__(self, rrdcached_address=None):
-        """Only UNIX sockets are supported at the moment"""
+    def __init__(self, defer=True):
+        """
+        @param defer: Enable asyncronus calls by default
+        """
+        self._defer = defer
+        self._client = None
+        self.update = self._update_direct
 
-        if rrdcached_address:
-            if not issock(rrdcached_address):
-                raise RRDToolError("rrdcached_address is not a UNIX socket")
+    def open(self, address, pidfile=None):
+        """Open connection to rrdcached
 
-            self._rrdcached_address = rrdcached_address
-            self.update = self._update_cache
-        else:
-            self.update = self._update_direct
+        @param address: path to rrdcached's UNIX socket
+        @type address: str
+        @param pidfile: optionally check rrdcached's pid file
+        @type pidfile: str
+        """
 
-    def _update_cache(self, filename, timestamp, values, defer=True):
+        deferred = defer.Deferred()
+        self._client = protocol.RRDCacheClient(deferred)
+        reactor.connectUNIX(address, self._client, checkPID=pidfile)
+        self.update = self._update_cache
+        return deferred
+
+    def close(self):
+        """Close connection to rrdcached"""
+
+        def filter_done(result):
+            if isinstance(result.value, error.ConnectionDone):
+                return None
+            else:
+                return result
+
+        assert self._client
+        self._client.stopTrying()
+        deferred = self._client.sendLine('QUIT')
+        deferred.addErrback(filter_done)
+        self._client = None
+        self.update = self._update_direct
+        return deferred
+
+    def flush(self, filename):
+        assert self._client
+        filename = self._escape_filename(filename)
+        return self._client.sendLine("FLUSH %s" % filename)
+
+    def _escape_filename(self, filename):
+        """Escape '\' and ' ' in file names"""
+        return filename.replace('\\', '\\\\').replace(' ', '\\ ')
+
+    def _update_cache(self, filename, timestamp, values, defer=None):
         """Update via rrdcached"""
+
+        if defer is None:
+            defer = self._defer
+
         if not defer:
             super(RRDTwistedAPI, self).update(filename, timestamp, values)
         else:
-            pass
+            assert self._client
+            filename = self._escape_filename(filename)
+            # format: UPDATE filename.rrd time:v1:v2:...
+            line = "UPDATE %s %s:%s" % (filename, int(timestamp),
+                    ':'.join(str(v) for v in values))
+            return self._client.sendLine(line)
 
-    def _update_direct(self, filename, timestamp, values, defer=True):
+    def _update_direct(self, filename, timestamp, values, defer=None):
         """Update via library call"""
-        if not defer:
-            super(RRDTwistedAPI, self).update(filename, timestamp, values)
-        else:
-            return threads.deferToThread(
-                    super(RRDTwistedAPI, self).update,
-                    filename, timestamp, values)
 
-    def info(self, filename, defer=True):
+        if defer is None:
+            defer = self._defer
+
+        doupdate = lambda: super(RRDTwistedAPI, self).update(
+                    filename, timestamp, values)
         if not defer:
-            return super(RRDTwistedAPI, self).info(filename)
+            doupdate()
         else:
-            return threads.deferToThread(
-                    super(RRDTwistedAPI, self).info, filename)
+            return threads.deferToThread(doupdate)
+
+    def create(self, filename, ds, rra, step=300, start=None, defer=None):
+        if defer is None:
+            defer = self._defer
+
+        docreate = lambda: super(RRDTwistedAPI, self).create(
+                    filename, ds, rra, step, start)
+        if not defer:
+            docreate()
+        else:
+            return threads.deferToThread(docreate)
+
+    def info(self, filename, defer=None):
+        if defer is None:
+            defer = self._defer
+
+        doinfo = lambda: super(RRDTwistedAPI, self).info(filename)
+
+        if not defer:
+            return doinfo()
+        else:
+            if self._client:
+                deferred = self.flush(filename)
+                deferred.addCallback(lambda x: threads.deferToThread(doinfo))
+                return deferred
+            else:
+                return threads.deferToThread(doinfo)
