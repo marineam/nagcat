@@ -74,6 +74,9 @@ def parse_options():
             help="set the limit on number of open files")
     parser.add_option("-r", "--rradir", dest="rradir",
             help="directory used to store rrdtool archives")
+    parser.add_option("-R", "--rrdcache",
+            default=os.environ.get('RRDCACHED_ADDRESS', None),
+            help="path to unix socket rrdcache is listening on")
     parser.add_option("-s", "--status-port", dest="status_port", type="int",
             help="enable the HTTP status port")
     parser.add_option("-V", "--verify", dest="verify",
@@ -159,7 +162,7 @@ def init(options):
 
     try:
         if options.rradir:
-            trend.init(options.rradir)
+            trend.init(options.rradir, options.rrdcache)
 
         if options.test:
             tests = simple(options, config)

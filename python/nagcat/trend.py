@@ -52,10 +52,20 @@ class TrendMaster(object):
             raise errors.InitError(
                     "%r is not readable and/or writeable!" % rradir)
 
+        def opened_ok(result):
+            log.info("Connected to rrdcached on %s", rrdcache)
+
+        def opened_fail(result):
+            log.error("Failed to connect to rrdcached: %s" % result)
+
         self._rradir = rradir
         self._rrdapi = RRDTwistedAPI()
         if rrdcache:
-            self._rrdapi.open(rrdcache)
+            d = self._rrdapi.open(rrdcache)
+            d.addCallback(opened_ok)
+            d.addErrback(opened_fail)
+        else:
+            log.info("No rrdcached, updates will be direct.")
 
     def setup_test_trending(self, testobj, testconf):
         """Setup a Trend object for the given test."""
