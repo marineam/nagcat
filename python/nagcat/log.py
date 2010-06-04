@@ -157,6 +157,7 @@ def _level_factory(index, name):
     def msg(text, *args):
         if _logger and _logger.log_level < index:
             return
+        text = str(text)
         if args:
             text = text % args
         log.msg(text, log_level=index)
