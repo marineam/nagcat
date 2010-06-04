@@ -15,7 +15,7 @@
 """NagCat->Nagios connector"""
 
 from coil.errors import CoilError
-from nagcat import errors, log, nagios_api, nagios_objects, test, trend
+from nagcat import errors, log, nagios_api, nagios_objects, test
 
 class NagiosTests(object):
     """Setup tests defined by Nagios and report back"""

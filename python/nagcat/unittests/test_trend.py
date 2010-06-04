@@ -18,6 +18,9 @@ from twisted.trial import unittest
 from coil.struct import Struct
 from nagcat import trend
 
+if trend.rrdtool:
+    import twirrdy
+
 class TrendDataTestCase(unittest.TestCase):
 
     if trend.rrdtool is None:
@@ -210,7 +213,8 @@ class TrendRRATestCase(unittest.TestCase):
 
     def rrdtool_info(self):
         rrd_path = "%s/testhost/rratest.rrd" % self.tmpdir
-        return trend.rrdtool_info(rrd_path)
+        api = twirrdy.RRDBasicAPI()
+        return api.info(rrd_path)
 
     def assertRRDCount(self, count):
         rrd_glob = "%s/testhost/rratest.rrd*" % self.tmpdir

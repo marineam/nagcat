@@ -7,7 +7,7 @@ import os
 import sys
 import cgi
 
-from nagcat.trend import Graph
+from nagcat.graph import Graph
 
 def argv_to_cgi(argv, cgi_store):
     key=None

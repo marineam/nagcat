@@ -17,22 +17,16 @@
 import os
 import re
 import time
-import ctypes
 import shutil
 import tempfile
-
-from twisted.internet import reactor
-
-try:
-    rrd_th = ctypes.CDLL("librrd_th.so", ctypes.RTLD_GLOBAL)
-    rrd_th.rrd_get_error.restype = ctypes.c_char_p
-except OSError:
-    rrd_th = None
 
 try:
     import rrdtool
 except ImportError:
     rrdtool = None
+else:
+    from twirrdy import RRDToolError
+    from twirrdy.twist import RRDTwistedAPI
 
 import coil
 from nagcat import errors, log, util
@@ -40,137 +34,47 @@ from nagcat import errors, log, util
 class MismatchError(errors.InitError):
     """RRDTool archive mismatch"""
 
-class RRDToolError(Exception):
-    """Error in a rrd_th call"""
+class TrendMaster(object):
 
-    def __init__(self):
-        error = str(rrd_th.rrd_get_error())
-        Exception.__init__(self, error)
-        rrd_th.rrd_clear_error()
+    def __init__(self, rradir, rrdcache=None):
+        if rrdtool is None:
+            raise errors.InitError(
+                    "The python module 'rrdtool' is not installed")
 
-_rradir = None
+        if not os.path.exists(rradir):
+            try:
+                os.makerradirs(rradir)
+            except OSError, ex:
+                raise errors.InitError("Cannot create %r: %s" % (rradir, ex))
+        elif not os.path.isdir(rradir):
+            raise errors.InitError("%r is not a directory!" % rradir)
+        elif not os.access(rradir, os.R_OK | os.W_OK | os.X_OK):
+            raise errors.InitError(
+                    "%r is not readable and/or writeable!" % rradir)
 
-def init(dir):
-    global _rradir
-    assert dir
+        self._rradir = rradir
+        self._rrdapi = RRDTwistedAPI(rrdcache)
 
-    if rrdtool is None:
-        raise errors.InitError("The python module 'rrdtool' is not installed")
+    def setup_test_trending(self, testobj, testconf):
+        """Setup a Trend object for the given test."""
+        trendobj = Trend(testconf, self._rradir, rrdapi=self._rrdapi)
+        testobj.addReportCallback(trendobj.update)
 
-    if rrd_th is None:
-        raise errors.InitError("Cannot load the thread-safe rrdtool library")
+_master = None
 
-    if not os.path.exists(dir):
-        try:
-            os.makedirs(dir)
-        except OSError, ex:
-            raise errors.InitError("Cannot create %s: %s" % (repr(dir), ex))
-
-    if not os.path.isdir(dir):
-        raise errors.InitError("%s is not a directory!" % repr(dir))
-
-    if not os.access(dir, os.R_OK | os.W_OK | os.X_OK):
-        raise errors.InitError(
-                "%s is not readable and/or writeable!" % repr(dir))
-
-    _rradir = dir
-
-def rrdtool_info(rrd_file):
-    """Wrapper around rrdtool.info() for version compatibility.
-
-    RRDTool changed the format of the data returned by rrdtool.info()
-    in >= 1.3 to make it more annoying but similar to the command line
-    tool and other language bindings. To make things even better there
-    isn't a handy __version__ attribute in <= 1.4 to test.
-    """
-
-    new = {'ds': {}, 'rra': {}}
-    def parse_ds(key, value):
-        match = re.match(r'^ds\[([^\]]+)\]\.(\w+)$', key)
-        name = match.group(1)
-        attr = match.group(2)
-
-        if name not in new['ds']:
-            new['ds'][name] = {attr: value}
-        else:
-            new['ds'][name][attr] = value
-
-    def parse_rra(key, value):
-        # Currently we don't care about cdp_prep so just skip
-        if 'cdp_prep' in key:
-            return
-
-        match = re.match(r'^rra\[(\d+)\]\.(\w+)$', key)
-        index = int(match.group(1))
-        attr = match.group(2)
-
-        if index not in new['rra']:
-            new['rra'][index] = {attr: value}
-        else:
-            new['rra'][index][attr] = value
-
-    if not os.path.isfile(rrd_file):
-        raise errors.InitError("RRDTool file does not exists: %s" % rrd_file)
-
-    old = rrdtool.info(rrd_file)
-
-    # Verify that we actually got some data back
-    if 'step' not in old:
-        raise errors.InitError("Unknown RRDTool info format")
-
-    # Check which version we are probably using
-    # <= 1.2, nothing to do!
-    if 'ds' in old:
-        return old
-
-    # >= 1.3, convert to the easier to use 1.2 format :-(
-    for key, value in old.iteritems():
-        if key.startswith('ds'):
-            parse_ds(key, value)
-        elif key.startswith('rra'):
-            parse_rra(key, value)
-        else:
-            new[key] = value
-
-    # Convert rra from a dict to a sorted list
-    items = new['rra'].items()
-    items.sort()
-    new['rra'] = []
-    for i, value in items:
-        new['rra'].append(value)
-
-    return new
-
-def rrdtool_update(filename, template, *args):
-    """Thread safe rrdtool update function.
-
-    The RRDTool Python bindings do not use the thread-safe library.
-    This is a wrapper to the thread-save version using ctypes.
-    """
-
-    # Just a quick sanity check
-    assert filename.__class__ is str
-    assert template.__class__ is str
-
-    argc = len(args)
-    argv_t = ctypes.c_char_p * argc
-    argv = argv_t()
-    for i, arg in enumerate(args):
-        assert arg.__class__ is str
-        argv[i] = arg
-
-    if rrd_th.rrd_update_r(filename, template, argc, argv):
-        raise RRDToolError()
-
+def init(rradir, rrdcache=None):
+    global _master
+    _master = TrendMaster(rradir, rrdcache)
 
 def addTrend(testobj, testconf):
     """Setup a Trend object for the given test.
 
     Does nothing if trending is not enabled.
     """
-    if _rradir:
-        trendobj = Trend(testconf)
-        testobj.addReportCallback(trendobj.update)
+    if not _master:
+        return
+    _master.setup_test_trending(testobj, testconf)
+
 
 # Just to make definitions below easier to read
 _min  = 60
@@ -192,10 +96,17 @@ class Trend(object):
             _hour*2: _year,     # 2 hour intervals for 1 year
             _day:    _year*6}   # 1 day intervals for 6 years
 
-    def __init__(self, conf, rradir=None, start=None):
+    def __init__(self, conf, rradir, start=None, rrdapi=None):
         self._step = util.Interval(conf.get("repeat", "1m")).seconds
         self._ds_list = {'_state': {'type': "GAUGE", 'min': None, 'max': None}}
+        # _ds_order is the order in the actual file and is set in validate()
+        self._ds_order = None
         self._start = start
+
+        if rrdapi is None:
+            self._rrdapi = RRDTwistedAPI()
+        else:
+            self._rrdapi = rrdapi
 
         def parse_limit(new, old, key):
             limit = old.get(key, None)
@@ -261,8 +172,6 @@ class Trend(object):
             raise errors.ConfigError(conf,
                     "trend.rra must be a struct, got: %r" % rras)
 
-        if rradir is None:
-            rradir = _rradir
         self._rradir = os.path.abspath(os.path.join(rradir, conf['host']))
         self._rrafile = os.path.join(self._rradir, "%s.rrd" % conf['name'])
 
@@ -343,20 +252,19 @@ class Trend(object):
         self.validate()
 
     def validate(self):
-        info = rrdtool_info(self._rrafile)
+        info = self._rrdapi.info(self._rrafile, defer=False)
+        self._ds_order = info['ds'].keys()
 
         if info['step'] != self._step:
             raise MismatchError("step has changed")
 
         new = set(self._ds_list.keys())
-        old = set(info['ds'].keys())
+        old = set(self._ds_order)
         if new != old:
             raise MismatchError("data source list has changed")
 
         def check_limit(new, old, key):
             limit = new[key]
-            if limit == 'U':
-                limit = None
             if limit != old[key]:
                 raise MismatchError("data source min/max changed")
 
@@ -426,9 +334,9 @@ class Trend(object):
             os.rmdir(tmp)
 
     def update(self, report):
-        ds_values = {}
+        update_values = []
 
-        for ds_name, ds_conf in self._ds_list.iteritems():
+        for ds_name in self._ds_order:
             if ds_name == "_state":
                 value = report['state_id']
             elif ds_name == "_result":
@@ -442,203 +350,21 @@ class Trend(object):
                 # Value is not a number so mark it unknown.
                 value = "U"
 
+            ds_conf = self._ds_list[ds_name]
             if value != "U" and ds_conf['type'] in ("COUNTER", "DERIVE"):
                 value = int(value)
 
-            ds_values[ds_name] = str(value)
+            update_values.append(value)
 
-        assert ds_values
-        names = ":".join(ds_values.iterkeys())
-        values = ":".join(ds_values.itervalues())
+        def errcb(failure):
+            if isinstance(failure.value, RRDToolError):
+                log.error("Update to %s failed: %s",
+                        self._rrafile, failure.value)
+            else:
+                log.error(str(failure))
 
-        def do_update():
-            log.debug("Updating %s with %s %s", self._rrafile, names, values)
-            try:
-                rrdtool_update(self._rrafile, names,
-                        "%s:%s" % (report['time'], values))
-            except RRDToolError, ex:
-                log.error("rrd update to %s failed: %s" % (self._rrafile, ex))
-
-        reactor.callInThread(do_update)
-
-class Colorator(object):
-    """A helper for picking graph colors"""
-
-    COLORS = ('#002A8F','#DA4725','#008A6D','#00BD27','#CCBB00','#F24AC8')
-
-    def __init__(self):
-        self.color_idx = 0
-
-    def next(self):
-        self.color_idx += 1
-        return Colorator.COLORS[(self.color_idx - 1) % len(Colorator.COLORS)]
-
-def rrd_esc(string):
-    """Escape : so rrd arguments parse properly"""
-    return string.replace(':', r'\:')
-
-class Graph(object):
-
-    def __init__(self, dir, host, rrd, period="day"):
-        self.rrd = rrd
-        self.host = host
-        path = "%s/%s/%s" % (dir, host, rrd)
-        self.rrd_path = "%s.rrd" % path
-        self.info = rrdtool_info(self.rrd_path)
-        self.color = Colorator()
-        self.period = period
-
-        try:
-            self.conf = coil.parse_file("%s.coil" % path)
-        except IOError, ex:
-            raise errors.InitError("Unable to read coil file: %s" % ex)
-
-        if period not in ('day', 'week', 'month', 'year'):
-            raise ValueError("Invalid period parameter")
-
-        self.args = []
-        self.ds = []
-        self._init_args()
-        self._init_ds()
-        self._init_ds_args()
-
-    def _init_ds(self):
-        """Find the data sources referred to in the coil config."""
-
-        self.ds.append('_state')
-
-        if self.conf.get('trend.type', False):
-            self.ds.append('_result')
-
-        if self.conf['query.type'] == 'compound':
-            for name, sub in self.conf['query'].iteritems():
-                if (isinstance(sub, coil.struct.Struct) and
-                        sub.get('trend.type', False)):
-                    self.ds.append(name)
-
-        elif self.conf.get('query.trend.type', False):
-            self.ds.append('query')
-
-    def _init_args(self):
-        """Build the initial part of the rrdgraph args
-        before the data source arguments
-        """
-
-        title = self.conf.get('trend.title',
-                "%s - %s" % (self.host, self.rrd))
-        axis_min = self.conf.get('trend.axis_min', "0")
-        axis_max = self.conf.get('trend.axis_max', None)
-        axis_label = self.conf.get('trend.axis_label', None)
-        base = self.conf.get('trend.base', 1000)
-
-        self.args = ["-s", "-1%s" % self.period,
-                     "--title", title,
-                     "--alt-autoscale-max", "--alt-y-grid",
-                     "--lower-limit", str(axis_min)]
-        if axis_max:
-            self.args += ["--upper-limit", str(axis_max)]
-        if axis_label:
-            self.args += ["--vertical-label", str(axis_label)]
-        if base:
-            self.args += ["--base", str(base)]
-
-        # Add the _state ds that all of them have
-        self.args += ["DEF:_state=%s:_state:MAX" % rrd_esc(self.rrd_path),
-                      "CDEF:_state_ok=_state,0,EQ",
-                      "CDEF:_state_warn=_state,1,EQ",
-                      "CDEF:_state_crit=_state,2,EQ",
-                      "CDEF:_state_unkn=_state,3,EQ",
-                      "TICK:_state_ok#ddffcc:1.0:Ok",
-                      "TICK:_state_warn#ffffcc:1.0:Warning",
-                      "TICK:_state_crit#ffcccc:1.0:Critical",
-                      "TICK:_state_unkn#ffcc55:1.0:Unknown\\n"]
-
-    def _init_ds_args(self):
-        """Build the rrdgraph args for all the known data sources"""
-
-        extra = set(self.ds)
-        for ds in self.ds:
-            if ds not in self.info['ds']:
-                self.args.append("COMMENT:WARNING\: Missing DS %s\\n" % ds)
-                continue
-
-            extra.remove(ds)
-
-            if ds == '_state':
-                continue
-
-            self.args += self._one_ds_args(ds)
-
-        for ds in extra:
-            self.args.append("COMMENT:WARNING\: Unexpected DS %s\\n" % ds)
-
-    def _one_ds_args(self, ds):
-        """Build the arguments for a single data source"""
-
-        args = []
-
-        if ds == "_result":
-            dsconf = self.conf
-            label = dsconf.get('trend.label', dsconf.get('label', 'Result'))
-            default_color = "#000000"
-        elif ds == 'query' and self.conf['query.type'] != 'compound':
-            dsconf = self.conf
-            label = dsconf.get('query.trend.label',
-                    dsconf.get('query.label', dsconf.get('label', 'Result')))
-            default_color = "#000000"
-        else:
-            dsconf = self.conf['query'][ds]
-            label = dsconf.get('trend.label',
-                    dsconf.get('label', ds.capitalize()))
-            default_color = self.color.next()
-
-        scale = int(dsconf.get('trend.scale', 0))
-        if scale:
-            args.append("DEF:_raw_%s=%s:%s:AVERAGE" %
-                    (ds, rrd_esc(self.rrd_path), ds))
-            args.append("CDEF:%s=_raw_%s,%d,*" % (ds, ds, scale))
-        else:
-            args.append("DEF:%s=%s:%s:AVERAGE" %
-                    (ds, rrd_esc(self.rrd_path), ds))
-
-        if dsconf.get('trend.stack', False):
-            stack = "STACK"
-        else:
-            stack = ""
-
-        color = dsconf.get('trend.color', default_color)
-        display = dsconf.get('trend.display', 'line').lower()
-        if display == 'area':
-            args.append("AREA:%s%s:%s:%s" % (ds, color, rrd_esc(label), stack))
-        elif display == 'line':
-            args.append("LINE2:%s%s:%s:%s" % (ds, color, rrd_esc(label), stack))
-        else:
-            raise ValueError("Invalid display value")
-
-        prefix = max(7 - len(label), 0) * " "
-        args.append("VDEF:_last_%s=%s,LAST" % (ds, ds))
-        args.append("VDEF:_avg_%s=%s,AVERAGE" % (ds, ds))
-        args.append("VDEF:_max_%s=%s,MAXIMUM" % (ds, ds))
-        args.append("GPRINT:_last_%s:%sCurrent\\:%%8.2lf%%s" % (ds, prefix))
-        args.append("GPRINT:_avg_%s:Average\\:%%8.2lf%%s" % ds)
-        args.append("GPRINT:_max_%s:Maximum\\:%%8.2lf%%s\\n" % ds)
-
-        return args
-
-    def graph(self, width=500, height=120):
-        fd, path = tempfile.mkstemp('.png')
-        try:
-            rrdtool.graph(path, "-a", "PNG", "--width", str(width),
-                    "--height", str(height), *self.args)
-        except:
-            os.close(fd)
-            raise
-        finally:
-            os.unlink(path)
-
-        fd = os.fdopen(fd)
-        png = fd.read()
-        fd.close()
-
-        return png
-
+        assert update_values
+        log.debug("Updating %s with %s", self._rrafile, update_values)
+        deferred = self._rrdapi.update(
+                self._rrafile,report['time'], update_values)
+        deferred.addErrback(errcb)
