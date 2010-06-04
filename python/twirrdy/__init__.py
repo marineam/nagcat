@@ -29,6 +29,12 @@ try:
 except OSError:
     raise ImportError("Unable to load librrd_th.so")
 
+rrd_th.rrd_version.argtypes = []
+rrd_th.rrd_version.restype = ctypes.c_double
+rrd_version = rrd_th.rrd_version()
+if rrd_version < 1.2:
+    raise ImportError("RRDTool librrd_th.so version >= 1.2 is required")
+
 c_char_pp = ctypes.POINTER(ctypes.c_char_p)
 
 rrd_th.rrd_get_error.argtypes = []
@@ -59,10 +65,14 @@ rrd_info_type_t = ctypes.c_int
 
 rrd_value_t = ctypes.c_double
 
-class rrd_blob_t(ctypes.Structure):
-    _fields_ = [
-        ('size', ctypes.c_ulong),
-        ('ptr', ctypes.c_void_p)]
+if rrd_version >= 1.3:
+    class rrd_blob_t(ctypes.Structure):
+        _fields_ = [
+            ('size', ctypes.c_ulong),
+            ('ptr', ctypes.c_void_p)]
+    _info_u_blo = [('u_blo', rrd_blob_t)]
+else:
+    _info_u_blo = []
 
 class rrd_infoval_t(ctypes.Union):
     _fields_ = [
@@ -70,7 +80,7 @@ class rrd_infoval_t(ctypes.Union):
         ('u_val', rrd_value_t),
         ('u_str', ctypes.c_char_p),
         ('u_int', ctypes.c_int),
-        ('u_blo', rrd_blob_t)]
+        ] + _info_u_blo
 
 class rrd_info_t(ctypes.Structure):
     pass
@@ -80,9 +90,9 @@ rrd_info_t._fields_ = [
         ('value', rrd_infoval_t),
         ('next', ctypes.POINTER(rrd_info_t))]
 
-# Some versions of rrdtool don't export rrd_info_r,
+# Versions less that 1.4 don't export rrd_info_r
 # but in those versions rrd_info is thread safe.
-if hasattr(rrd_th, 'rrd_info_r'):
+if rrd_version >= 1.4:
     rrd_th.rrd_info_r.argtypes = [ ctypes.c_char_p ]
     rrd_th.rrd_info_r.restype = ctypes.POINTER(rrd_info_t)
     rrd_info_r = rrd_th.rrd_info_r
