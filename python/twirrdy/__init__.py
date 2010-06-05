@@ -32,8 +32,8 @@ except OSError:
 rrd_th.rrd_version.argtypes = []
 rrd_th.rrd_version.restype = ctypes.c_double
 rrd_version = rrd_th.rrd_version()
-if rrd_version < 1.2:
-    raise ImportError("RRDTool librrd_th.so version >= 1.2 is required")
+if rrd_version < 1.3:
+    raise ImportError("RRDTool version >= 1.3 is required")
 
 c_char_pp = ctypes.POINTER(ctypes.c_char_p)
 
@@ -65,14 +65,10 @@ rrd_info_type_t = ctypes.c_int
 
 rrd_value_t = ctypes.c_double
 
-if rrd_version >= 1.3:
-    class rrd_blob_t(ctypes.Structure):
-        _fields_ = [
-            ('size', ctypes.c_ulong),
-            ('ptr', ctypes.c_void_p)]
-    _info_u_blo = [('u_blo', rrd_blob_t)]
-else:
-    _info_u_blo = []
+class rrd_blob_t(ctypes.Structure):
+    _fields_ = [
+        ('size', ctypes.c_ulong),
+        ('ptr', ctypes.c_void_p)]
 
 class rrd_infoval_t(ctypes.Union):
     _fields_ = [
@@ -80,7 +76,7 @@ class rrd_infoval_t(ctypes.Union):
         ('u_val', rrd_value_t),
         ('u_str', ctypes.c_char_p),
         ('u_int', ctypes.c_int),
-        ] + _info_u_blo
+        ('u_blo', rrd_blob_t)]
 
 class rrd_info_t(ctypes.Structure):
     pass
@@ -103,6 +99,9 @@ else:
         argv_t = ctypes.c_char_p * 2
         argv = argv_t("", filename)
         return rrd_th.rrd_info(2, argv)
+
+rrd_th.rrd_info_free.argtypes = [ ctypes.POINTER(rrd_info_t) ]
+rrd_th.rrd_info_free.restype = None
 
 
 class RRDToolError(Exception):
@@ -211,10 +210,6 @@ class RRDBasicAPI(object):
         rra[].cdp_prep values are currently ignored.
         """
 
-        ptr = rrd_info_r(filename)
-        if not ptr:
-            raise RRDLibraryError()
-
         def value(value):
             if value.type == RD_I_VAL:
                 # Replace NaN with None
@@ -241,27 +236,34 @@ class RRDBasicAPI(object):
             index, key = name[4:].split('].', 1)
             return int(index), key
 
-        ret = {}
-        ret['ds'] = OrderedDict()
-        ret['rra'] = []
-        while ptr:
-            this = ptr.contents
-            if this.key.startswith('ds['):
-                name, key = ds_key(this.key)
-                if name not in ret['ds']:
-                    ret['ds'][name] = {key: value(this)}
+        ptr = info_ptr = rrd_info_r(filename)
+        if not ptr:
+            raise RRDLibraryError()
+
+        try:
+            ret = {}
+            ret['ds'] = OrderedDict()
+            ret['rra'] = []
+            while ptr:
+                this = ptr.contents
+                if this.key.startswith('ds['):
+                    name, key = ds_key(this.key)
+                    if name not in ret['ds']:
+                        ret['ds'][name] = {key: value(this)}
+                    else:
+                        ret['ds'][name][key] = value(this)
+                elif this.key.startswith('rra['):
+                    index, key = rra_key(this.key)
+                    if key.startswith('cdp_prep['):
+                        pass
+                    elif len(ret['rra']) != index+1:
+                        ret['rra'].append({key: value(this)})
+                    else:
+                        ret['rra'][index][key] = value(this)
                 else:
-                    ret['ds'][name][key] = value(this)
-            elif this.key.startswith('rra['):
-                index, key = rra_key(this.key)
-                if key.startswith('cdp_prep['):
-                    pass
-                elif len(ret['rra']) != index+1:
-                    ret['rra'].append({key: value(this)})
-                else:
-                    ret['rra'][index][key] = value(this)
-            else:
-                ret[str(this.key)] = value(this)
-            ptr = this.next
+                    ret[str(this.key)] = value(this)
+                ptr = this.next
+        finally:
+            rrd_th.rrd_info_free(info_ptr)
 
         return ret
