@@ -119,10 +119,16 @@ class TwistCacheTestTestCase(TwistCacheFakedTestCase):
         pidfile = self.mktemp()
         self.server = RealCacheServer(sock, pidfile)
 
+        def client_fail(result):
+            d = self.server.stopListening()
+            d.addBoth(lambda x: result)
+            return d
+
         def client(result):
             api = twist.RRDTwistedAPI()
             deferred = api.open(sock)
             deferred.addCallback(lambda x: api)
+            deferred.addErrback(client_fail)
             return deferred
 
         deferred = self.server.startListening()

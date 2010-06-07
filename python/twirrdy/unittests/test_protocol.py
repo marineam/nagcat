@@ -25,6 +25,7 @@ class ProtocolTestCase(unittest.TestCase):
     def setUp(self):
         self.server = DummyCacheProtocol()
         self.client = protocol.RRDCacheProtocol()
+        self.client.factory = self
         loopback.loopbackAsync(self.server, self.client)
 
     def tearDown(self):
@@ -35,6 +36,10 @@ class ProtocolTestCase(unittest.TestCase):
         d = self.client.sendLine("QUIT")
         d.addBoth(check)
         return d
+
+    def clientConnectionMade(self, p):
+        # required callback for the protocol
+        pass
 
     def testSimpleCommand(self):
         d = self.client.sendLine("TEST COMMAND")
