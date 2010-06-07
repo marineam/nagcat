@@ -22,7 +22,7 @@ from twisted.python import failure
 
 import coil
 
-from nagcat import errors, log, trend, plugin
+from nagcat import errors, graph, log, plugin
 
 
 # Attempt to retry after failures 6 times at 20 second intervals
@@ -191,7 +191,7 @@ class Notification(object):
         if (type_ == "service" and self.config['rradir']
                 and self.macros.get('_SERVICETEST', None)):
             try:
-                self.trend = trend.Graph(self.config['rradir'],
+                self.trend = graph.Graph(self.config['rradir'],
                         self.macros['HOSTNAME'],
                         self.macros['SERVICEDESC'])
             except errors.InitError, ex:
