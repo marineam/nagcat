@@ -16,7 +16,7 @@ import os
 import time
 import subprocess
 
-from twisted.internet import reactor
+from twisted.internet import protocol, reactor
 from twisted.python import log
 from twisted.trial import unittest
 from nagcat import errors, query, plugin
@@ -260,6 +260,39 @@ class TimeoutTestCase(OracleBase):
                 timeout=0.5)
         deferred.addBoth(check)
         return deferred
+
+
+class DummyFactory(protocol.Factory):
+    protocol = protocol.Protocol
+
+class TimeoutConnectionTestCase(unittest.TestCase):
+    """This test case demonstrates how to make a call to
+    cx_Oracle.connect() hang forever. Unfortunately it is impossible
+    for it to *not* hang forever due to the lack of an asyncronus
+    API. Maybe I can subclass cx_Oracle.Connection to fix this but that
+    doesn't sound fun... boo oracle.
+    """
+    skip = "cx_Oracle isn't asyncronus :-("
+    #if not cx_Oracle or not etree:
+    #    skip = "Missing cx_Oracle"
+
+    def setUp(self):
+        # I assume this test isn't going to be run on an Oracle server...
+        self.server = reactor.listenTCP(1521, DummyFactory())
+        self.config = Struct({'user': 'nobody',
+                              'password': 'ponies',
+                              'dsn': 'localhost/blackhole'})
+
+    def tearDown(self):
+        self.server.stopListening()
+
+    def test_timeout(self):
+        conf = self.config.copy()
+        qcls = plugin.search(query.IQuery, 'oracle_sql')
+        q = qcls(conf)
+        d = q.start()
+        d.addCallback(lambda x: q.result)
+        return d
 
 
 class PLSQLTestCase(OracleBase):

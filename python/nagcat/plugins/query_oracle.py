@@ -103,15 +103,21 @@ class OracleBase(query.Query):
         raise Exception("unimplemented")
 
     def _start(self):
-        try:
-            self.connection = cx_Oracle.Connection(
+        deferred = threads.deferToThread(
+                cx_Oracle.connect,
                     user=self.conf['user'],
                     password=self.conf['password'],
                     dsn=self.conf['dsn'],
                     threaded=True)
-        except cx_Oracle.Error:
-            return self._failure_oracle(failure.Failure())
 
+        deferred.addCallback(self._connected_oracle)
+        deferred.addErrback(self._failure_oracle)
+        return deferred
+
+    @errors.callback
+    def _connected_oracle(self, connection):
+        """Once connected setup the timeout and go"""
+        self.connection = connection
         self.cursor = self.connection.cursor()
         self.query_timeout = reactor.callLater(
                 self.conf['timeout'],
@@ -122,7 +128,6 @@ class OracleBase(query.Query):
 
         deferred = self._start_oracle()
         deferred.addBoth(self._cleanup_oracle)
-        deferred.addErrback(self._failure_oracle)
         return deferred
 
     @errors.callback
