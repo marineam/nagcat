@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import os
+import shutil
+import tempfile
+
 from twisted.internet import defer, reactor
 from twisted.trial import unittest
 
@@ -115,11 +118,16 @@ class TwistCacheFakedTestCase(BasicTestCase):
 class TwistCacheTestTestCase(TwistCacheFakedTestCase):
 
     def mkAPI(self):
-        sock = self.mktemp()
-        pidfile = self.mktemp()
+        # We can't reliably put the socket inside the _trial_temp working
+        # directory because that tends to be longer than 108 bytes, /tmp works
+        self.tmpdir = tempfile.mkdtemp(prefix="rrdcached.test.", dir="/tmp")
+        sock = os.path.join(self.tmpdir, "rrdcached.sock")
+        pidfile = os.path.join(self.tmpdir, "rrdcached.pid")
         self.server = RealCacheServer(sock, pidfile)
 
         def client_fail(result):
+            print "Client fail: %s" % result
+            os.system("ps ax | grep rrdcached")
             d = self.server.stopListening()
             d.addBoth(lambda x: result)
             return d
@@ -133,4 +141,15 @@ class TwistCacheTestTestCase(TwistCacheFakedTestCase):
 
         deferred = self.server.startListening()
         deferred.addCallback(client)
+        deferred.addErrback(self.rmtmpdir)
         return deferred
+
+    def rmtmpdir(self, result):
+        shutil.rmtree(self.tmpdir)
+        return result
+
+    def tearDown(self):
+        d = self.api.close()
+        d.addBoth(lambda x: self.server.stopListening())
+        d.addBoth(self.rmtmpdir)
+        return d
