@@ -57,14 +57,15 @@ class NagiosTests(object):
             hosts[host['host_name']] = host
 
         for service in parser['service']:
+            host = hosts[service['host_name']]
             if "_TEST" not in service:
                 continue
-            elif tag and service.get("_TAG", None) != tag:
+            elif tag and service.get("_TAG", host.get('_TAG', None)) != tag:
                 continue
 
             test_defaults = {
                     'host': service['host_name'],
-                    'addr': hosts[service['host_name']]['address'],
+                    'addr': host['address'],
                     'name': service['service_description']}
 
             test_overrides = {}
