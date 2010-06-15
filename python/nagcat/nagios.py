@@ -15,35 +15,24 @@
 """NagCat->Nagios connector"""
 
 from coil.errors import CoilError
-from nagcat import errors, log, nagios_api, nagios_objects, test
+from nagcat import base, errors, log, nagios_api, nagios_objects, test
 
-class NagiosTests(object):
+class NagcatNagios(base.Nagcat):
     """Setup tests defined by Nagios and report back"""
 
-    def __init__(self, templates, nagios_cfg, tag=None):
-        """Read given Nagios config file"""
+    def __init__(self, config, nagios_cfg, **kwargs):
+        """Read given Nagios config file and load tests"""
 
         cfg = nagios_objects.ConfigParser(nagios_cfg,
                 ('object_cache_file', 'command_file', 'check_result_path'))
         self._nagios_obj = cfg['object_cache_file']
         spool = nagios_api.spool_path(cfg['check_result_path'], 'nagcat')
-        self._nagios_cmd = nagios_api.NagiosCommander(cfg['command_file'], spool)
+        self._nagios_cmd = nagios_api.NagiosCommander(
+                cfg['command_file'], spool)
 
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])
-
-        test_skels = self._parse_tests(tag)
-        self._tests = self._fill_templates(templates, test_skels)
-
-    # Provide read-only access to the test list
-    def __getitem__(self, key):
-        return self._tests[key]
-
-    def __len__(self):
-        return len(self._tests)
-
-    def __iter__(self):
-        return iter(self._tests)
+        return super(NagcatNagios, self).__init__(config, **kwargs)
 
     def _parse_tests(self, tag):
         """Get the list of NagCat services in the object cache"""
@@ -84,9 +73,10 @@ class NagiosTests(object):
 
         return tests
 
-    def _fill_templates(self, templates, skels):
+    def build_tests(self, templates, tag=None):
         """Setup tests based on the loaded Nagios config"""
 
+        skels = self._parse_tests(tag)
         tests = []
 
         for test_defaults, test_overrides in skels:
@@ -107,7 +97,7 @@ class NagiosTests(object):
                 testconf[key] = val
 
             try:
-                testobj = test.Test(testconf)
+                testobj = test.Test(self, testconf)
             except (errors.InitError, CoilError), ex:
                 raise errors.InitError(
                         "Error in test %s: %s" % (test_overrides['test'], ex))

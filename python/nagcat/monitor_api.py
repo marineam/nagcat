@@ -173,43 +173,6 @@ class Threads(XMLPage):
 
         return all
 
-class Scheduler(XMLPage):
-    """Information on objects in the Nagcat scheduler"""
-
-    def __init__(self, scheduler):
-        XMLPage.__init__(self)
-        self.scheduler = scheduler
-
-    def xml(self, request):
-        sch = etree.Element("Scheduler", version="1.0")
-
-        data = self.scheduler.stats()
-
-        lat = etree.SubElement(sch, "Latency",
-                period=str(data['latency']['period']))
-        etree.SubElement(lat, "Maximum").text = "%f" % data['latency']['max']
-        etree.SubElement(lat, "Minimum").text = "%f" % data['latency']['min']
-        etree.SubElement(lat, "Average").text = "%f" % data['latency']['avg']
-
-        tasks = etree.SubElement(sch, 'Tasks',
-                count=str(data['tasks']['count']))
-        etree.SubElement(tasks, "Group",
-                count=str(data['tasks']['Group']['count']))
-        etree.SubElement(tasks, "Test",
-                count=str(data['tasks']['Test']['count']))
-        query = etree.SubElement(tasks, "Query",
-                count=str(data['tasks']['Query']['count']))
-        for query_type in data['tasks']['Query']:
-            if query_type == "count":
-                continue
-            etree.SubElement(query, "Query", type=query_type,
-                    count=str(data['tasks']['Query'][query_type]['count']))
-        if 'Other' in data['tasks']:
-            etree.SubElement(tasks, "Other",
-                    count=str(data['tasks']['Other']['count']))
-
-        return sch
-
 class Stat(XMLPage):
     """The main /stat page"""
 
@@ -247,29 +210,15 @@ class Stat(XMLPage):
 
         return stat
 
-class NagcatStat(Stat):
-    """Nagcat specific stat page"""
-
-    def __init__(self, scheduler):
-        Stat.__init__(self)
-
-        self.includeChild("scheduler", Scheduler(scheduler))
-
 class MonitorSite(server.Site):
     """The whole monitoring api wrapped up in dark chocolate"""
 
     noisy = False
 
-    def __init__(self, scheduler=None):
+    def __init__(self):
         if etree is None:
             raise errors.InitError("lxml is required for the monitoring api")
 
-        if scheduler:
-            stat = NagcatStat(scheduler)
-        else:
-            stat = Stat()
-
         self.root = resource.Resource()
-        self.root.putChild("stat", stat)
-
+        self.root.putChild("stat", Stat())
         server.Site.__init__(self, self.root)

@@ -117,9 +117,10 @@ class ChildError(errors.TestError):
 class Test(BaseTest):
     """Main test class"""
 
-    def __init__(self, conf):
+    def __init__(self, nagcat, conf):
         BaseTest.__init__(self, conf)
 
+        self._nagcat = nagcat
         self._test = conf.get('test', "")
         self._documentation = conf.get('documentation', "")
         self._investigation = conf.get('investigation', "")
@@ -184,7 +185,10 @@ class Test(BaseTest):
             self.addDependency(self._subtests['query'])
 
         self._report_callbacks = []
-        trend.addTrend(self, conf)
+
+        # Setup RRDTool for this test
+        if self._nagcat.trend:
+            self._nagcat.trend.setup_test_trending(self, conf)
 
     def _addDefaults(self, conf):
         """Add default values based on this test to a subtest config"""

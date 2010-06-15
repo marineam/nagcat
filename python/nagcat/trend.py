@@ -72,21 +72,6 @@ class TrendMaster(object):
         trendobj = Trend(testconf, self._rradir, rrdapi=self._rrdapi)
         testobj.addReportCallback(trendobj.update)
 
-_master = None
-
-def init(rradir, rrdcache=None):
-    global _master
-    _master = TrendMaster(rradir, rrdcache)
-
-def addTrend(testobj, testconf):
-    """Setup a Trend object for the given test.
-
-    Does nothing if trending is not enabled.
-    """
-    if not _master:
-        return
-    _master.setup_test_trending(testobj, testconf)
-
 
 # Just to make definitions below easier to read
 _min  = 60

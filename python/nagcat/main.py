@@ -21,34 +21,7 @@ from optparse import OptionParser
 from twisted.internet import reactor
 import coil
 
-from nagcat import errors, log, monitor_api, nagios
-from nagcat import scheduler, test, trend, util
-
-def simpleReport(report):
-    log.info("REPORT:\n%s" % report['text'])
-
-def simple(options, config):
-    """Run only a single test, do not report to nagios.
-
-    Useful for testing a new test template.
-    """
-
-    config = config.get(options.test, None)
-    if config is None:
-        raise errors.InitError("Test '%s' not found in config file!"
-                % options.test)
-
-    config.setdefault('host', options.host)
-    config.setdefault('port', options.port)
-    config.setdefault('test', options.test)
-    config.setdefault('name', options.test)
-    config['repeat'] = None # single run
-
-    testobj = test.Test(config)
-    testobj.addReportCallback(simpleReport)
-
-    return [testobj]
-
+from nagcat import base, errors, log, nagios, util
 
 def parse_options():
     """Parse program options in sys.argv"""
@@ -144,6 +117,13 @@ def parse_options():
 
     return options
 
+def stop(result):
+    reactor.stop()
+    return result
+
+def start(nagcat):
+    d = nagcat.start()
+    d.addBoth(stop)
 
 def init(options):
     """Prepare to start up NagCat"""
@@ -161,28 +141,17 @@ def init(options):
     config = coil.parse_file(options.config, expand=False)
 
     try:
-        if options.rradir:
-            trend.init(options.rradir, options.rrdcache)
-
         if options.test:
-            tests = simple(options, config)
+            nagcat = base.NagcatSimple(config, test_name=options.test,
+                    host=options.host, port=options.port)
         else:
-            tests = nagios.NagiosTests(config, options.nagios, options.tag)
-
-        sch = scheduler.Scheduler()
-        for testobj in tests:
-            sch.register(testobj)
-
-        sch.prepare()
-        reactor.callWhenRunning(sch.start)
-
-        if options.status_port:
-            site = monitor_api.MonitorSite(sch)
-            reactor.listenTCP(options.status_port, site)
-
+            nagcat = nagios.NagcatNagios(config,
+                    nagios_cfg=options.nagios, tag=options.tag)
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)
+
+    reactor.callWhenRunning(start, nagcat)
 
     if options.verify:
         sys.exit(0)

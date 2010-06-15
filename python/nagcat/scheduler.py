@@ -42,22 +42,66 @@ from twisted.internet import defer, reactor, task
 from twisted.python import failure
 from coil.struct import Struct
 
-from nagcat import errors, util, log
+try:
+    from lxml import etree
+except ImportError:
+    etree = None
+
+from nagcat import errors, util, log, monitor_api
+
+class SchedulerPage(monitor_api.XMLPage):
+    """Information on objects in the Nagcat scheduler"""
+
+    def __init__(self, scheduler):
+        super(SchedulerPage, self).__init__()
+        self.scheduler = scheduler
+
+    def xml(self, request):
+        sch = etree.Element("Scheduler", version="1.0")
+
+        data = self.scheduler.stats()
+
+        lat = etree.SubElement(sch, "Latency",
+                period=str(data['latency']['period']))
+        etree.SubElement(lat, "Maximum").text = "%f" % data['latency']['max']
+        etree.SubElement(lat, "Minimum").text = "%f" % data['latency']['min']
+        etree.SubElement(lat, "Average").text = "%f" % data['latency']['avg']
+
+        tasks = etree.SubElement(sch, 'Tasks',
+                count=str(data['tasks']['count']))
+        for task_type in data['tasks']:
+            if task_type == "count":
+                continue
+            task_node = etree.SubElement(tasks, task_type,
+                count=str(data['tasks'][task_type]['count']))
+            for sub_type in data['tasks'][task_type]:
+                if sub_type == "count":
+                    continue
+                etree.SubElement(task_node, task_type, type=sub_type,
+                        count=str(data['tasks'][task_type][sub_type]['count']))
+
+        return sch
 
 class Scheduler(object):
     """Run things!"""
 
-    def __init__(self):
+    def __init__(self, nagcat):
+        self._nagcat = nagcat
         self._registered = set()
         self._startup = True
-        self._running = False
+        self._shutdown = None
         self._latency = deque([0], 60)
+        self._latency_call = None
         self._task_stats = {
                 'count': 0,
                 'Group': {'count': 0},
                 'Test':  {'count': 0},
                 'Query': {'count': 0},
             }
+
+        if self._nagcat.monitor:
+            page = SchedulerPage(self)
+            self._nagcat.monitor.includeChild("scheduler", page)
 
     def register(self, runnable):
         """Register a top level Runnable to be run directly by the scheduler"""
@@ -75,7 +119,7 @@ class Scheduler(object):
         runnable.scheduler = None
         self._registered.remove(runnable)
 
-        if not self._registered:
+        if not self._startup and not self._registered:
             self.stop()
             return
 
@@ -102,21 +146,17 @@ class Scheduler(object):
 
         def update_stats(runnable):
             self._task_stats['count'] += 1
-            if isinstance(runnable, query.Query):
-                self._task_stats['Query']['count'] += 1
-                if runnable.name in self._task_stats['Query']:
-                    self._task_stats['Query'][runnable.name]['count'] += 1
+
+            if runnable.type in self._task_stats:
+                self._task_stats[runnable.type]['count'] += 1
+            else:
+                self._task_stats[runnable.type] = {'count': 1}
+
+            if runnable.name:
+                if runnable.name in self._task_stats[runnable.type]:
+                    self._task_stats[runnable.type][runnable.name]['count'] += 1
                 else:
-                    self._task_stats['Query'][runnable.name] = {'count': 1}
-            elif isinstance(runnable, test.Test):
-                self._task_stats['Test']['count'] += 1
-            elif isinstance(runnable, RunnableGroup):
-                self._task_stats['Group']['count'] += 1
-            else: # shouldn't happen, but just in case...
-                if 'Other' in self._task_stats:
-                    self._task_stats['Other']['count'] += 1
-                else:
-                    self._task_stats['Other'] = {'count': 1}
+                    self._task_stats[runnable.type][runnable.name] = {'count': 1}
 
         groups_by_member = {} # indexed by id()
         groups = set()
@@ -173,7 +213,7 @@ class Scheduler(object):
 
         This must be after all register() calls and before start()
         """
-        assert self._startup and not self._running
+        assert self._startup and not self._shutdown
 
         tests = len(self._registered)
         self._create_groups()
@@ -195,17 +235,17 @@ class Scheduler(object):
 
     def start(self):
         """Start up the scheduler!"""
-        assert not self._startup and not self._running
-        self._running = True
+        assert not self._startup and not self._shutdown
+        self._shutdown = deferred = defer.Deferred()
 
         if not self._registered:
             self.stop()
-            return
+            return deferred
 
         if len(self._registered) == 1:
             # Only running one test, skip the fancy stuff
             reactor.callLater(0, list(self._registered)[0].start)
-            return
+            return deferred
 
         # Collect runnables that query the same host so that we can
         # avoid hitting a host with many queries at once
@@ -232,27 +272,31 @@ class Scheduler(object):
                 delay += slot
 
         # Start latency self-checker
-        reactor.callLater(1.0, self.latency, time.time())
+        self._latency_call = reactor.callLater(1.0, self.latency, time.time())
 
         log.info("Startup complete, running...")
+        return deferred
 
     def stop(self):
         """Stop the scheduler"""
-
-        # Don't actually stop if _create_groups hasn't finished
-        if not self._running:
-            return
+        assert self._shutdown
 
         if self._registered:
             log.warn("Stopping while still active!")
         else:
             log.info("Nothing left to do, stopping.")
 
-        reactor.stop()
+        if self._latency_call:
+            self._latency_call.cancel()
+            self._latency_call = None
+
+        deferred = self._shutdown
+        self._shutdown = None
+        deferred.callback(None)
 
     def latency(self, last):
         now = time.time()
-        reactor.callLater(1.0, self.latency, now)
+        self._latency_call = reactor.callLater(1.0, self.latency, now)
 
         latency = now - last - 1.0
         self._latency.append(latency)
@@ -268,6 +312,12 @@ class Runnable(object):
     as tests and queries. Any child of this class will likely want to
     override _start to actually run its task.
     """
+
+    # This defines how the monitor page reports this object
+    type = "Runnable"
+
+    # Similar but only used for Query objects right now
+    name = None
 
     def __init__(self, conf):
         self.__depends = set()
@@ -405,6 +455,8 @@ class RunnableGroup(Runnable):
     parent for a bunch of other Runnables that must start at the same time.
     """
 
+    type = "Group"
+
     def __init__(self, group):
         # Grab the first non-zero repeat value and count hosts
         hosts = {}
@@ -432,6 +484,3 @@ class RunnableGroup(Runnable):
         Runnable.__init__(self, conf)
         for dependency in group:
             self.addDependency(dependency)
-
-# import late due to circular imports
-import test, query

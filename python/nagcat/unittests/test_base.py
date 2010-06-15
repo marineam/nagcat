@@ -1,4 +1,4 @@
-# Copyright 2008-2009 ITA Software, Inc.
+# Copyright 2009-2010 ITA Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Nagcat: The Nagios Helpful Pet"""
+from twisted.trial import unittest
+from nagcat import base, errors
+from coil.struct import Struct
 
-from twisted.python import versions
-import twisted
-import coil
+class BaseTestCase(unittest.TestCase):
 
-# Make sure we have the right coil version
-if getattr(coil, '__version_info__', (0,0)) < (0,3,14):
-    raise ImportError("coil >= 0.3.14 is required")
+    def testBasic(self):
+        config = Struct({
+                'basic': {
+                    'query': {
+                        'type': "noop",
+                        'data': "something",
+                    },
+                },
+            })
 
-# Require Twisted >= 8.2, older versions had problematic bugs
-if twisted.version < versions.Version('twisted', 8, 2, 0):
-    raise ImportError("Twisted >= 8.2 is required")
+        b = base.NagcatSimple(config, test_name="basic")
+        return b.start()
