@@ -32,7 +32,7 @@ from nagcat import errors
 # USE ONLY FOR DEBUGGING!
 DANGER = False
 
-class XMLPage(resource.Resource):
+class XMLPage(resource.Resource, object):
     """Generic XML Page"""
 
     isLeaf = True
@@ -219,6 +219,13 @@ class MonitorSite(server.Site):
         if etree is None:
             raise errors.InitError("lxml is required for the monitoring api")
 
+        self.stat = Stat()
         self.root = resource.Resource()
-        self.root.putChild("stat", Stat())
+        self.root.putChild("stat", self.stat)
         server.Site.__init__(self, self.root)
+
+    def includeChild(self, path, child):
+        self.stat.includeChild(path, child)
+
+    def putChild(self, path, child):
+        self.stat.putChild(path, child)

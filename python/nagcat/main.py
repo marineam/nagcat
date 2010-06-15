@@ -142,10 +142,13 @@ def init(options):
 
     try:
         if options.test:
-            nagcat = base.NagcatSimple(config, test_name=options.test,
+            nagcat = base.NagcatSimple(config,
+                    monitor_port=options.status_port,
+                    test_name=options.test,
                     host=options.host, port=options.port)
         else:
             nagcat = nagios.NagcatNagios(config,
+                    monitor_port=options.status_port,
                     nagios_cfg=options.nagios, tag=options.tag)
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
