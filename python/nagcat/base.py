@@ -28,7 +28,7 @@ class Nagcat(object):
     def __init__(self, config, rradir=None, rrdcache=None,
                  monitor_port=None, **kwargs):
         if monitor_port:
-            self._monitor_port = None
+            self._monitor_port = monitor_port
             self.monitor = monitor_api.MonitorSite()
         if rradir:
             self.trend = trend.TrendMaster(rradir, rrdcache)
