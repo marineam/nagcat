@@ -72,6 +72,8 @@ Investigation:
 class BaseTest(scheduler.Runnable):
     """Shared base between SimpleTest and Test"""
 
+    type = "Test"
+
     def __init__(self, conf):
         scheduler.Runnable.__init__(self, conf)
 

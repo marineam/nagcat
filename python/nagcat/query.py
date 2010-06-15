@@ -64,6 +64,8 @@ class Query(scheduler.Runnable):
     Query objects are only used by SimpleTest objects.
     """
 
+    type = "Query"
+
     def __init__(self, conf):
         scheduler.Runnable.__init__(self, conf)
 
