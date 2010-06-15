@@ -1,0 +1,99 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          nagcat
+# Required-Start:    $remote_fs nagios3
+# Required-Stop:     $remote_fs nagios3
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Nagcat
+# Description:       A Nagios Helper
+### END INIT INFO
+
+DESC="Nagcat"
+USER=nagios
+GROUP=nagios
+PREFIX=/usr/local/nagcat
+PYTHON=/usr/bin/python
+LOGFILE=/var/log/nagios3/nagcat.log
+PIDFILE=/var/run/nagios3/nagcat.pid
+CONFIG=/etc/nagios3/nagcat.cfg
+NAGIOSCFG=/etc/nagios3/nagios.cfg
+RRDTOOLDIR=/var/lib/nagios3/rra
+STATUS_PORT=9009
+FILE_LIMIT=8000
+
+# Get nagios config location
+[ -r /etc/default/nagios3 ] && . /etc/default/nagios3
+
+# Get our config location
+[ -r /etc/default/nagcat ] && . /etc/default/nagcat
+
+# Exit if the package is not installed
+[ -x "${DAEMON:=$PREFIX/bin/nagcat}" ] || exit 0
+
+# Define LSB log_* functions.
+. /lib/lsb/init-functions
+
+do_start()
+{
+    start-stop-daemon --start --quiet --pidfile $PIDFILE \
+        --exec $PYTHON --test > /dev/null \
+        || return 1
+    start-stop-daemon --start --quiet --pidfile $PIDFILE \
+        --exec $PYTHON -- $DAEMON --daemon --pidfile=$PIDFILE \
+        --logfile=$LOGFILE --user=$USER --group=$GROUP --config=$CONFIG \
+        --nagios $NAGIOSCFG --rradir=$RRDTOOLDIR --file-limit=$FILE_LIMIT \
+        --status-port=$STATUS_PORT || return 2
+}
+
+do_stop()
+{
+    start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 \
+        --pidfile $PIDFILE --exec $PYTHON
+    return "$?"
+}
+
+case "$1" in
+  start)
+    log_daemon_msg "Starting $DESC"
+    do_start
+    case "$?" in
+        0|1) log_end_msg 0 ;;
+        2) log_end_msg 1 ;;
+    esac
+    ;;
+  stop)
+    log_daemon_msg "Stopping $DESC"
+    do_stop
+    case "$?" in
+        0|1) log_end_msg 0 ;;
+        2) log_end_msg 1 ;;
+    esac
+    ;;
+  status)
+    status_of_proc "$PIDFILE" && exit 0 || exit $?
+    ;;
+  restart|force-reload)
+    log_daemon_msg "Restarting $DESC" "$NAME"
+    do_stop
+    case "$?" in
+      0|1)
+        do_start
+        case "$?" in
+            0) log_end_msg 0 ;;
+            1) log_end_msg 1 ;; # Old process is still running
+            *) log_end_msg 1 ;; # Failed to start
+        esac
+        ;;
+      *)
+        log_end_msg 1
+        ;;
+    esac
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|status|restart|force-reload}" >&2
+    exit 3
+    ;;
+esac
+
+:
