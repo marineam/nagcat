@@ -153,6 +153,22 @@ class Scheduler(object):
 
         return data
 
+    def _update_stats(self, runnable):
+        """Record a previously unknown runnable"""
+
+        self._task_stats['count'] += 1
+
+        if runnable.type in self._task_stats:
+            self._task_stats[runnable.type]['count'] += 1
+        else:
+            self._task_stats[runnable.type] = {'count': 1}
+
+        if runnable.name:
+            if runnable.name in self._task_stats[runnable.type]:
+                self._task_stats[runnable.type][runnable.name]['count'] += 1
+            else:
+                self._task_stats[runnable.type][runnable.name] = {'count': 1}
+
     def _create_groups(self):
         """Group together registered tasks with common subtasks.
 
@@ -160,20 +176,6 @@ class Scheduler(object):
         added as dependencies to a dummy Runnable object that is then
         registered.
         """
-
-        def update_stats(runnable):
-            self._task_stats['count'] += 1
-
-            if runnable.type in self._task_stats:
-                self._task_stats[runnable.type]['count'] += 1
-            else:
-                self._task_stats[runnable.type] = {'count': 1}
-
-            if runnable.name:
-                if runnable.name in self._task_stats[runnable.type]:
-                    self._task_stats[runnable.type][runnable.name]['count'] += 1
-                else:
-                    self._task_stats[runnable.type][runnable.name] = {'count': 1}
 
         groups_by_member = {} # indexed by id()
         groups = set()
@@ -196,7 +198,7 @@ class Scheduler(object):
                     groups.discard(old_group)
                 else:
                     # This dep hasn't been seen yet so record it
-                    update_stats(dep)
+                    self._update_stats(dep)
 
             # switch to frozenset to make group hashable
             new_group = frozenset(new_group)
@@ -222,7 +224,7 @@ class Scheduler(object):
 
             # Setup the meta-runnable
             group_runnable = RunnableGroup(group_registered)
-            update_stats(group_runnable)
+            self._update_stats(group_runnable)
             self.register(group_runnable)
 
     def prepare(self):
