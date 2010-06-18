@@ -167,13 +167,32 @@ test-name: {
         # type. See the Queries section for the details.
     }
 
+    # 'host' is an optional attribute to define the host this test runs
+    # against. It provides the default for queries. When running under
+    # Nagios this defaults to Nagios' host_name attribute.
+    host: "somehost"
+
+    # 'addr' is an option attribute to define the host's IP address.
+    # When running under nagios it defaults to Nagios' address
+    # attribute. If that isn't available it is set via DNS.
+    addr: "192.168.1.2"
+
+    # 'port' is usually required and provides the default port for any
+    # query types that need it (http, tcp, snmp, etc).
+    port: 1234
+
+    # 'description' usually can be ignored, it is set based on Nagios'
+    # service_description attribute. Currently it is only used by the
+    # RRDTool trending setup to determine the file name to use.
+    description: "Service Alvie"
+
     # 'label' is a optional user friendly name to describe the final
     # value. It is used in some errors and rrdtool trend graphs.
     label: "% Disk Used"
 
     # 'repeat' defines when or how frequently to run. It may be a
     # specific time of day or a time interval such as 10s or 10m.
-    # The default is 1 minute.
+    # The default is 1 minute. The default units are seconds.
     repeat: "1m"
 
     # Filters are strings defining some manipulation to the data
@@ -406,6 +425,11 @@ query: {
     # operation or its value only changes at a specific time of day.
     # The default is the parent test's repeat value.
     repeat: "1m"
+
+    # 'timeout' sets how long the query is allowed to take. If the query
+    # takes longer than the timeout it will be aborted and raise a
+    # critical error. The default value is 15 seconds.
+    timeout: "15s"
 }
 
 HTTP:
@@ -600,3 +624,56 @@ The output XML is similar to the oracle_sql output:
     </row>
   </list>
 </result>
+
+RRDTool:
+
+If the result of a test depends on the previous value (such as an alert
+that goes off if a counter is reset such as uptime) that previous value
+can be fetched from the RRDTool file. It is also possible for one test
+to query the latest status of an entirely different test.
+
+Currently only the last update can be fetched, more query types may be
+added in the future.
+
+query: {
+    type: "rrd_lastupdate"
+
+    # The service description from nagios, defaults to the description
+    # for this particular test so it is only required if you are
+    # querying the status of something else.
+    description: "Service Alive"
+
+    # The host can also be overridden for querying other test results.
+    # It defaults to the host this test is configured for.
+    host: "somehost"
+
+    # If you want to raise an error if the last update is too old. This
+    # defaults to 0 meaning don't perform the check.
+    freshness: "30 minutes"
+}
+
+The above test will return a blob of XML that is a subset of the rrdtool
+dump xml format and looks something like this:
+
+    <rrd>
+      <lastupdate>1276898652</lastupdate>
+      <ds>
+        <name>_state</name>
+        <last_ds>0.0</last_ds>
+      </ds>
+      <ds>
+        <name>subquery</name>
+        <last_ds></last_ds>
+      </ds>
+    </rrd>
+
+The names _state and _result are special names. _state is the final
+state of the test. 0 is OK, 1 is WARNING, 2 is CRITICAL, and 3 is
+UNKNOWN. _result is the value recorded if a trend block is in the main
+test block. Any other name will be the name of a query block that is
+trending. To process this data XPath is best. An uptime test might have
+a filter something like this:
+
+    "xpath[0]:/rrd/ds[name/text()='uptime']/last_ds/text()"
+
+The [0] provides a default value of 0 if the value is unknown.
