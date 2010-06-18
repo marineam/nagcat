@@ -72,6 +72,15 @@ class TrendMaster(object):
         trendobj = Trend(testconf, self._rradir, rrdapi=self._rrdapi)
         testobj.addReportCallback(trendobj.update)
 
+    def lastupdate(self, host, description):
+        """Fetch the latest data from an RRD"""
+        path = os.path.join(self._rradir, host, "%s.rrd" % description)
+        return self._rrdapi.lastupdate(path)
+
+    def info(self, host, description):
+        """Fetch the full latest info from an RRD"""
+        path = os.path.join(self._rradir, host, "%s.rrd" % description)
+        return self._rrdapi.info(path)
 
 # Just to make definitions below easier to read
 _min  = 60
