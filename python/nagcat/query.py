@@ -24,29 +24,34 @@ from twisted.internet import error as neterror
 
 from nagcat import errors, filters, log, plugin, runnable, util
 
-_queries = {}
+class QueryManager(object):
 
-def addQuery(conf, qcls=None):
-    """Create a new query and register it or return an existing one"""
+    def __init__(self, nagcat):
+        self._nagcat = nagcat
+        self._queries = {}
 
-    # Find the correct Query class for this type
-    if not qcls:
-        qtype = conf.get('type')
-        qcls = plugin.search(IQuery, qtype, None)
+    def new_query(self, conf, qcls=None):
+        """Create a new query and register it or return an existing one"""
+
+        # Find the correct Query class for this type
         if not qcls:
-            raise errors.ConfigError(conf, "Unknown query type '%s'" % qtype)
+            qtype = conf.get('type')
+            qcls = plugin.search(IQuery, qtype, None)
+            if not qcls:
+                raise errors.ConfigError(conf,
+                        "Unknown query type '%s'" % qtype)
 
-    qobj = qcls(conf)
-    key = str(qobj)
-    if key in _queries:
-        log.debug("Reusing query '%s'", key)
-        qobj = _queries[key]
-        qobj.update(conf)
-    else:
-        log.debug("Adding query '%s'", key)
-        _queries[key] = qobj
+        qobj = qcls(conf)
+        key = str(qobj)
+        if key in self._queries:
+            log.debug("Reusing query '%s'", key)
+            qobj = self._queries[key]
+            qobj.update(conf)
+        else:
+            log.debug("Adding query '%s'", key)
+            self._queries[key] = qobj
 
-    return qobj
+        return qobj
 
 class IQuery(plugin.INagcatPlugin):
     """Interface for finding Query plugin classes"""
@@ -130,7 +135,7 @@ class FilteredQuery(Query):
     # For the scheduler stats
     name = "filter"
 
-    def __init__(self, conf):
+    def __init__(self, nagcat, conf):
         Query.__init__(self, conf)
 
         self._port = conf.get('port', None)
@@ -149,7 +154,7 @@ class FilteredQuery(Query):
             self._filters.append(filters.get_filter(
                 self, 'warning', None, conf['warning']))
 
-        self._query = addQuery(conf)
+        self._query = nagcat.new_query(conf)
         self.addDependency(self._query)
 
     def _start(self):

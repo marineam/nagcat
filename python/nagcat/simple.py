@@ -17,7 +17,7 @@
 from twisted.internet import defer
 
 from nagcat import errors, log
-from nagcat import scheduler, test
+from nagcat import scheduler
 
 class NagcatDummy(scheduler.Scheduler):
     """For testing"""
@@ -34,6 +34,11 @@ class NagcatSimple(scheduler.Scheduler):
     def _report(self, report):
         log.info("REPORT:\n%s" % report['text'])
 
+    def new_test(self, config):
+        new = super(NagcatSimple, self).new_test(config)
+        new.addReportCallback(self._report)
+        return new
+
     def build_tests(self, config, test_name=None, host=None, port=None):
         config = config.get(test_name, None)
         if not config:
@@ -44,11 +49,7 @@ class NagcatSimple(scheduler.Scheduler):
         config.setdefault('port', port)
         config.setdefault('test', test_name)
         config.setdefault('name', test_name)
-        config['repeat'] = None # single run
-
-        testobj = test.Test(self, config)
-        testobj.addReportCallback(self._report)
-        return [testobj]
+        return [self.new_test(config)]
 
     def start(self):
         assert self._startup

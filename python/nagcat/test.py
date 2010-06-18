@@ -26,7 +26,7 @@ from twisted.internet import defer, reactor
 from twisted.python import failure
 from coil import struct
 
-from nagcat import errors, filters, log, query, runnable, trend, util
+from nagcat import errors, filters, log, query, runnable, util
 
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 
@@ -122,7 +122,6 @@ class Test(BaseTest):
     def __init__(self, nagcat, conf):
         BaseTest.__init__(self, conf)
 
-        self._nagcat = nagcat
         self._test = conf.get('test', "")
         self._documentation = conf.get('documentation', "")
         self._investigation = conf.get('investigation', "")
@@ -149,7 +148,7 @@ class Test(BaseTest):
                     continue
 
                 self._addDefaults(qconf)
-                self._subtests[name] = query.FilteredQuery(qconf)
+                self._subtests[name] = query.FilteredQuery(nagcat, qconf)
                 self.addDependency(self._subtests[name])
 
             if not self._subtests:
@@ -183,14 +182,10 @@ class Test(BaseTest):
             self._compound = False
             qconf = conf.get('query')
             self._addDefaults(qconf)
-            self._subtests['query'] = query.FilteredQuery(qconf)
+            self._subtests['query'] = query.FilteredQuery(nagcat, qconf)
             self.addDependency(self._subtests['query'])
 
         self._report_callbacks = []
-
-        # Setup RRDTool for this test
-        if self._nagcat.trend:
-            self._nagcat.trend.setup_test_trending(self, conf)
 
     def _addDefaults(self, conf):
         """Add default values based on this test to a subtest config"""

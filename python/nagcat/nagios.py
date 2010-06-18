@@ -15,7 +15,7 @@
 """NagCat->Nagios connector"""
 
 from coil.errors import CoilError
-from nagcat import errors, log, nagios_api, nagios_objects, scheduler, test
+from nagcat import errors, log, nagios_api, nagios_objects, scheduler
 
 class NagcatNagios(scheduler.Scheduler):
     """Setup tests defined by Nagios and report back"""
@@ -97,7 +97,7 @@ class NagcatNagios(scheduler.Scheduler):
                 testconf[key] = val
 
             try:
-                testobj = test.Test(self, testconf)
+                testobj = self.new_test(testconf)
             except (errors.InitError, CoilError), ex:
                 raise errors.InitError(
                         "Error in test %s: %s" % (test_overrides['test'], ex))

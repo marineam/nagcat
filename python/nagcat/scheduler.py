@@ -44,7 +44,7 @@ try:
 except ImportError:
     etree = None
 
-from nagcat import log, monitor_api, trend
+from nagcat import log, monitor_api, query, test, trend
 from nagcat.runnable import Runnable, RunnableGroup
 
 class SchedulerPage(monitor_api.XMLPage):
@@ -112,12 +112,22 @@ class Scheduler(object):
         if rradir:
             self.trend = trend.TrendMaster(rradir, rrdcache)
 
+        self.query = query.QueryManager(self)
+
         tests = self.build_tests(config, **kwargs)
-        for testobj in tests:
-            self.register(testobj)
 
     def build_tests(self, config, **kwargs):
         raise Exception("unimplemented")
+
+    def new_test(self, config):
+        new = test.Test(self, config)
+        self.register(new)
+        if self.trend:
+            self.trend.setup_test_trending(new, config)
+        return new
+
+    def new_query(self, config, qcls=None):
+        return self.query.new_query(config, qcls)
 
     def register(self, task):
         """Register a top level Runnable to be run directly by the scheduler"""
