@@ -22,7 +22,7 @@ import errno
 from twisted.internet import defer
 from twisted.internet import error as neterror
 
-from nagcat import errors, filters, log, plugin, scheduler, util
+from nagcat import errors, filters, log, plugin, runnable, util
 
 _queries = {}
 
@@ -51,7 +51,7 @@ def addQuery(conf, qcls=None):
 class IQuery(plugin.INagcatPlugin):
     """Interface for finding Query plugin classes"""
 
-class Query(scheduler.Runnable):
+class Query(runnable.Runnable):
     """Query objects make a single request or run a single process as
     defined in its configuration. The only state they may contain when
     it is not running is the results from the last run (be it real data
@@ -67,7 +67,7 @@ class Query(scheduler.Runnable):
     type = "Query"
 
     def __init__(self, conf):
-        scheduler.Runnable.__init__(self, conf)
+        runnable.Runnable.__init__(self, conf)
 
         # self.conf must contain all configuration variables that
         # this object uses so identical Queries can be identified.

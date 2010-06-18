@@ -26,7 +26,7 @@ from twisted.internet import defer, reactor
 from twisted.python import failure
 from coil import struct
 
-from nagcat import errors, filters, log, query, scheduler, trend, util
+from nagcat import errors, filters, log, query, runnable, trend, util
 
 STATES = ["OK", "WARNING", "CRITICAL", "UNKNOWN"]
 
@@ -69,13 +69,13 @@ Investigation:
 """
 
 
-class BaseTest(scheduler.Runnable):
+class BaseTest(runnable.Runnable):
     """Shared base between SimpleTest and Test"""
 
     type = "Test"
 
     def __init__(self, conf):
-        scheduler.Runnable.__init__(self, conf)
+        runnable.Runnable.__init__(self, conf)
 
         self._port = conf.get('port', None)
         # used in return and report
