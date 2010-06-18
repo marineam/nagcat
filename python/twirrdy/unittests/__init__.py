@@ -15,7 +15,7 @@
 import os
 from twisted.internet import defer, error, protocol, reactor
 from twisted.protocols import basic
-from twisted.python import failure, log
+from twisted.python import log
 from twisted.trial import unittest
 
 from twirrdy import RRDBasicAPI
@@ -32,7 +32,6 @@ class DummyCacheProtocol(basic.LineOnlyReceiver, object):
             try:
                 handler(line)
             except Exception, ex:
-                log.err(failure.Failure())
                 self.sendLine("-1 %s: %s" % (ex.__class__.__name__, ex))
         else:
             self.sendLine("-1 Unknown command: %s" % cmd)

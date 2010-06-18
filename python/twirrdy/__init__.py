@@ -14,7 +14,6 @@
 
 """A Twisted (and thread safe) RRDTool library"""
 
-import os
 import time
 import ctypes
 
@@ -35,7 +34,11 @@ rrd_version = rrd_th.rrd_version()
 if rrd_version < 1.3:
     raise ImportError("RRDTool version >= 1.3 is required")
 
+# some handy types
+c_time_t = ctypes.c_long
 c_char_pp = ctypes.POINTER(ctypes.c_char_p)
+raw_char_p = ctypes.POINTER(ctypes.c_char)
+raw_char_pp = ctypes.POINTER(raw_char_p)
 
 rrd_th.rrd_get_error.argtypes = []
 rrd_th.rrd_get_error.restype = ctypes.c_char_p
@@ -45,7 +48,7 @@ rrd_th.rrd_clear_error.restype = None
 rrd_th.rrd_create_r.argtypes = [
         ctypes.c_char_p,    # filename
         ctypes.c_ulong,     # step
-        ctypes.c_long,      # start
+        c_time_t,           # start
         ctypes.c_int,       # argc
         c_char_pp]          # argv
 
@@ -86,12 +89,23 @@ rrd_info_t._fields_ = [
         ('value', rrd_infoval_t),
         ('next', ctypes.POINTER(rrd_info_t))]
 
-# Versions less that 1.4 don't export rrd_info_r
-# but in those versions rrd_info is thread safe.
+# Versions less that 1.4 don't provide/export *_r versions of some
+# functions but in those cases the non *_r version is thread safe.
 if rrd_version >= 1.4:
     rrd_th.rrd_info_r.argtypes = [ ctypes.c_char_p ]
     rrd_th.rrd_info_r.restype = ctypes.POINTER(rrd_info_t)
     rrd_info_r = rrd_th.rrd_info_r
+
+    # note: raw_char_pp is required so free() works
+    rrd_th.rrd_lastupdate_r.argtypes = [
+            ctypes.c_char_p,                # filename
+            ctypes.POINTER(c_time_t),       # ret_last_update
+            ctypes.POINTER(ctypes.c_ulong), # ret_ds_count
+            ctypes.POINTER(raw_char_pp),    # ret_ds_names
+            ctypes.POINTER(raw_char_pp)]    # ret_last_ds
+    rrd_th.rrd_lastupdate_r.restype = ctypes.c_int
+    rrd_lastupdate_r = rrd_th.rrd_lastupdate_r
+
 else:
     rrd_th.rrd_info.argtypes = [ ctypes.c_int, c_char_pp ]
     rrd_th.rrd_info.restype = ctypes.POINTER(rrd_info_t)
@@ -100,8 +114,25 @@ else:
         argv = argv_t("", filename)
         return rrd_th.rrd_info(2, argv)
 
+    rrd_th.rrd_lastupdate.argtypes = [
+            ctypes.c_int,                   # argc
+            c_char_pp,                      # argv
+            ctypes.POINTER(c_time_t),       # ret_last_update
+            ctypes.POINTER(ctypes.c_ulong), # ret_ds_count
+            ctypes.POINTER(c_char_pp),      # ret_ds_names
+            ctypes.POINTER(c_char_pp)]      # ret_last_ds
+    rrd_th.rrd_lastupdate.restype = ctypes.c_int
+    def rrd_lastupdate_r(filename, last_update, ds_count, ds_names, last_ds):
+        argv_t = ctypes.c_char_p * 2
+        argv = argv_t("", filename)
+        return rrd_th.rrd_lastupdate(2, argv,
+                last_update, ds_count, ds_names, last_ds)
+
+
 rrd_th.rrd_info_free.argtypes = [ ctypes.POINTER(rrd_info_t) ]
 rrd_th.rrd_info_free.restype = None
+rrd_th.rrd_freemem.argtypes = [ ctypes.c_void_p ]
+rrd_th.rrd_freemem.restype = None
 
 
 class RRDToolError(Exception):
@@ -190,8 +221,6 @@ class RRDBasicAPI(object):
         Note: templates are not supported because the cache
         protocol does not support them.
         """
-        if not os.path.exists(filename):
-            raise RRDToolError("%s does not exist" % filename)
 
         arg = "%s:%s" % (timestamp, ":".join(str(v) for v in values))
         argv_t = ctypes.c_char_p * 1
@@ -267,3 +296,37 @@ class RRDBasicAPI(object):
             rrd_th.rrd_info_free(info_ptr)
 
         return ret
+
+    def lastupdate(self, filename):
+        """Get the latest update from an RRD
+
+        It is basically a mini info()
+        """
+
+        ds_time = c_time_t()
+        ds_count = ctypes.c_ulong()
+        ds_names = raw_char_pp()
+        ds_values = raw_char_pp()
+        if rrd_lastupdate_r(filename,
+                ctypes.byref(ds_time),
+                ctypes.byref(ds_count),
+                ctypes.byref(ds_names),
+                ctypes.byref(ds_values)):
+            raise RRDLibraryError()
+
+        ds_dict = {}
+        for i in xrange(int(ds_count.value)):
+            name = ctypes.string_at(ds_names[i])
+            value = ctypes.string_at(ds_values[i])
+            if value == "U":
+                value = None
+            else:
+                value = float(value)
+            ds_dict[name] = value
+            rrd_th.rrd_freemem(ds_values[i])
+            rrd_th.rrd_freemem(ds_names[i])
+
+        rrd_th.rrd_freemem(ds_values)
+        rrd_th.rrd_freemem(ds_names)
+
+        return ds_time.value, ds_dict

@@ -19,7 +19,7 @@ import stat
 
 from twisted.internet import defer, error, reactor, threads
 
-from twirrdy import RRDBasicAPI, RRDToolError
+from twirrdy import RRDBasicAPI
 from twirrdy import protocol
 
 def issock(path):
@@ -132,6 +132,22 @@ class RRDTwistedAPI(RRDBasicAPI):
             defer = self._defer
 
         doinfo = lambda: super(RRDTwistedAPI, self).info(filename)
+
+        if not defer:
+            return doinfo()
+        else:
+            if self._client:
+                deferred = self.flush(filename)
+                deferred.addCallback(lambda x: threads.deferToThread(doinfo))
+                return deferred
+            else:
+                return threads.deferToThread(doinfo)
+
+    def lastupdate(self, filename, defer=None):
+        if defer is None:
+            defer = self._defer
+
+        doinfo = lambda: super(RRDTwistedAPI, self).lastupdate(filename)
 
         if not defer:
             return doinfo()

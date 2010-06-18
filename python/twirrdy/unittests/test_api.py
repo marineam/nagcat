@@ -66,6 +66,23 @@ class BasicTestCase(unittest.TestCase):
             self.assertEquals(rra['rows'], orig['rows'])
 
     @defer.inlineCallbacks
+    def testLastUpdateNoData(self):
+        expect = dict((ds['name'],None) for ds in self.DS)
+        ds_time, ds_values = yield self.api.lastupdate(self.path)
+        self.assertEquals(ds_time, self.START)
+        self.assertEquals(ds_values, expect)
+
+    @defer.inlineCallbacks
+    def testLastUpdateWithData(self):
+        entry_time = self.DATA[0][0]
+        entry_data = self.DATA[0][1:]
+        expect = dict(zip((ds['name'] for ds in self.DS), entry_data))
+        yield self.api.update(self.path, entry_time, entry_data)
+        ds_time, ds_values = yield self.api.lastupdate(self.path)
+        self.assertEquals(ds_time, entry_time)
+        self.assertEquals(ds_values, expect)
+
+    @defer.inlineCallbacks
     def testInfoCreate(self):
         # We should be able duplicate the structure by mixing info/create
         extra = self.mktemp()

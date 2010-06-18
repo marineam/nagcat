@@ -22,7 +22,9 @@ from twisted.protocols import basic
 from twisted.python import failure, log
 from zope.interface import implements
 
-class RRDCacheError(Exception):
+from twirrdy import RRDToolError
+
+class RRDCacheError(RRDToolError):
     """rrdcached responded with an error"""
 
 class RRDCacheProtocol(basic.LineOnlyReceiver, object):
