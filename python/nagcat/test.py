@@ -123,6 +123,7 @@ class Test(BaseTest):
         BaseTest.__init__(self, conf)
 
         self._test = conf.get('test', "")
+        self._description = conf.get('description', self._test)
         self._documentation = conf.get('documentation', "")
         self._investigation = conf.get('investigation', "")
         self._priority = conf.get('priority', "")
@@ -191,6 +192,7 @@ class Test(BaseTest):
         """Add default values based on this test to a subtest config"""
         conf.setdefault('host', self.host)
         conf.setdefault('port', self._port)
+        conf.setdefault('description', self._description)
         conf.setdefault('repeat', str(self.repeat))
 
         if conf['host'] == self.host:
