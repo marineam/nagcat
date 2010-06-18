@@ -28,64 +28,48 @@ from nagcat import log
 class IntervalError(Exception):
     """Error creating time interval object"""
 
-class Interval(object):
+class Interval(float):
     """Store the duration of time interval.
 
     A if initialized with None or '0 seconds' this the object
     will evaluate to False in boolean contexts.
     """
-    # TODO: support absolute times
 
-    def __init__(self, value):
-        if not value:
-            # Default to no repeat
-            self.seconds = 0.0
-            return
-
-        if isinstance(value, (int, long, float, Interval)):
-            self.seconds = float(value)
-            return
-        elif not isinstance(value, str):
+    def __new__(cls, value):
+        if value is None or value == '':
+            value = 0.0
+        elif isinstance(value, str):
+            value = cls._parse(value)
+        elif not isinstance(value, (int, long, float)):
             raise IntervalError("Invalid time value %r" % value)
 
+        return super(Interval, cls).__new__(cls, value)
+
+    @classmethod
+    def _parse(cls, value):
         match = re.match("^\s*(\d+(\.\d+)?)\s*"
                 "(s|sec|seconds?|m|min|minutes?|h|hours?|d|days?)?\s*$",
-                str(value), re.IGNORECASE)
+                value, re.IGNORECASE)
         if not match:
             raise IntervalError("Invalid time value %r" % value)
 
         if not match.group(3) or match.group(3)[0].lower() == 's':
-            self.seconds = float(match.group(1))
+            return float(match.group(1))
         elif match.group(3)[0].lower() == 'm':
-            self.seconds = float(match.group(1)) * 60
+            return float(match.group(1)) * 60
         elif match.group(3)[0].lower() == 'h':
-            self.seconds = float(match.group(1)) * 3600
+            return float(match.group(1)) * 3600
         elif match.group(3)[0].lower() == 'd':
-            self.seconds = float(match.group(1)) * 86400
+            return float(match.group(1)) * 86400
         else:
             assert(0)
 
+    @property
+    def seconds(self):
+        return self
+
     def __str__(self):
-        return "%s seconds" % self.seconds
-
-    def __float__(self):
-        return self.seconds
-
-    def __int__(self):
-        return int(self.seconds)
-
-    def __nonzero__(self):
-        return bool(self.seconds)
-
-    def __eq__(self, other):
-        if (isinstance(other, self.__class__) and
-                self.seconds == other.seconds):
-            return True
-        else:
-            return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
+        return "%s seconds" % super(Interval, self).__str__()
 
 class MathError(Exception):
     """Attempted math on a non-numeric value"""
