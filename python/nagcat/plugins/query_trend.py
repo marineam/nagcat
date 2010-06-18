@@ -48,7 +48,6 @@ class LastUpdateQuery(query.Query):
         self.conf['host'] = conf['host']
         self.conf['description'] = conf['description']
         self.conf['freshness'] = util.Interval(conf.get('freshness', None))
-        self.conf['strict'] = conf.get('strict', False)
 
     def _start(self):
         deferred = self._nagcat.trend.lastupdate(
@@ -59,10 +58,7 @@ class LastUpdateQuery(query.Query):
     @errors.callback
     def _errors(self, failure):
         if isinstance(falure.value, twirrdy.RRDToolError):
-            if self.conf['strict']:
-                raise errors.TestCritical(str(failure.value))
-            else:
-                return "<rrd><rrd/>"
+            raise errors.TestCritical(str(failure.value))
         else:
             return failure
 
