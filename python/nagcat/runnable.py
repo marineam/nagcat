@@ -35,7 +35,6 @@ class Runnable(object):
 
     def __init__(self, conf):
         self.__depends = set()
-        self.scheduler = None
         self.lastrun = 0
         self.result = None
         self.deferred = None
@@ -95,22 +94,17 @@ class Runnable(object):
             return self.deferred
 
         # Reuse old results if our time isn't up yet
-        if self.lastrun + self.repeat.seconds > time.time():
+        elif self.lastrun + self.repeat.seconds > time.time():
             log.debug("Skipping start of %s", self)
-            if self.scheduler:
-                log.warn("Top level task got scheduled too soon! "
-                        "Scheduling in %s" % self.repeat)
-                reactor.callLater(self.repeat.seconds, self.start)
-            deferred = defer.succeed(self.result)
-            deferred.addBoth(self.__null)
+            return defer.succeed(None)
+
         else:
             # use deferred instead of self.deferred because
             # __done could have been called already
             self.deferred = deferred = self.__startDependencies()
             deferred.addBoth(self.__startSelf)
             deferred.addBoth(self.__done)
-
-        return deferred
+            return deferred
 
     @errors.callback
     def __done(self, result):
@@ -122,17 +116,6 @@ class Runnable(object):
         self.lastrun = time.time()
         self.deferred = None
 
-        if not self.scheduler or not reactor.running:
-            # Don't reschedule if not top-level or during shutdown
-            pass
-        elif self.repeat:
-            log.debug("Scheduling %s in %s.", self, self.repeat)
-            reactor.callLater(self.repeat.seconds, self.start)
-        else:
-            log.debug("Unregistering %s, not scheduled to run again.", self)
-            self.scheduler.unregister(self)
-            self.scheduler = None
-
         if isinstance(result, failure.Failure):
             if isinstance(result.value, errors.TestError):
                 if result.tb is not None:
@@ -141,10 +124,6 @@ class Runnable(object):
             else:
                 log.error("Unhandled error in %s:\n%s" %
                         (self, result.getTraceback()))
-
-    def __null(self, result):
-        """Just a sink for results are replayed"""
-        pass
 
     def addDependency(self, dep):
         """Declare that self depends on another Runnable"""

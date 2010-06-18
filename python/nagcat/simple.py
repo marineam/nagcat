@@ -14,14 +14,16 @@
 
 """Nagcat single-test scheduler"""
 
+from twisted.internet import defer
+
 from nagcat import errors, log
 from nagcat import scheduler, test
 
 class NagcatDummy(scheduler.Scheduler):
     """For testing"""
 
-    def build_tests(self, config, tests=()):
-        return tests
+    def build_tests(self, config):
+        return []
 
 class NagcatSimple(scheduler.Scheduler):
     """Run only a single test, do not report to nagios.
@@ -47,3 +49,11 @@ class NagcatSimple(scheduler.Scheduler):
         testobj = test.Test(self, config)
         testobj.addReportCallback(self._report)
         return [testobj]
+
+    def start(self):
+        assert self._startup
+        self._startup = False
+        del self._group_index
+
+        runnable = self._registered.pop()
+        return runnable.start()

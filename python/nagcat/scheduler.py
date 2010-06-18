@@ -37,7 +37,7 @@ import time
 import random
 from collections import deque
 
-from twisted.internet import defer, reactor
+from twisted.internet import defer, reactor, task
 
 try:
     from lxml import etree
@@ -138,7 +138,6 @@ class Scheduler(object):
             group = RunnableGroup([task])
             self._update_stats(group)
             self._registered.add(group)
-            group.scheduler = self
             log.trace("Created group %s", group)
         else:
             group = groups.pop()
@@ -155,25 +154,6 @@ class Scheduler(object):
             if runnable not in self._group_index:
                 self._update_stats(runnable)
             self._group_index[runnable] = group
-
-    def unregister(self, runnable):
-        """Unregister a top level Runnable"""
-
-        if runnable in self._registered:
-            group = runnable
-            self._registered.remove(group)
-        else:
-            group = self._group_index.get(runnable)
-            group.delDependency(runnable)
-
-            if not group.hasDependencies():
-                self._registered.remove(group)
-
-        group.scheduler = None
-
-        if not self._startup and not self._registered:
-            self.stop()
-            return
 
     def stats(self):
         """Get a variety of stats to report on"""
@@ -230,11 +210,6 @@ class Scheduler(object):
         if self.monitor:
             reactor.listenTCP(self._monitor_port, self.monitor)
 
-        if len(self._registered) == 1:
-            # Only running one test, skip the fancy stuff
-            reactor.callLater(0, list(self._registered)[0].start)
-            return deferred
-
         self._log_stats()
 
         # Collect runnables that query the same host so that we can
@@ -258,8 +233,7 @@ class Scheduler(object):
             delay = random.random() * slot
 
             for runnable in host_group:
-                log.debug("Scheduling %s in %s seconds.", runnable, delay)
-                reactor.callLater(delay, runnable.start)
+                self.schedule(runnable, delay)
                 delay += slot
 
         # Start latency self-checker
@@ -268,14 +242,21 @@ class Scheduler(object):
         log.info("Startup complete, running...")
         return deferred
 
+    def schedule(self, runnable, delay=None):
+        """(re)schedule a top level runnable"""
+        if delay is None:
+            delay = runnable.repeat
+
+        if not delay:
+            log.error("Task %s has no repeat value.", runnable)
+        else:
+            log.debug("Scheduling %s in %s seconds.", runnable, delay)
+            deferred = task.deferLater(reactor, delay, runnable.start)
+            deferred.addBoth(lambda x: self.schedule(runnable))
+
     def stop(self):
         """Stop the scheduler"""
         assert self._shutdown
-
-        if self._registered:
-            log.warn("Stopping while still active!")
-        else:
-            log.info("Nothing left to do, stopping.")
 
         if self._latency_call:
             self._latency_call.cancel()
