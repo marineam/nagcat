@@ -19,7 +19,7 @@ import stat
 
 from twisted.internet import defer, error, reactor, threads
 
-from twirrdy import RRDBasicAPI
+from twirrdy import RRDBasicAPI, OrderedDict
 from twirrdy import protocol
 
 def issock(path):
@@ -82,6 +82,42 @@ class RRDTwistedAPI(RRDBasicAPI):
         assert self._client
         filename = self._escape_filename(filename)
         return self._client.sendLine("FLUSH %s" % filename)
+
+    def pending(self, filename):
+        def parse_value(value):
+            if value == "U":
+                return None
+            else:
+                return float(value)
+
+        def parse_line(line):
+            fields = line.split(':')
+            ds_time = int(fields.pop(0))
+            ds_values = [parse_value(v) for v in fields]
+            return ds_time, ds_values
+
+        def parse_result(result):
+            lines = result.splitlines()
+            # skip the first line which is the status
+            updates = [parse_line(l) for l in lines[1:]]
+            # probably not really needed but just to be safe
+            updates.sort()
+            return updates
+
+        # This is required because no such file is returned if rrdcached
+        # has not received any updates even if the file does exist
+        def mask_error(failure):
+            if (isinstance(failure.value, protocol.RRDCacheError) and
+                    failure.value.args[0] == "-1 No such file or directory"):
+                return []
+            else:
+                return failure
+
+        assert self._client
+        filename = self._escape_filename(filename)
+        d = self._client.sendLine("PENDING %s" % filename)
+        d.addCallbacks(parse_result, mask_error)
+        return d
 
     def _escape_filename(self, filename):
         """Escape '\' and ' ' in file names"""
@@ -149,12 +185,23 @@ class RRDTwistedAPI(RRDBasicAPI):
 
         doinfo = lambda: super(RRDTwistedAPI, self).lastupdate(filename)
 
+        def merge(pending):
+            def returnmerged(result):
+                ds_time = pending[-1][0]
+                ds_values = pending[-1][1]
+                ds_names = result[1].keys()
+                return ds_time, OrderedDict(zip(ds_names, ds_values))
+            deferred = threads.deferToThread(doinfo)
+            if pending:
+                deferred.addCallback(returnmerged)
+            return deferred
+
         if not defer:
             return doinfo()
         else:
             if self._client:
-                deferred = self.flush(filename)
-                deferred.addCallback(lambda x: threads.deferToThread(doinfo))
+                deferred = self.pending(filename)
+                deferred.addCallback(merge)
                 return deferred
             else:
                 return threads.deferToThread(doinfo)

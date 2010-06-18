@@ -72,6 +72,9 @@ class UpdateCacheProtocol(DummyCacheProtocol):
     def do_FLUSH(self, line):
         self.sendLine("0 Success")
 
+    def do_PENDING(self, line):
+        self.sendLine("0 Success")
+
     def do_UPDATE(self, line):
         line = line.split()
         assert len(line) == 3

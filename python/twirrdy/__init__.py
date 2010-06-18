@@ -314,7 +314,7 @@ class RRDBasicAPI(object):
                 ctypes.byref(ds_values)):
             raise RRDLibraryError()
 
-        ds_dict = {}
+        ds_dict = OrderedDict()
         for i in xrange(int(ds_count.value)):
             name = ctypes.string_at(ds_names[i])
             value = ctypes.string_at(ds_values[i])
