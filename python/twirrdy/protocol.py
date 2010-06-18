@@ -73,6 +73,7 @@ class RRDCacheProtocol(basic.LineOnlyReceiver, object):
             deferred = self.waiting.popleft()
             deferred.callback(self.delimiter.join(self.response_buffer))
             self.response_buffer = []
+            self.response_length = 0
 
         # The response indicated an error, there is no buffered lines
         elif self.response_length <= 0:
@@ -80,6 +81,7 @@ class RRDCacheProtocol(basic.LineOnlyReceiver, object):
             deferred = self.waiting.popleft()
             deferred.errback(RRDCacheError(line))
             self.response_buffer = []
+            self.response_length = 0
 
         # More lines are expected
         else:
