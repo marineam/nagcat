@@ -116,8 +116,6 @@ class Scheduler(object):
         for testobj in tests:
             self.register(testobj)
 
-        self.prepare()
-
     def build_tests(self, config, **kwargs):
         raise Exception("unimplemented")
 
@@ -126,6 +124,8 @@ class Scheduler(object):
         assert self._startup
         assert task not in self._group_index
         assert isinstance(task, Runnable)
+
+        log.trace("Registering task %s", task)
 
         task_deps = task.getAllDependencies()
         groups = set(g for g in (self._group_index.get(d, None)
@@ -136,19 +136,25 @@ class Scheduler(object):
 
         if not groups:
             group = RunnableGroup([task])
+            self._update_stats(group)
+            self._registered.add(group)
+            group.scheduler = self
+            log.trace("Created group %s", group)
         else:
             group = groups.pop()
             group.addDependency(task)
+            log.trace("Updated group %s", group)
             for extra_group in groups:
+                self._update_stats(extra_group, -1)
                 self._registered.remove(extra_group)
                 group.addDependencies(extra_group)
                 update_index.update(extra_group.getAllDependencies())
+                log.trace("Merged group %s", extra_group)
 
         for runnable in update_index:
+            if runnable not in self._group_index:
+                self._update_stats(runnable)
             self._group_index[runnable] = group
-
-        self._registered.add(group)
-        group.scheduler = self
 
     def unregister(self, runnable):
         """Unregister a top level Runnable"""
@@ -182,55 +188,40 @@ class Scheduler(object):
 
         return data
 
-    def _update_stats(self, runnable):
+    def _update_stats(self, runnable, inc=1):
         """Record a previously unknown runnable"""
 
-        self._task_stats['count'] += 1
+        self._task_stats['count'] += inc
 
         if runnable.type in self._task_stats:
-            self._task_stats[runnable.type]['count'] += 1
+            self._task_stats[runnable.type]['count'] += inc
         else:
-            self._task_stats[runnable.type] = {'count': 1}
+            self._task_stats[runnable.type] = {'count': inc}
 
         if runnable.name:
             if runnable.name in self._task_stats[runnable.type]:
-                self._task_stats[runnable.type][runnable.name]['count'] += 1
+                self._task_stats[runnable.type][runnable.name]['count'] += inc
             else:
-                self._task_stats[runnable.type][runnable.name] = {'count': 1}
+                self._task_stats[runnable.type][runnable.name] = {'count': inc}
 
-    def prepare(self):
-        """Finish the startup process.
+    def _log_stats(self):
+        """Report the number of tasks"""
 
-        This must be after all register() calls and before start()
-        """
-        assert self._startup and not self._shutdown
-
-        everything = set(self._registered)
-        everything.update(self._group_index.iterkeys())
-        for task in everything:
-            task.finalize()
-            self._update_stats(task)
-
-        if self._task_stats['Test']['count'] > 1:
-            log.info("Tasks: %s", self._task_stats['count'])
-            log.info("Groups: %s", self._task_stats['Group']['count'])
-            log.info("Tests: %s", self._task_stats['Test']['count'])
-            log.info("Queries: %s", self._task_stats['Query']['count'])
-            for query_type in self._task_stats['Query']:
-                if query_type == "count":
-                    continue
-                log.info("Query %s: %s", query_type,
-                        self._task_stats['Query'][query_type]['count'])
-            if 'Other' in self._task_stats:
-                log.info("Other: %s", self._task_stats['Other']['count'])
-
-        del self._group_index
-        self._startup = False
+        log.info("Tasks: %s", self._task_stats['count'])
+        log.info("Groups: %s", self._task_stats['Group']['count'])
+        log.info("Tests: %s", self._task_stats['Test']['count'])
+        log.info("Queries: %s", self._task_stats['Query']['count'])
+        for query_type, query_info in self._task_stats['Query'].iteritems():
+            if query_type == "count":
+                continue
+            log.info("Query %s: %s", query_type, query_info['count'])
 
     def start(self):
         """Start up the scheduler!"""
-        assert not self._startup and not self._shutdown
+        assert self._startup and not self._shutdown
+        self._startup = False
         self._shutdown = deferred = defer.Deferred()
+        del self._group_index
 
         if not self._registered:
             self.stop()
@@ -244,10 +235,13 @@ class Scheduler(object):
             reactor.callLater(0, list(self._registered)[0].start)
             return deferred
 
+        self._log_stats()
+
         # Collect runnables that query the same host so that we can
         # avoid hitting a host with many queries at once
         host_groups = {}
         for runnable in self._registered:
+            runnable.finalize()
             if runnable.host in host_groups:
                 host_groups[runnable.host].append(runnable)
             else:

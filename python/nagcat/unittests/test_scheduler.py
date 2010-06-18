@@ -21,17 +21,20 @@ from nagcat import simple, runnable, scheduler
 class SchedulerTestCase(unittest.TestCase):
 
     def testSimpleGrouping(self):
+        s = simple.NagcatDummy()
         r1 = runnable.Runnable(Struct({'repeat': 60}))
         r2 = runnable.Runnable(Struct({'repeat': 60}))
         r3 = runnable.Runnable(Struct({'repeat': 60}))
         t1 = runnable.Runnable(Struct({'repeat': 60}))
         t1.addDependency(r1)
         t1.addDependency(r2)
+        s.register(t1)
         t2 = runnable.Runnable(Struct({'repeat': 60}))
         t2.addDependency(r2)
+        s.register(t2)
         t3 = runnable.Runnable(Struct({'repeat': 60}))
         t3.addDependency(r3)
-        s = simple.NagcatDummy(tests=[t1,t2,t3])
+        s.register(t3)
         stats = s.stats()
         expect = {'count': 8,
                   'Test': {'count': 0},
