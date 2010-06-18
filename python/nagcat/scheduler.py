@@ -83,8 +83,13 @@ class SchedulerPage(monitor_api.XMLPage):
 class Scheduler(object):
     """Run things!"""
 
-    def __init__(self, nagcat):
-        self._nagcat = nagcat
+    trend = None
+    monitor = None
+
+    def __init__(self, config=None,
+            rradir=None, rrdcache=None,
+            monitor_port=None, **kwargs):
+
         self._registered = set()
         self._startup = True
         self._shutdown = None
@@ -97,9 +102,23 @@ class Scheduler(object):
                 'Query': {'count': 0},
             }
 
-        if self._nagcat.monitor:
+        if monitor_port:
+            self._monitor_port = monitor_port
+            self.monitor = monitor_api.MonitorSite()
             page = SchedulerPage(self)
-            self._nagcat.monitor.includeChild("scheduler", page)
+            self.monitor.includeChild("scheduler", page)
+
+        if rradir:
+            self.trend = trend.TrendMaster(rradir, rrdcache)
+
+        tests = self.build_tests(config, **kwargs)
+        for testobj in tests:
+            self.register(testobj)
+
+        self.prepare()
+
+    def build_tests(self, config, **kwargs):
+        raise Exception("unimplemented")
 
     def register(self, runnable):
         """Register a top level Runnable to be run directly by the scheduler"""
@@ -239,6 +258,9 @@ class Scheduler(object):
         if not self._registered:
             self.stop()
             return deferred
+
+        if self.monitor:
+            reactor.listenTCP(self._monitor_port, self.monitor)
 
         if len(self._registered) == 1:
             # Only running one test, skip the fancy stuff

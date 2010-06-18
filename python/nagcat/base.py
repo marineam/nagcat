@@ -19,40 +19,13 @@ from twisted.internet import reactor, task
 from nagcat import errors, log, monitor_api
 from nagcat import scheduler, test, trend
 
-class Nagcat(object):
-    """Class to wrap up the pieces of nagcat together"""
-
-    trend = None
-    monitor = None
-
-    def __init__(self, config, rradir=None, rrdcache=None,
-                 monitor_port=None, **kwargs):
-        if monitor_port:
-            self._monitor_port = monitor_port
-            self.monitor = monitor_api.MonitorSite()
-        if rradir:
-            self.trend = trend.TrendMaster(rradir, rrdcache)
-
-        tests = self.build_tests(config, **kwargs)
-        self._scheduler = scheduler.Scheduler(self)
-        for testobj in tests:
-            self._scheduler.register(testobj)
-
-        self._scheduler.prepare()
-
-    def start(self):
-        if self.monitor:
-            reactor.listenTCP(self._monitor_port, self.monitor)
-        return self._scheduler.start()
-
-    def build_tests(self, config, **kwargs):
-        raise Exception("unimplemented")
+Nagcat = scheduler.Scheduler
 
 class NagcatDummy(Nagcat):
     """For testing"""
 
-    def __init__(self):
-        pass
+    def build_tests(self, config, tests=()):
+        return tests
 
 class NagcatSimple(Nagcat):
     """Run only a single test, do not report to nagios.

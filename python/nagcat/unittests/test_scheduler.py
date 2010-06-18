@@ -31,11 +31,7 @@ class SchedulerTestCase(unittest.TestCase):
         t2.addDependency(r2)
         t3 = runnable.Runnable(Struct({'repeat': 60}))
         t3.addDependency(r3)
-        s = scheduler.Scheduler(base.NagcatDummy())
-        s.register(t1)
-        s.register(t2)
-        s.register(t3)
-        s.prepare()
+        s = base.NagcatDummy(tests=[t1,t2,t3])
         stats = s.stats()
         expect = {'count': 8,
                   'Test': {'count': 0},
