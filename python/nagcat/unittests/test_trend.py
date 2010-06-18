@@ -33,7 +33,7 @@ class TrendDataTestCase(unittest.TestCase):
     def testSingle(self):
         conf = Struct({'type': "gauge",
                        'host': "testhost",
-                       'name': "single",
+                       'description': "single",
                        'repeat': "5m",
                        'trend': {'type': "gauge"},
                        'query': {'type': "dummy"}})
@@ -58,7 +58,7 @@ class TrendDataTestCase(unittest.TestCase):
     def testMultiple(self):
         conf = Struct({
             'host': "testhost",
-            'name': "multiple",
+            'description': "multiple",
             'repeat': "5m",
             'trend': {'type': "gauge"},
             'query': {
@@ -109,7 +109,7 @@ class TrendDataTestCase(unittest.TestCase):
 
         self.conf = Struct({
             'host': "testhost",
-            'name': "change",
+            'description': "change",
             'repeat': "5m",
             'query': {
                 'type': "compound",
@@ -204,7 +204,7 @@ class TrendRRATestCase(unittest.TestCase):
 
         self.conf = Struct({
             'host': "testhost",
-            'name': "rratest",
+            'description': "rratest",
             'repeat': "1m",
             'query': {'type': "noop"},
             'trend': {'type': "gauge"},

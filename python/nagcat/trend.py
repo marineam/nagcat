@@ -179,7 +179,7 @@ class Trend(object):
                     "trend.rra must be a struct, got: %r" % rras)
 
         self._rradir = os.path.abspath(os.path.join(rradir, conf['host']))
-        self._rrafile = os.path.join(self._rradir, "%s.rrd" % conf['name'])
+        self._rrafile = os.path.join(self._rradir, "%s.rrd" % conf['description'])
 
         if not os.path.exists(self._rradir):
             try:
@@ -188,7 +188,7 @@ class Trend(object):
                 raise errors.InitError("Cannot create directory %s: %s" %
                         (self._rradir, ex))
 
-        coil_file = os.path.join(self._rradir, "%s.coil" % conf['name'])
+        coil_file = os.path.join(self._rradir, "%s.coil" % conf['description'])
         try:
             coil_fd = open(coil_file, 'w')
             coil_fd.write('%s\n' % conf)

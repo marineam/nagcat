@@ -55,7 +55,7 @@ class NagcatNagios(scheduler.Scheduler):
             test_defaults = {
                     'host': service['host_name'],
                     'addr': host['address'],
-                    'name': service['service_description']}
+                    'description': service['service_description']}
 
             test_overrides = {}
 
@@ -109,7 +109,7 @@ class NagcatNagios(scheduler.Scheduler):
                         "Error in test %s" % test_overrides['test'])
 
             testobj.addReportCallback(self._send_report,
-                    test_defaults['host'], test_defaults['name'])
+                    test_defaults['host'], test_defaults['description'])
             tests.append(testobj)
 
         return tests

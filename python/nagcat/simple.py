@@ -48,7 +48,7 @@ class NagcatSimple(scheduler.Scheduler):
         config.setdefault('host', host)
         config.setdefault('port', port)
         config.setdefault('test', test_name)
-        config.setdefault('name', test_name)
+        config.setdefault('description', test_name)
         return [self.new_test(config)]
 
     def start(self):
