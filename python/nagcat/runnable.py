@@ -62,6 +62,9 @@ class Runnable(object):
         else:
             self.addr = None
 
+    def finalize(self):
+        pass
+
     def _start(self):
         """Start a Runnable object, return a Deferred.
         
@@ -145,9 +148,21 @@ class Runnable(object):
 
     def addDependency(self, dep):
         """Declare that self depends on another Runnable"""
-
-        assert isinstance(dep, Runnable)
         self.__depends.add(dep)
+
+    def addDependencies(self, group):
+        """Add a group of dependencies at once"""
+        if isinstance(group, Runnable):
+            group = group.getDependencies()
+        self.__depends.update(group)
+
+    def delDependency(self, dep):
+        """Remove a dependency"""
+        self.__depends.remove(dep)
+
+    def hasDependencies(self):
+        """Return True if this task has dependencies"""
+        return bool(self.__depends)
 
     def getDependencies(self):
         """Get the current set of dependencies"""
@@ -172,12 +187,17 @@ class RunnableGroup(Runnable):
     type = "Group"
 
     def __init__(self, group):
+        conf = Struct({'repeat': None, 'host': None, 'addr': None})
+        Runnable.__init__(self, conf)
+        for dependency in group:
+            self.addDependency(dependency)
+
+    def finalize(self):
         # Grab the first non-zero repeat value and count hosts
         hosts = {}
-        repeat = None
-        for dependency in group:
-            if not repeat:
-                repeat = dependency.repeat
+        for dependency in self.getDependencies():
+            if not self.repeat:
+                self.repeat = dependency.repeat
 
             if dependency.host in hosts:
                 hosts[dependency.host] += 1
@@ -186,15 +206,8 @@ class RunnableGroup(Runnable):
 
         # Select the most common host in the group for this group's host
         # this is used to distribute queries to a host evenly.
-        max_host = None
         max_count = 0
         for host, count in hosts.iteritems():
             if count > max_count:
-                max_host = host
+                self.host = host
                 max_count = count
-
-        # Setup this Runnable
-        conf = Struct({'repeat': repeat, 'host': max_host, 'addr': None})
-        Runnable.__init__(self, conf)
-        for dependency in group:
-            self.addDependency(dependency)

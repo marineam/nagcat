@@ -1,4 +1,4 @@
-# Copyright 2008-2009 ITA Software, Inc.
+# Copyright 2008-2010 ITA Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ try:
 except ImportError:
     etree = None
 
-from nagcat import log, monitor_api
+from nagcat import log, monitor_api, trend
 from nagcat.runnable import Runnable, RunnableGroup
 
 class SchedulerPage(monitor_api.XMLPage):
@@ -91,6 +91,7 @@ class Scheduler(object):
             monitor_port=None, **kwargs):
 
         self._registered = set()
+        self._group_index = {}
         self._startup = True
         self._shutdown = None
         self._latency = deque([0], 60)
@@ -120,21 +121,49 @@ class Scheduler(object):
     def build_tests(self, config, **kwargs):
         raise Exception("unimplemented")
 
-    def register(self, runnable):
+    def register(self, task):
         """Register a top level Runnable to be run directly by the scheduler"""
         assert self._startup
-        assert runnable not in self._registered
-        assert isinstance(runnable, Runnable)
+        assert task not in self._group_index
+        assert isinstance(task, Runnable)
 
-        self._registered.add(runnable)
-        runnable.scheduler = self
+        task_deps = task.getAllDependencies()
+        groups = set(g for g in (self._group_index.get(d, None)
+                for d in task_deps) if g and g.repeat <= task.repeat)
+
+        update_index = set(task_deps)
+        update_index.add(task)
+
+        if not groups:
+            group = RunnableGroup([task])
+        else:
+            group = groups.pop()
+            group.addDependency(task)
+            for extra_group in groups:
+                self._registered.remove(extra_group)
+                group.addDependencies(extra_group)
+                update_index.update(extra_group.getAllDependencies())
+
+        for runnable in update_index:
+            self._group_index[runnable] = group
+
+        self._registered.add(group)
+        group.scheduler = self
 
     def unregister(self, runnable):
         """Unregister a top level Runnable"""
-        assert runnable in self._registered
 
-        runnable.scheduler = None
-        self._registered.remove(runnable)
+        if runnable in self._registered:
+            group = runnable
+            self._registered.remove(group)
+        else:
+            group = self._group_index.get(runnable)
+            group.delDependency(runnable)
+
+            if not group.hasDependencies():
+                self._registered.remove(group)
+
+        group.scheduler = None
 
         if not self._startup and not self._registered:
             self.stop()
@@ -169,64 +198,6 @@ class Scheduler(object):
             else:
                 self._task_stats[runnable.type][runnable.name] = {'count': 1}
 
-    def _create_groups(self):
-        """Group together registered tasks with common subtasks.
-
-        When top level tasks are grouped they are unregistered and
-        added as dependencies to a dummy Runnable object that is then
-        registered.
-        """
-
-        groups_by_member = {} # indexed by id()
-        groups = set()
-
-        for runnable in self._registered:
-            deps = set((runnable,))
-            for dep in runnable.getAllDependencies():
-                # Only group together if the repeat interval matches.
-                if dep.repeat == runnable.repeat:
-                    deps.add(dep)
-
-            log.trace("Dependencies for %s: %s", runnable, deps)
-            new_group = deps.copy()
-
-            # Merge any groups that share members with new_group
-            for dep in deps:
-                old_group = groups_by_member.get(id(dep), None)
-                if old_group is not None:
-                    new_group.update(old_group)
-                    groups.discard(old_group)
-                else:
-                    # This dep hasn't been seen yet so record it
-                    self._update_stats(dep)
-
-            # switch to frozenset to make group hashable
-            new_group = frozenset(new_group)
-            groups.add(new_group)
-
-            for dep in new_group:
-                groups_by_member[id(dep)] = new_group
-
-        log.trace("All groups: %s", groups)
-
-        # Create a meta-runnable that will fire off all registered Runnables
-        # that are in the same group at the same time.
-        for group in groups:
-            # Pull all registered runnables out of the group
-            group_registered = self._registered.intersection(group)
-
-            # There better be at least one registered item in the group!
-            assert group_registered
-
-            # Unregister these runnables
-            for old in group_registered:
-                self.unregister(old)
-
-            # Setup the meta-runnable
-            group_runnable = RunnableGroup(group_registered)
-            self._update_stats(group_runnable)
-            self.register(group_runnable)
-
     def prepare(self):
         """Finish the startup process.
 
@@ -234,10 +205,13 @@ class Scheduler(object):
         """
         assert self._startup and not self._shutdown
 
-        tests = len(self._registered)
-        self._create_groups()
+        everything = set(self._registered)
+        everything.update(self._group_index.iterkeys())
+        for task in everything:
+            task.finalize()
+            self._update_stats(task)
 
-        if tests > 1:
+        if self._task_stats['Test']['count'] > 1:
             log.info("Tasks: %s", self._task_stats['count'])
             log.info("Groups: %s", self._task_stats['Group']['count'])
             log.info("Tests: %s", self._task_stats['Test']['count'])
@@ -250,6 +224,7 @@ class Scheduler(object):
             if 'Other' in self._task_stats:
                 log.info("Other: %s", self._task_stats['Other']['count'])
 
+        del self._group_index
         self._startup = False
 
     def start(self):
