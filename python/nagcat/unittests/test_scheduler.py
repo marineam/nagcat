@@ -15,7 +15,7 @@
 from twisted.trial import unittest
 #from nagcat.unittests import dummy_server
 from coil.struct import Struct
-from nagcat import base, runnable, scheduler
+from nagcat import simple, runnable, scheduler
 
 
 class SchedulerTestCase(unittest.TestCase):
@@ -31,7 +31,7 @@ class SchedulerTestCase(unittest.TestCase):
         t2.addDependency(r2)
         t3 = runnable.Runnable(Struct({'repeat': 60}))
         t3.addDependency(r3)
-        s = base.NagcatDummy(tests=[t1,t2,t3])
+        s = simple.NagcatDummy(tests=[t1,t2,t3])
         stats = s.stats()
         expect = {'count': 8,
                   'Test': {'count': 0},

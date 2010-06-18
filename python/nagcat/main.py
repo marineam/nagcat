@@ -21,7 +21,7 @@ from optparse import OptionParser
 from twisted.internet import reactor
 import coil
 
-from nagcat import base, errors, log, nagios, util
+from nagcat import errors, log, nagios, simple, util
 
 def parse_options():
     """Parse program options in sys.argv"""
@@ -142,7 +142,7 @@ def init(options):
 
     try:
         if options.test:
-            nagcat = base.NagcatSimple(config,
+            nagcat = simple.NagcatSimple(config,
                     rradir=options.rradir,
                     rrdcache=options.rrdcache,
                     monitor_port=options.status_port,

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import base, errors, test
+from nagcat import errors, simple, test
 from coil.struct import Struct
 
 class TestTestCase(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestTestCase(unittest.TestCase):
                 },
             })
 
-        t = test.Test(base.NagcatDummy(), config)
+        t = test.Test(simple.NagcatDummy(), config)
         d = t.start()
         d.addBoth(self.endBasic, t)
         return d
@@ -51,7 +51,7 @@ class TestTestCase(unittest.TestCase):
                 },
             })
 
-        t = test.Test(base.NagcatDummy(), config)
+        t = test.Test(simple.NagcatDummy(), config)
         d = t.start()
         d.addBoth(self.endCompound, t)
         return d

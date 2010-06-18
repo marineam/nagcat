@@ -12,22 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""NagCat initialization and startup"""
+"""Nagcat single-test scheduler"""
 
-from twisted.internet import reactor, task
+from nagcat import errors, log
+from nagcat import scheduler, test
 
-from nagcat import errors, log, monitor_api
-from nagcat import scheduler, test, trend
-
-Nagcat = scheduler.Scheduler
-
-class NagcatDummy(Nagcat):
+class NagcatDummy(scheduler.Scheduler):
     """For testing"""
 
     def build_tests(self, config, tests=()):
         return tests
 
-class NagcatSimple(Nagcat):
+class NagcatSimple(scheduler.Scheduler):
     """Run only a single test, do not report to nagios.
 
     Useful for testing a new test template.

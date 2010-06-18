@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import base, errors
+from nagcat import simple, errors
 from coil.struct import Struct
 
 class BaseTestCase(unittest.TestCase):
@@ -28,5 +28,5 @@ class BaseTestCase(unittest.TestCase):
                 },
             })
 
-        b = base.NagcatSimple(config, test_name="basic")
+        b = simple.NagcatSimple(config, test_name="basic")
         return b.start()

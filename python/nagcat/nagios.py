@@ -15,9 +15,9 @@
 """NagCat->Nagios connector"""
 
 from coil.errors import CoilError
-from nagcat import base, errors, log, nagios_api, nagios_objects, test
+from nagcat import errors, log, nagios_api, nagios_objects, scheduler, test
 
-class NagcatNagios(base.Nagcat):
+class NagcatNagios(scheduler.Scheduler):
     """Setup tests defined by Nagios and report back"""
 
     def __init__(self, config, nagios_cfg, **kwargs):
