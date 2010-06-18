@@ -22,6 +22,8 @@ from twisted.trial import unittest
 from nagcat import errors, query, plugin
 from coil.struct import Struct
 
+from nagcat.unittests import test_query
+
 try:
     import cx_Oracle
     from lxml import etree
@@ -29,7 +31,7 @@ except ImportError:
     cx_Oracle = None
     etree = None
 
-class OracleBase(unittest.TestCase):
+class OracleBase(test_query.QueryTestCase):
     if not cx_Oracle or not etree:
         skip = "Missing cx_Oracle or lxml"
     elif not ('ORA_DSN' in os.environ and
@@ -43,6 +45,7 @@ class OracleBase(unittest.TestCase):
     QUERY_TYPE = "oracle_sql"
 
     def setUp(self):
+        super(OracleBase, self).setUp()
         self.config = Struct({'user':os.environ['ORA_USER'],
                               'password':os.environ['ORA_PASS'],
                               'dsn':os.environ['ORA_DSN']})
@@ -74,7 +77,7 @@ class OracleBase(unittest.TestCase):
         conf = self.config.copy()
         conf.update(kwargs)
         qcls = plugin.search(query.IQuery, self.QUERY_TYPE)
-        q = qcls(conf)
+        q = qcls(self.nagcat, conf)
         d = q.start()
         d.addCallback(lambda x: q.result)
         return d
@@ -265,7 +268,7 @@ class TimeoutTestCase(OracleBase):
 class DummyFactory(protocol.Factory):
     protocol = protocol.Protocol
 
-class TimeoutConnectionTestCase(unittest.TestCase):
+class TimeoutConnectionTestCase(test_query.QueryTestCase):
     """This test case demonstrates how to make a call to
     cx_Oracle.connect() hang forever. Unfortunately it is impossible
     for it to *not* hang forever due to the lack of an asyncronus
@@ -277,6 +280,7 @@ class TimeoutConnectionTestCase(unittest.TestCase):
     #    skip = "Missing cx_Oracle"
 
     def setUp(self):
+        super(TimeoutConnectionTestCase, self).setUp()
         # I assume this test isn't going to be run on an Oracle server...
         self.server = reactor.listenTCP(1521, DummyFactory())
         self.config = Struct({'user': 'nobody',
@@ -289,7 +293,7 @@ class TimeoutConnectionTestCase(unittest.TestCase):
     def test_timeout(self):
         conf = self.config.copy()
         qcls = plugin.search(query.IQuery, 'oracle_sql')
-        q = qcls(conf)
+        q = qcls(self.nagcat, conf)
         d = q.start()
         d.addCallback(lambda x: q.result)
         return d
@@ -427,4 +431,3 @@ class PLSQLTestCase(OracleBase):
                             ['out', 'p_two', 'number']])
         d.addCallback(check)
         return d
-

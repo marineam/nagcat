@@ -58,8 +58,8 @@ class NTPQuery(query.Query):
 
     name = "ntp"
 
-    def __init__(self, conf):
-        super(NTPQuery, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(NTPQuery, self).__init__(nagcat, conf)
         self.conf['addr'] = self.addr
         self.conf['port'] = int(conf.get('port', 123))
 

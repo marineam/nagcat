@@ -98,8 +98,8 @@ class TCPQuery(query.Query):
 
     name = "tcp"
 
-    def __init__(self, conf):
-        super(TCPQuery, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(TCPQuery, self).__init__(nagcat, conf)
 
         self.conf['addr'] = self.addr
         self.conf['port'] = int(conf.get('port'))
@@ -122,10 +122,10 @@ class SSLQuery(TCPQuery):
 
     name = "ssl"
 
-    def __init__(self, conf):
+    def __init__(self, nagcat, conf):
         if ssl is None:
             raise errors.InitError("pyOpenSSL is required for SSL support.")
-        super(SSLQuery, self).__init__(conf)
+        super(SSLQuery, self).__init__(nagcat, conf)
 
     def _connect(self, factory):
         context = ssl.ClientContextFactory()

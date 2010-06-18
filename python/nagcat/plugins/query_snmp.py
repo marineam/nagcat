@@ -26,8 +26,8 @@ from nagcat import errors, query, util
 class SNMPCommon(query.Query):
     """Parent class for both SNMPQuery and SNMPCombined."""
 
-    def __init__(self, conf):
-        super(SNMPCommon, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(SNMPCommon, self).__init__(nagcat, conf)
 
         protocol = conf.get('protocol', 'udp')
         if protocol not in ('udp', 'tcp', 'unix'):
@@ -66,8 +66,8 @@ class SNMPQuery(SNMPCommon):
 
     name = "snmp"
 
-    def __init__(self, conf):
-        super(SNMPQuery, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(SNMPQuery, self).__init__(nagcat, conf)
 
         if 'oid' in conf:
             if ("oid_base" in conf or "oid_key" in conf or "key" in conf):
@@ -77,7 +77,7 @@ class SNMPQuery(SNMPCommon):
             self.conf['oid'] = self.check_oid(conf, 'oid')
 
             conf['walk'] = False
-            self.query_oid = query.addQuery(conf, qcls=SNMPCombined)
+            self.query_oid = nagcat.new_query(conf, qcls=SNMPCombined)
             self.addDependency(self.query_oid)
 
         elif ("oid_base" in conf and "oid_key" in conf and "key" in conf):
@@ -92,12 +92,12 @@ class SNMPQuery(SNMPCommon):
 
             base = conf.copy()
             base['oid'] = self.conf['oid_base']
-            self.query_base = query.addQuery(base, qcls=SNMPCombined)
+            self.query_base = nagcat.new_query(base, qcls=SNMPCombined)
             self.addDependency(self.query_base)
 
             key = conf.copy()
             key['oid'] = self.conf['oid_key']
-            self.query_key = query.addQuery(key, qcls=SNMPCombined)
+            self.query_key = nagcat.new_query(key, qcls=SNMPCombined)
             self.addDependency(self.query_key)
         else:
             raise errors.ConfigError(conf,
@@ -107,7 +107,7 @@ class SNMPQuery(SNMPCommon):
             self.conf['oid_scale'] = self.check_oid(conf, 'oid_scale')
             scale = conf.copy()
             scale['oid'] = self.conf['oid_scale']
-            self.query_scale = query.addQuery(scale, qcls=SNMPCombined)
+            self.query_scale = nagcat.new_query(scale, qcls=SNMPCombined)
             self.addDependency(self.query_scale)
         else:
             self.query_scale = None
@@ -225,9 +225,9 @@ class SNMPCombined(SNMPCommon):
     # For the scheduler stats
     name = "snmp_combined"
 
-    def __init__(self, conf):
+    def __init__(self, nagcat, conf):
         """Initialize query with oids and host port information."""
-        super(SNMPCombined, self).__init__(conf)
+        super(SNMPCombined, self).__init__(nagcat, conf)
 
         self.oids = set()
         self.update(conf)

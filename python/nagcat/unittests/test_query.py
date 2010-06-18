@@ -97,7 +97,7 @@ class NoOpQueryTestCase(QueryTestCase):
 
     def testBasic(self):
         qcls = plugin.search(query.IQuery, 'noop')
-        q = qcls(Struct({'data': "bogus data"}))
+        q = qcls(self.nagcat, Struct({'data': "bogus data"}))
         d = q.start()
         d.addBoth(self.endBasic, q)
 
@@ -114,7 +114,7 @@ class HTTPQueryTestCase(QueryTestCase):
 
     def testBasic(self):
         qcls = plugin.search(query.IQuery, 'http')
-        q = qcls(self.config)
+        q = qcls(self.nagcat, self.config)
         d = q.start()
         d.addBoth(self.endBasic, q)
         return d
@@ -126,7 +126,7 @@ class HTTPQueryTestCase(QueryTestCase):
         config = self.config.copy()
         config['data'] = "post data"
         qcls = plugin.search(query.IQuery, 'http')
-        q = qcls(config)
+        q = qcls(self.nagcat, config)
         d = q.start()
         d.addBoth(self.endPost, q)
         return d
@@ -150,7 +150,7 @@ class HTTPEmptyResponseTestCase(QueryTestCase):
     def testEmpty(self):
         """test connecting to an HTTP socket that immediately closes"""
         qcls = plugin.search(query.IQuery, 'http')
-        q = qcls(self.bad_config)
+        q = qcls(self.nagcat, self.bad_config)
         d = q.start()
         d.addBoth(self.endEmpty, q)
         return d
@@ -172,7 +172,7 @@ class TCPQueryTestCase(QueryTestCase):
 
     def testBasic(self):
         qcls = plugin.search(query.IQuery, 'tcp')
-        q = qcls(self.config)
+        q = qcls(self.nagcat, self.config)
         d = q.start()
         d.addBoth(self.endBasic, q)
         return d
@@ -184,7 +184,7 @@ class TCPQueryTestCase(QueryTestCase):
         config = self.config.copy()
         config['data'] = "post data"
         qcls = plugin.search(query.IQuery, 'tcp')
-        q = qcls(config)
+        q = qcls(self.nagcat, config)
         d = q.start()
         d.addBoth(self.endPost, q)
         return d
@@ -199,7 +199,7 @@ class SubprocessQueryTestCase(QueryTestCase):
 
     def testBasic(self):
         qcls = plugin.search(query.IQuery, 'subprocess')
-        q = qcls(Struct({'command': "echo hello"}))
+        q = qcls(self.nagcat, Struct({'command': "echo hello"}))
         d = q.start()
         d.addBoth(self.endBasic, q)
         return d
@@ -209,7 +209,7 @@ class SubprocessQueryTestCase(QueryTestCase):
 
     def testTrue(self):
         qcls = plugin.search(query.IQuery, 'subprocess')
-        q = qcls(Struct({'command': "true"}))
+        q = qcls(self.nagcat, Struct({'command': "true"}))
         d = q.start()
         d.addBoth(self.endTrue, q)
         return d
@@ -219,7 +219,7 @@ class SubprocessQueryTestCase(QueryTestCase):
 
     def testFalse(self):
         qcls = plugin.search(query.IQuery, 'subprocess')
-        q = qcls(Struct({'command': "false"}))
+        q = qcls(self.nagcat, Struct({'command': "false"}))
         d = q.start()
         d.addBoth(self.endFalse, q)
         return d
@@ -232,7 +232,7 @@ class SubprocessQueryTestCase(QueryTestCase):
         c = {'command': "test_subprocess_path", 'environment': {
                 'PATH': os.path.dirname(__file__) } }
         qcls = plugin.search(query.IQuery, 'subprocess')
-        q = qcls(Struct(c))
+        q = qcls(self.nagcat, Struct(c))
         d = q.start()
         d.addBoth(self.endEnvGood, q)
         return d
@@ -242,7 +242,7 @@ class SubprocessQueryTestCase(QueryTestCase):
 
     def testEnvBad(self):
         qcls = plugin.search(query.IQuery, 'subprocess')
-        q = qcls(Struct({'command': "test_subprocess_path"}))
+        q = qcls(self.nagcat, Struct({'command': "test_subprocess_path"}))
         d = q.start()
         d.addBoth(self.endEnvBad, q)
         return d
@@ -254,7 +254,6 @@ class SubprocessQueryTestCase(QueryTestCase):
 class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
 
     version = "1"
-    skip = "broken for this commit"
 
     def setUp(self):
         QueryTestCase.setUp(self)
@@ -273,7 +272,7 @@ class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
         c = self.conf.copy()
         c['oid'] = ".1.3.6.1.4.2.1.1";
         qcls = plugin.search(query.IQuery, 'snmp')
-        q = qcls(c)
+        q = qcls(self.nagcat, c)
 
         def check(ignore):
             self.assertEquals(q.result, "1")
@@ -286,7 +285,7 @@ class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
         c = self.conf.copy()
         c['oid'] = ".1.3.6.1.4.2.1";
         qcls = plugin.search(query.IQuery, 'snmp')
-        q = qcls(c)
+        q = qcls(self.nagcat, c)
 
         def check(ignore):
             self.assertIsInstance(q.result, errors.Failure)
@@ -302,7 +301,7 @@ class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
         c['oid_key']  = ".1.3.6.1.4.2.2";
         c['key'] = 'two'
         qcls = plugin.search(query.IQuery, 'snmp')
-        q = qcls(c)
+        q = qcls(self.nagcat, c)
 
         def check(ignore):
             self.assertEquals(q.result, "2")
@@ -328,7 +327,7 @@ class NTPTestCase(QueryTestCase):
                 'port': 123})
         now = time.time()
         qcls = plugin.search(query.IQuery, 'ntp')
-        q = qcls(conf)
+        q = qcls(self.nagcat, conf)
 
         def check(ignore):
             # chop off a bunch of time because they won't be exact
@@ -346,7 +345,7 @@ class NTPTestCase(QueryTestCase):
                 'timeout': 2})
         now = time.time()
         qcls = plugin.search(query.IQuery, 'ntp')
-        q = qcls(conf)
+        q = qcls(self.nagcat, conf)
 
         def check(ignore):
             self.assertIsInstance(q.result, errors.Failure)

@@ -118,8 +118,8 @@ class SubprocessQuery(query.Query):
 
     name = "subprocess"
 
-    def __init__(self, conf):
-        super(SubprocessQuery, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(SubprocessQuery, self).__init__(nagcat, conf)
 
         env = os.environ.copy()
         if 'environment' in conf:

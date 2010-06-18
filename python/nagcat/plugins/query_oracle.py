@@ -87,12 +87,12 @@ class OracleBase(query.Query):
     Subclasses must provide _start_oracle()
     """
 
-    def __init__(self, conf):
+    def __init__(self, nagcat, conf):
         if not etree or not cx_Oracle:
             raise errors.InitError(
                     "cx_Oracle and lxml are required for Oracle support.")
 
-        super(OracleBase, self).__init__(conf)
+        super(OracleBase, self).__init__(nagcat, conf)
 
         for param in ('user', 'password', 'dsn'):
             if param not in conf:
@@ -200,8 +200,8 @@ class OracleSQL(OracleBase):
 
     name = "oracle_sql"
 
-    def __init__(self, conf):
-        super(OracleSQL, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(OracleSQL, self).__init__(nagcat, conf)
         self.conf['sql'] = conf.get('sql', "select 1 as data from dual")
 
         if 'parameters' in conf:
@@ -246,8 +246,8 @@ class OracleSQL2(OracleSQL):
     classProvides(query.IQuery)
     name = "oraclesql"
 
-    def __init__(self, conf):
-        super(OracleSQL2, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(OracleSQL2, self).__init__(nagcat, conf)
         # So the scheduler's stats are correct
         self.name = "oracle_sql"
 
@@ -259,8 +259,8 @@ class OraclePLSQL(OracleBase):
 
     name = "oracle_plsql"
 
-    def __init__(self, conf):
-        super(OraclePLSQL, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(OraclePLSQL, self).__init__(nagcat, conf)
 
         self.conf['procedure'] = conf.get('procedure', None)
         if not self.conf['procedure']:

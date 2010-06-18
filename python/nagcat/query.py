@@ -41,7 +41,7 @@ class QueryManager(object):
                 raise errors.ConfigError(conf,
                         "Unknown query type '%s'" % qtype)
 
-        qobj = qcls(conf)
+        qobj = qcls(self._nagcat, conf)
         key = str(qobj)
         if key in self._queries:
             log.debug("Reusing query '%s'", key)
@@ -71,8 +71,8 @@ class Query(runnable.Runnable):
 
     type = "Query"
 
-    def __init__(self, conf):
-        runnable.Runnable.__init__(self, conf)
+    def __init__(self, nagcat, conf):
+        super(Query, self).__init__(conf)
 
         # self.conf must contain all configuration variables that
         # this object uses so identical Queries can be identified.
@@ -136,7 +136,7 @@ class FilteredQuery(Query):
     name = "filter"
 
     def __init__(self, nagcat, conf):
-        Query.__init__(self, conf)
+        super(FilteredQuery, self).__init__(nagcat, conf)
 
         self._port = conf.get('port', None)
         # Used by the save filter and report

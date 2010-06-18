@@ -50,8 +50,8 @@ class HTTPQuery(query.Query):
     name = "http"
     port = 80
 
-    def __init__(self, conf):
-        super(HTTPQuery, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(HTTPQuery, self).__init__(nagcat, conf)
 
         self.agent = "NagCat" # Add more info?
         self.scheme = self.name
@@ -149,10 +149,10 @@ class HTTPSQuery(HTTPQuery):
     name = "https"
     port = 443
 
-    def __init__(self, conf):
+    def __init__(self, nagcat, conf):
         if ssl is None:
             raise errors.InitError("pyOpenSSL is required for HTTPS support.")
-        super(HTTPSQuery, self).__init__(conf)
+        super(HTTPSQuery, self).__init__(nagcat, conf)
 
     def _connect(self, factory):
         context = ssl.ClientContextFactory()

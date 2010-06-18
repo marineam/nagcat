@@ -25,8 +25,8 @@ class NoopQuery(query.Query):
 
     name = "noop"
 
-    def __init__(self, conf):
-        super(NoopQuery, self).__init__(conf)
+    def __init__(self, nagcat, conf):
+        super(NoopQuery, self).__init__(nagcat, conf)
         self.conf['data'] = conf.get('data', None)
 
     def _start(self):
