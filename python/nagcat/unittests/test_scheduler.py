@@ -15,7 +15,34 @@
 from twisted.trial import unittest
 #from nagcat.unittests import dummy_server
 from coil.struct import Struct
-from nagcat import scheduler
+from nagcat import base, scheduler
+
+
+class SchedulerTestCase(unittest.TestCase):
+
+    def testSimpleGrouping(self):
+        r1 = scheduler.Runnable(Struct({'repeat': 60}))
+        r2 = scheduler.Runnable(Struct({'repeat': 60}))
+        r3 = scheduler.Runnable(Struct({'repeat': 60}))
+        t1 = scheduler.Runnable(Struct({'repeat': 60}))
+        t1.addDependency(r1)
+        t1.addDependency(r2)
+        t2 = scheduler.Runnable(Struct({'repeat': 60}))
+        t2.addDependency(r2)
+        t3 = scheduler.Runnable(Struct({'repeat': 60}))
+        t3.addDependency(r3)
+        s = scheduler.Scheduler(base.NagcatDummy())
+        s.register(t1)
+        s.register(t2)
+        s.register(t3)
+        s.prepare()
+        stats = s.stats()
+        expect = {'count': 8,
+                  'Test': {'count': 0},
+                  'Runnable': {'count': 6},
+                  'Group': {'count': 2},
+                  'Query': {'count': 0}}
+        self.assertEquals(stats['tasks'], expect)
 
 class RunnableTestCase(unittest.TestCase):
 
