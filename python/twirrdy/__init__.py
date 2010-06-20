@@ -123,8 +123,8 @@ else:
             c_char_pp,                      # argv
             ctypes.POINTER(c_time_t),       # ret_last_update
             ctypes.POINTER(ctypes.c_ulong), # ret_ds_count
-            ctypes.POINTER(c_char_pp),      # ret_ds_names
-            ctypes.POINTER(c_char_pp)]      # ret_last_ds
+            ctypes.POINTER(raw_char_pp),    # ret_ds_names
+            ctypes.POINTER(raw_char_pp)]    # ret_last_ds
     rrd_th.rrd_lastupdate.restype = ctypes.c_int
     def rrd_lastupdate_r(filename, last_update, ds_count, ds_names, last_ds):
         argv_t = ctypes.c_char_p * 2
