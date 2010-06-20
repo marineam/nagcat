@@ -23,10 +23,14 @@ try:
 except ImportError:
     from twirrdy.ordereddict import OrderedDict
 
+# Try loading without find_library first so RPATH is respected.
+# RPATH is needed for some of my stuff but find_library is needed
+# almost everywhere else. Maybe someday I'll fix find_library...
 try:
     rrd_th = ctypes.CDLL("librrd_th.so", ctypes.RTLD_GLOBAL)
 except OSError:
-    raise ImportError("Unable to load librrd_th.so")
+    from ctypes.util import find_library
+    rrd_th = ctypes.CDLL(find_library("rrd_th"), ctypes.RTLD_GLOBAL)
 
 rrd_th.rrd_version.argtypes = []
 rrd_th.rrd_version.restype = ctypes.c_double

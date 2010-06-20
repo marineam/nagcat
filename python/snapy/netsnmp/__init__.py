@@ -17,7 +17,14 @@ import select
 import ctypes
 from ctypes import byref
 
-lib = ctypes.CDLL("libnetsnmp.so", ctypes.RTLD_GLOBAL)
+# Try loading without find_library first so RPATH is respected.
+# RPATH is needed for some of my stuff but find_library is needed
+# almost everywhere else. Maybe someday I'll fix find_library...
+try:
+    lib = ctypes.CDLL("libnetsnmp.so", ctypes.RTLD_GLOBAL)
+except OSError:
+    from ctypes.util import find_library
+    lib = ctypes.CDLL(find_library("netsnmp"), ctypes.RTLD_GLOBAL)
 
 from snapy.netsnmp import const, types, util
 
