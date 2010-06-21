@@ -15,6 +15,7 @@
 """XML Filters"""
 
 import os
+from cStringIO import StringIO
 
 # Gracefully disable xml/xpath support if not found
 try:
@@ -116,3 +117,33 @@ class XSLTFilter(filters._Filter):
             raise errors.TestCritical("XSLT transform failed: %s" % ex)
 
         return etree.tostring(output, pretty_print=True)
+
+class HtmlFilter(filters._Filter):
+    """HTML makes XML parsers cry, parse it and dump XML"""
+
+    classProvides(filters.IFilter)
+
+    name = "html"
+
+    def __init__(self, test, default, arguments):
+        super(HtmlFilter, self).__init__(test, default, arguments)
+
+        if not etree:
+            raise errors.InitError("lxml is required for HTML support.")
+
+        # support these eventually?
+        assert default is None
+        assert not arguments
+
+    @errors.callback
+    def filter(self, result):
+        try:
+            # Remove comments because HTML allows things in
+            # comments that XML does not. Are there other
+            # things that I should be filtering?
+            parser = etree.HTMLParser(remove_comments=True)
+            html = etree.parse(StringIO(result), parser)
+        except etree.XMLSyntaxError, ex:
+            raise errors.TestCritical("Invalid HTML: %s" % ex)
+
+        return etree.tostring(html, pretty_print=True)

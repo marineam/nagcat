@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from lxml import etree
 from twisted.trial import unittest
 from nagcat import errors, filters
 
@@ -121,3 +122,43 @@ class XSLTTestCase(unittest.TestCase):
     def testBadInputXML(self):
         f = filters.Filter(object(), "xslt:%s" % self.raw_xslt)
         self.assertIsInstance(f.filter("blah"), errors.Failure)
+
+class HTMLTestCase(unittest.TestCase):
+
+    example = """
+    <html>
+        <head>
+            <title>Test HTML</title>
+        </head>
+        <body>
+            <div class="title">This has been a test</div>
+            <p>Text #1<p>Text #2</p>
+        </body>
+    </html>
+    """
+
+    expect = """
+    <html>
+        <head>
+            <title>Test HTML</title>
+        </head>
+        <body>
+            <div class="title">This has been a test</div>
+            <p>Text #1</p><p>Text #2</p>
+        </body>
+    </html>
+    """
+
+    def testBasic(self):
+        f = filters.Filter(object(), "html")
+        xml = f.filter(self.example)
+        self.assertIsInstance(xml, str)
+        self.assertEqualsXML(xml, self.expect)
+
+    def assertEqualsXML(self, result, expect):
+        # Parse the xml, strip white space, and convert back
+        # this allows us to compare if they are logically equal
+        parser = etree.XMLParser(remove_blank_text=True)
+        result = etree.tostring(etree.XML(result, parser))
+        expect = etree.tostring(etree.XML(expect, parser))
+        self.assertEquals(result, expect)

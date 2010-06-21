@@ -207,6 +207,10 @@ test-name: {
     #       Convert a date using the given format to a time in seconds
     #       since the epoch, useful for doing math with $(NOW).
     #
+    #   "html"
+    #       Convert an HTML document into a (hopefully) valid XML
+    #       document that can be use with xpath and other XML filters.
+    #
     #   "xpath:<some xpath expression>"
     #       If you are parsing XML, using XPath expressions are the way
     #       to go. Some quick examples:
