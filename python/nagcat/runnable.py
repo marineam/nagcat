@@ -72,7 +72,7 @@ class Runnable(object):
         """
         return defer.succeed(None)
 
-    def __startDependencies(self):
+    def _start_dependencies(self):
         if self.__depends:
             log.debug("Starting dependencies for %s", self)
             deferlist = []
@@ -82,7 +82,7 @@ class Runnable(object):
         else:
             return defer.succeed(None)
 
-    def __startSelf(self, results):
+    def _start_self(self):
         log.debug("Starting %s", self)
         return task.deferLater(reactor, 0, self._start)
 
@@ -101,13 +101,13 @@ class Runnable(object):
         else:
             # use deferred instead of self.deferred because
             # __done could have been called already
-            self.deferred = deferred = self.__startDependencies()
-            deferred.addBoth(self.__startSelf)
-            deferred.addBoth(self.__done)
+            self.deferred = deferred = self._start_dependencies()
+            deferred.addBoth(lambda x: self._start_self())
+            deferred.addBoth(self._done)
             return deferred
 
     @errors.callback
-    def __done(self, result):
+    def _done(self, result):
         """Save the result, log unhandled errors"""
 
         log.debug("Stopping %s", self)
