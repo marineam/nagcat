@@ -149,7 +149,8 @@ class Test(BaseTest):
                     continue
 
                 self._addDefaults(qconf)
-                self._subtests[name] = query.FilteredQuery(nagcat, qconf)
+                self._subtests[name] = nagcat.new_query(qconf,
+                        qcls=query.FilteredQuery)
                 self.addDependency(self._subtests[name])
 
             if not self._subtests:
@@ -183,7 +184,8 @@ class Test(BaseTest):
             self._compound = False
             qconf = conf.get('query')
             self._addDefaults(qconf)
-            self._subtests['query'] = query.FilteredQuery(nagcat, qconf)
+            self._subtests['query'] = nagcat.new_query(qconf,
+                    qcls=query.FilteredQuery)
             self.addDependency(self._subtests['query'])
 
         self._report_callbacks = []
