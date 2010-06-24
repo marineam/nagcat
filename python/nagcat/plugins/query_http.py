@@ -99,10 +99,13 @@ class HTTPQuery(query.Query):
                 self.headers_host, self.conf['path'], None, None))
 
     def _start(self):
+        self.saved['Request URL'] = self.request_url
+
         # Generate a request id if possible
         if uuid:
-            self.request_id = str(uuid.uuid1())
-            self.headers['X-Request-Id'] = self.request_id
+            request_id = str(uuid.uuid1())
+            self.saved['Request ID'] = request_id
+            self.headers['X-Request-Id'] = request_id
 
         factory = HTTPClientFactory(url=self.conf['path'],
                 method=self.conf['method'], postdata=self.conf['data'],

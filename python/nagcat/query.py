@@ -78,12 +78,9 @@ class Query(runnable.Runnable):
         # this object uses so identical Queries can be identified.
         self.conf = {}
 
-        # Used by queries that can send a unique request id,
-        # currently only HTTP...
-        self.request_id = None
-
-        # Used by HTTP queries to report a user-friendly url
-        self.request_url = None
+        # Used by the save filter and by queries to report any
+        # extra pieces of metadata such as Request ID/URL.
+        self.saved = {}
 
         # All queries should handle timeouts
         try:
@@ -95,6 +92,10 @@ class Query(runnable.Runnable):
         if self.conf['timeout'] <= 0:
             raise errors.ConfigError(conf,
                     "Invalid timeout value '%s'" % conf.get('timeout'))
+
+    def _start_self(self):
+        self.saved.clear()
+        return super(Query, self)._start_self()
 
     @errors.callback
     def _failure_tcp(self, result):
@@ -138,32 +139,21 @@ class FilteredQuery(Query):
     def __init__(self, nagcat, conf):
         super(FilteredQuery, self).__init__(nagcat, conf)
 
-        self._port = conf.get('port', None)
-        # Used by the save filter and report
-        self.saved = {}
-
         # Create the filter objects
         filter_list = conf.get('filters', [])
+        for check in ('critical', 'warning'):
+            expr = conf.get(check, None)
+            if expr:
+                filter_list.append("%s:%s" % (check, expr))
+
         self._filters = [filters.Filter(self, x) for x in filter_list]
-
-        # Add final critical and warning tests
-        if 'critical' in conf:
-            self._filters.append(filters.get_filter(
-                self, 'critical', None, conf['critical']))
-        if 'warning' in conf:
-            self._filters.append(filters.get_filter(
-                self, 'warning', None, conf['warning']))
-
         self._query = nagcat.new_query(conf)
+        self.conf['filters'] = str(filter_list)
+        self.conf['query'] = str(self._query)
         self.addDependency(self._query)
 
     def _start(self):
-        self.saved.clear()
-        # Save the request id and url so it will appear in reports
-        if self._query.request_id:
-            self.saved['Request ID'] = self._query.request_id
-        if self._query.request_url:
-            self.saved['Request URL'] = self._query.request_url
+        self.saved.update(self._query.saved)
 
         deferred = defer.Deferred()
         deferred.callback(self._query.result)
