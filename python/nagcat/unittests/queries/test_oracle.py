@@ -13,16 +13,13 @@
 # limitations under the License.
 
 import os
-import time
 import subprocess
 
 from twisted.internet import protocol, reactor
 from twisted.python import log
-from twisted.trial import unittest
+from nagcat.unittests.queries import QueryTestCase
 from nagcat import errors, query, plugin
 from coil.struct import Struct
-
-from nagcat.unittests import test_query
 
 try:
     import cx_Oracle
@@ -31,7 +28,7 @@ except ImportError:
     cx_Oracle = None
     etree = None
 
-class OracleBase(test_query.QueryTestCase):
+class OracleBase(QueryTestCase):
     if not cx_Oracle or not etree:
         skip = "Missing cx_Oracle or lxml"
     elif not ('ORA_DSN' in os.environ and
@@ -268,7 +265,7 @@ class TimeoutTestCase(OracleBase):
 class DummyFactory(protocol.Factory):
     protocol = protocol.Protocol
 
-class TimeoutConnectionTestCase(test_query.QueryTestCase):
+class TimeoutConnectionTestCase(QueryTestCase):
     """This test case demonstrates how to make a call to
     cx_Oracle.connect() hang forever. Unfortunately it is impossible
     for it to *not* hang forever due to the lack of an asyncronus
@@ -308,7 +305,7 @@ class PLSQLTestCase(OracleBase):
     def setUp(self):
         super(PLSQLTestCase, self).setUp()
         path = "%s/%s" % (os.path.dirname(os.path.abspath(__file__)),
-                          "test_oracle_package.sql")
+                          "oracle_package.sql")
 
         # For some reason running this SQL via cx_Oracle doesn't
         # work, but it does with sqlplus. I don't know why. :-(
