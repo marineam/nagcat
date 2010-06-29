@@ -12,22 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from twisted.trial import unittest
 from coil.struct import Struct
 from nagcat import simple
 
 class QueryTestCase(unittest.TestCase):
 
-    trending = False
-
     def setUp(self):
-        if self.trending:
-            self.rradir = self.mktemp()
-            os.mkdir(self.rradir)
-            self.nagcat = simple.NagcatDummy(rradir=self.rradir)
-        else:
-            self.nagcat = simple.NagcatDummy()
+        self.nagcat = simple.NagcatDummy()
 
     def startQuery(self, config=None, **kwargs):
         if config:

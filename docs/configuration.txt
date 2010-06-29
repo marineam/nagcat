@@ -651,13 +651,17 @@ query: {
     # It defaults to the host this test is configured for.
     host: "somehost"
 
+    # Return only a single data source rather than the full XML report.
+    # This is useful for the common case where only one value is needed.
+    source: "subquery"
+
     # If you want to raise an error if the last update is too old. This
     # defaults to 0 meaning don't perform the check.
     freshness: "30 minutes"
 }
 
-The above test will return a blob of XML that is a subset of the rrdtool
-dump xml format and looks something like this:
+Without the source attribute the result is a a blob of XML that is a
+subset of the rrdtool dump xml format and looks something like this:
 
     <rrd>
       <lastupdate>1276898652</lastupdate>
@@ -675,9 +679,5 @@ The names _state and _result are special names. _state is the final
 state of the test. 0 is OK, 1 is WARNING, 2 is CRITICAL, and 3 is
 UNKNOWN. _result is the value recorded if a trend block is in the main
 test block. Any other name will be the name of a query block that is
-trending. To process this data XPath is best. An uptime test might have
-a filter something like this:
-
-    "xpath[0]:/rrd/ds[name/text()='uptime']/last_ds/text()"
-
-The [0] provides a default value of 0 if the value is unknown.
+trending. If you only want one value specify the source attribute to
+skip the full XML. Unknown values are represented as empty strings.

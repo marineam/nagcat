@@ -38,8 +38,6 @@ class LastUpdateQuery(query.Query):
     name = "rrd_lastupdate"
 
     def __init__(self, nagcat, conf):
-        if not etree:
-            raise errors.InitError("lxml is required")
         if not nagcat.trend:
             raise errors.InitError("rrdtool support is disabled")
 
@@ -48,11 +46,19 @@ class LastUpdateQuery(query.Query):
         self.conf['host'] = conf['host']
         self.conf['description'] = conf['description']
         self.conf['freshness'] = util.Interval(conf.get('freshness', None))
+        self.conf['source'] = conf.get('source', None)
+        if not self.conf['source'] and not etree:
+            raise errors.InitError("lxml is required")
 
     def _start(self):
         deferred = self._nagcat.trend.lastupdate(
                 self.conf['host'], self.conf['description'])
-        deferred.addCallbacks(self._format, self._errors)
+        if self.conf['freshness']:
+            deferred.addCallback(self._freshness)
+        if self.conf['source']:
+            deferred.addCallback(self._filter)
+        else:
+            deferred.addCallback(self._format)
         return deferred
 
     @errors.callback
@@ -63,13 +69,27 @@ class LastUpdateQuery(query.Query):
             return failure
 
     @errors.callback
-    def _format(self, result):
-        if self.conf['freshness']:
-            now = time.time()
-            if result[0] + self.conf['freshness'] < now:
-                raise errors.TestUnknown("Stale RRD data. "
-                        "Last update %s seconds ago" % (now - result[0]))
+    def _freshness(self, result):
+        now = time.time()
+        if result[0] + self.conf['freshness'] < now:
+            raise errors.TestCritical("Stale RRD data. "
+                    "Last update %s seconds ago" % (now - result[0]))
+        else:
+            return result
 
+    @errors.callback
+    def _filter(self, result):
+        if self.conf['source'] not in result[1]:
+            raise errors.TestCritical("Invalid data source %r" %
+                                     self.conf['source'])
+        value = result[1][self.conf['source']]
+        if value is None:
+            return ''
+        else:
+            return str(value)
+
+    @errors.callback
+    def _format(self, result):
         root = etree.Element('rrd')
         etree.SubElement(root, 'lastupdate').text = str(result[0])
         for name, last in result[1].iteritems():
