@@ -18,7 +18,7 @@ import subprocess
 from twisted.internet import protocol, reactor
 from twisted.python import log
 from nagcat.unittests.queries import QueryTestCase
-from nagcat import errors, query, plugin
+from nagcat import errors
 from coil.struct import Struct
 
 try:
@@ -43,9 +43,11 @@ class OracleBase(QueryTestCase):
 
     def setUp(self):
         super(OracleBase, self).setUp()
-        self.config = Struct({'user':os.environ['ORA_USER'],
-                              'password':os.environ['ORA_PASS'],
-                              'dsn':os.environ['ORA_DSN']})
+        self.config = {
+                'type': self.QUERY_TYPE,
+                'user': os.environ['ORA_USER'],
+                'password':os.environ['ORA_PASS'],
+                'dsn':os.environ['ORA_DSN']}
         if self.SQL_SETUP:
             self.execute(self.SQL_SETUP)
 
@@ -71,13 +73,7 @@ class OracleBase(QueryTestCase):
         cursor.close()
 
     def startQuery(self, **kwargs):
-        conf = self.config.copy()
-        conf.update(kwargs)
-        qcls = plugin.search(query.IQuery, self.QUERY_TYPE)
-        q = qcls(self.nagcat, conf)
-        d = q.start()
-        d.addCallback(lambda x: q.result)
-        return d
+        return super(OracleBase, self).startQuery(self.config, **kwargs)
 
     def assertEqualsXML(self, result, expect):
         # Parse the xml, strip white space, and convert back
@@ -280,19 +276,17 @@ class TimeoutConnectionTestCase(QueryTestCase):
         super(TimeoutConnectionTestCase, self).setUp()
         # I assume this test isn't going to be run on an Oracle server...
         self.server = reactor.listenTCP(1521, DummyFactory())
-        self.config = Struct({'user': 'nobody',
-                              'password': 'ponies',
-                              'dsn': 'localhost/blackhole'})
+        self.config = {
+                'type': 'oracle_sql',
+                'user': 'nobody',
+                'password': 'ponies',
+                'dsn': 'localhost/blackhole'}
 
     def tearDown(self):
         self.server.stopListening()
 
     def test_timeout(self):
-        conf = self.config.copy()
-        qcls = plugin.search(query.IQuery, 'oracle_sql')
-        q = qcls(self.nagcat, conf)
-        d = q.start()
-        d.addCallback(lambda x: q.result)
+        d = self.startQuery(self.config)
         return d
 
 

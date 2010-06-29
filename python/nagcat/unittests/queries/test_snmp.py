@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from nagcat.unittests.queries import QueryTestCase
-from nagcat import errors, query, plugin
-from coil.struct import Struct
+from nagcat import errors
 from snapy.netsnmp.unittests import TestCase as SnmpTestCase
 
 
@@ -29,52 +28,33 @@ class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
     def setUpSession(self, address):
         assert address.startswith('udp:')
         proto, host, port = address.split(":", 3)
-        self.conf = Struct({
+        self.conf = {
+                'type': "snmp",
                 'version': self.version,
                 'community': "public",
                 'host': host,
-                'port': port})
+                'port': port}
 
     def testBasicGood(self):
-        c = self.conf.copy()
-        c['oid'] = ".1.3.6.1.4.2.1.1";
-        qcls = plugin.search(query.IQuery, 'snmp')
-        q = qcls(self.nagcat, c)
-
-        def check(ignore):
-            self.assertEquals(q.result, "1")
-
-        d = q.start()
-        d.addCallback(check)
+        d = self.startQuery(self.conf, oid=".1.3.6.1.4.2.1.1")
+        d.addCallback(self.assertEquals, "1")
         return d
 
     def testBasicBad(self):
-        c = self.conf.copy()
-        c['oid'] = ".1.3.6.1.4.2.1";
-        qcls = plugin.search(query.IQuery, 'snmp')
-        q = qcls(self.nagcat, c)
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestCritical)
 
-        def check(ignore):
-            self.assertIsInstance(q.result, errors.Failure)
-            self.assertIsInstance(q.result.value, errors.TestCritical)
-
-        d = q.start()
-        d.addCallback(check)
+        d = self.startQuery(self.conf, oid=".1.3.6.1.4.2.1")
+        d.addBoth(check)
         return d
 
     def testSetGood(self):
-        c = self.conf.copy()
-        c['oid_base'] = ".1.3.6.1.4.2.3";
-        c['oid_key']  = ".1.3.6.1.4.2.2";
-        c['key'] = 'two'
-        qcls = plugin.search(query.IQuery, 'snmp')
-        q = qcls(self.nagcat, c)
-
-        def check(ignore):
-            self.assertEquals(q.result, "2")
-
-        d = q.start()
-        d.addCallback(check)
+        d = self.startQuery(self.conf,
+                oid_base=".1.3.6.1.4.2.3",
+                oid_key=".1.3.6.1.4.2.2",
+                key="two")
+        d.addCallback(self.assertEquals, "2")
         return d
 
 

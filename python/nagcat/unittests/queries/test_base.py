@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from nagcat import errors, query, plugin
+from nagcat import errors, query
 from nagcat.unittests.queries import QueryTestCase
 from coil.struct import Struct
 
@@ -87,10 +87,6 @@ class FilteredQueryCase(QueryTestCase):
 class NoOpQueryTestCase(QueryTestCase):
 
     def testBasic(self):
-        qcls = plugin.search(query.IQuery, 'noop')
-        q = qcls(self.nagcat, Struct({'data': "bogus data"}))
-        d = q.start()
-        d.addBoth(self.endBasic, q)
-
-    def endBasic(self, ignore, q):
-        self.assertEquals(q.result, "bogus data")
+        d = self.startQuery(type="noop", data="bogus data")
+        d.addBoth(self.assertEquals, "bogus data")
+        return d

@@ -14,6 +14,7 @@
 
 import os
 from twisted.trial import unittest
+from coil.struct import Struct
 from nagcat import simple
 
 class QueryTestCase(unittest.TestCase):
@@ -28,3 +29,14 @@ class QueryTestCase(unittest.TestCase):
         else:
             self.nagcat = simple.NagcatDummy()
 
+    def startQuery(self, config=None, **kwargs):
+        if config:
+            config = config.copy()
+            config.update(kwargs)
+        else:
+            config = kwargs
+
+        q = self.nagcat.new_query(Struct(config))
+        d = q.start()
+        d.addCallback(lambda x: q.result)
+        return d

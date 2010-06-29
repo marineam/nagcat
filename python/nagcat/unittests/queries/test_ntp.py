@@ -15,8 +15,7 @@
 import os
 import time
 from nagcat.unittests.queries import QueryTestCase
-from nagcat import errors, query, plugin
-from coil.struct import Struct
+from nagcat import errors
 
 
 class NTPTestCase(QueryTestCase):
@@ -27,37 +26,22 @@ class NTPTestCase(QueryTestCase):
         skip = "Set NTP_HOST to run NTP unit tests."
 
     def testSimple(self):
-        conf = Struct({'type': 'ntp',
-                'host': self.ntp_host,
-                'port': 123})
-        now = time.time()
-        qcls = plugin.search(query.IQuery, 'ntp')
-        q = qcls(self.nagcat, conf)
-
-        def check(ignore):
+        def check(result):
             # chop off a bunch of time because they won't be exact
             self.assertEquals(time.time() // 3600,
-                    int(q.result) // 3600)
+                    int(result) // 3600)
 
-        d = q.start()
+        d = self.startQuery(type="ntp", host=self.ntp_host, port=123)
         d.addCallback(check)
         return d
 
     def testRefused(self):
-        conf = Struct({'type': 'ntp',
-                'host': 'localhost',
-                'port': 9,
-                'timeout': 2})
-        now = time.time()
-        qcls = plugin.search(query.IQuery, 'ntp')
-        q = qcls(self.nagcat, conf)
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestCritical)
 
-        def check(ignore):
-            self.assertIsInstance(q.result, errors.Failure)
-            self.assertIsInstance(q.result.value, errors.TestCritical)
-
-        d = q.start()
-        d.addCallback(check)
+        d = self.startQuery(type="ntp", host='localhost', port=9)
+        d.addBoth(check)
         return d
 
     # TODO: test timeout

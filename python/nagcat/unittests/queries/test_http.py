@@ -15,8 +15,7 @@
 from twisted.internet import reactor
 from nagcat.unittests.queries import QueryTestCase
 from nagcat.unittests import dummy_server
-from nagcat import errors, query, plugin
-from coil.struct import Struct
+from nagcat import errors
 
 
 class HTTPQueryTestCase(QueryTestCase):
@@ -25,29 +24,19 @@ class HTTPQueryTestCase(QueryTestCase):
         super(HTTPQueryTestCase, self).setUp()
         self.server = reactor.listenTCP(0, dummy_server.HTTP())
         self.port = self.server.getHost().port
-        self.config = Struct({'host': "localhost", 'port': self.port})
+        self.config = {'type': 'http',
+                       'host': "localhost",
+                       'port': self.port}
 
     def testBasic(self):
-        qcls = plugin.search(query.IQuery, 'http')
-        q = qcls(self.nagcat, self.config)
-        d = q.start()
-        d.addBoth(self.endBasic, q)
+        d = self.startQuery(self.config)
+        d.addBoth(self.assertEquals, "hello\n")
         return d
-
-    def endBasic(self, ignore, q):
-        self.assertEquals(q.result, "hello\n")
 
     def testPost(self):
-        config = self.config.copy()
-        config['data'] = "post data"
-        qcls = plugin.search(query.IQuery, 'http')
-        q = qcls(self.nagcat, config)
-        d = q.start()
-        d.addBoth(self.endPost, q)
+        d = self.startQuery(self.config, data="post data")
+        d.addBoth(self.assertEquals, "post data")
         return d
-
-    def endPost(self, ignore, q):
-        self.assertEquals(q.result, "post data")
 
     def tearDown(self):
         return self.server.loseConnection()
@@ -58,20 +47,17 @@ class HTTPEmptyResponseTestCase(QueryTestCase):
 
     def setUp(self):
         super(HTTPEmptyResponseTestCase, self).setUp()
-        self.bad_server = reactor.listenTCP(0, dummy_server.QuickShutdown())
-        self.bad_port = self.bad_server.getHost().port
-        self.bad_config = Struct({'host': "localhost", 'port': self.bad_port})
+        self.server = reactor.listenTCP(0, dummy_server.QuickShutdown())
+        self.port = self.server.getHost().port
+        self.config = {'type': 'http',
+                       'host': "localhost",
+                       'port': self.port}
 
     def testEmpty(self):
         """test connecting to an HTTP socket that immediately closes"""
-        qcls = plugin.search(query.IQuery, 'http')
-        q = qcls(self.nagcat, self.bad_config)
-        d = q.start()
-        d.addBoth(self.endEmpty, q)
+        d = self.startQuery(self.config)
+        d.addBoth(self.assertIsInstance, errors.Failure)
         return d
 
-    def endEmpty(self, ignore, q):
-        self.assertIsInstance(q.result, errors.Failure)
-
     def tearDown(self):
-        return self.bad_server.loseConnection()
+        return self.server.loseConnection()

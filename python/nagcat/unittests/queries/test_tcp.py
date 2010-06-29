@@ -15,8 +15,6 @@
 from twisted.internet import reactor
 from nagcat.unittests.queries import QueryTestCase
 from nagcat.unittests import dummy_server
-from nagcat import query, plugin
-from coil.struct import Struct
 
 
 class TCPQueryTestCase(QueryTestCase):
@@ -25,29 +23,17 @@ class TCPQueryTestCase(QueryTestCase):
         super(TCPQueryTestCase, self).setUp()
         self.server = reactor.listenTCP(0, dummy_server.TCP())
         self.port = self.server.getHost().port
-        self.config = Struct({'host': "localhost", 'port': self.port})
+        self.config = {'type': "tcp", 'host': "localhost", 'port': self.port}
 
     def testBasic(self):
-        qcls = plugin.search(query.IQuery, 'tcp')
-        q = qcls(self.nagcat, self.config)
-        d = q.start()
-        d.addBoth(self.endBasic, q)
+        d = self.startQuery(self.config)
+        d.addCallback(self.assertEquals, "hello\n")
         return d
-
-    def endBasic(self, ignore, q):
-        self.assertEquals(q.result, "hello\n")
 
     def testPost(self):
-        config = self.config.copy()
-        config['data'] = "post data"
-        qcls = plugin.search(query.IQuery, 'tcp')
-        q = qcls(self.nagcat, config)
-        d = q.start()
-        d.addBoth(self.endPost, q)
+        d = self.startQuery(self.config, data="post data")
+        d.addCallback(self.assertEquals, "post data")
         return d
-
-    def endPost(self, ignore, q):
-        self.assertEquals(q.result, "post data")
 
     def tearDown(self):
         return self.server.loseConnection()
