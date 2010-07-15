@@ -43,7 +43,7 @@ class TrendMaster(object):
 
         if not os.path.exists(rradir):
             try:
-                os.makerradirs(rradir)
+                os.makedirs(rradir)
             except OSError, ex:
                 raise errors.InitError("Cannot create %r: %s" % (rradir, ex))
         elif not os.path.isdir(rradir):
