@@ -210,10 +210,11 @@ def index(request, host, data, start, end, resolution='150'):
     return HttpResponse(simplejson.dumps(json))
 
 def graphable(host, serviceList):
+    global data_path
     graphflags = []
     for service in serviceList:
-        coilfile = '/ita/installs/railroad/railroad/data/rra/' + host + '/' + service['service_description'] + '.coil'
-        rrd = '/ita/installs/railroad/railroad/data/rra/' + host + '/' + service['service_description'] + '.rrd'
+        coilfile = data_path + 'rra/' + host + '/' + service['service_description'] + '.coil'
+        rrd = data_path + 'rra/' + host + '/' + service['service_description'] + '.rrd'
         if(os.path.exists(coilfile) and os.path.exists(rrd)):
             coilstring = open(coilfile).read()
             coilstruct = coil.parse(coilstring)
