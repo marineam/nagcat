@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>Flot Page Test</title>
+<script language="javascript" type="text/javascript" src="/railroad-static/jquery-min.js"></script>
+<script language="javascript" type="text/javascript" src="/railroad-static/flot/jquery.flot.min.js"></script>
+<script language="javascript" type="text/javascript" src="/railroad-static/flot/jquery.flot.navigate.min.js"></script>
+<style>
+#graphtest .title {
+	position: absolute;
+}
+
+#graphtest div.title {
+	color: #999;
+	background-color: #eee;
+	padding: 2px;
+}
+</style>
+<script language="javascript">
+$(document).ready(function() {
+	$.getJSON('/railroad/parserrd', function(data) {
+		var options = {
+			xaxis: {
+				mode: "time",
+			},
+			zoom: {
+				interactive: true
+			},
+			pan: {
+				interactive: true
+			}
+		};
+		$.plot($("#graphtest"), data.slice(1), options);
+		$('<div class="title" style="left: 35px; top: 20px">' + data[0] + '</div>').appendTo($("#graphtest"));
+	});
+});
+</script>
+</head>
+<body>Flot test
+<div id="graphtest" style="width:600px;height:300px;"></div>
+</body>
+</html>
