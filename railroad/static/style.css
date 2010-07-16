@@ -1,0 +1,195 @@
+﻿/*
+ * Copyright 2010 ITA Software, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* Main styling options */
+body {
+	font-family: Arial, Helvetica, sans-serif;
+	margin: 0;
+}
+
+/* Page header */
+#header {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	/* flot graphs get a high z-index, so to float above them we need to compensate */
+	z-index: 5;
+}
+#header ul {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+	background-color: #EEE;
+	font-size: 15pt;
+}
+#header ul li {
+	display: inline;
+	margin: 3px 0 3px 3px;
+	padding: 0 20px;
+	background-color: #DDD;
+}
+#header #title {
+	font-weight: bold;
+	padding: 0 5px;
+}
+
+/* Content and sidebars */
+#content {
+	margin: 10px;
+	padding-top: 20px;
+}
+.listheader {
+	font-size: 14pt;
+}
+/* TODO: Finish this styling */
+.biglist ul {
+	margin: 0;
+	padding-left: 15px;
+	list-style: square;
+}
+.biglist ul ul {
+	font-size: 7pt;
+}
+#sidebar {
+	float: left;
+	width: 200px;
+	padding: 20px 0 20px 5px;
+	margin-right: 10px;
+	background-color: #EEE;
+}
+
+/* Status stoplight colors */
+.green, .green a {
+	color: green;
+}
+.green:hover, .green a:hover {
+	color: limegreen;
+}
+.greenbg {
+	background-color: lightgreen;
+}
+.yellow, .yellow a {
+	color: yellow;
+}
+.yellowbg {
+	background-color: yellow;
+}
+.red, .red a {
+	color: red;
+}
+.redbg {
+	background-color: tomato;
+}
+
+/* Graph styling */
+.graph {
+	width: 500px;
+	height: 225px;
+	margin: 15px;
+	margin-left: 25px;
+	margin-top: 20px;
+	font-size: 12pt;
+}
+
+.legend {
+	position: absolute;
+	top: 215px;
+	background-color: #F8F8F8;
+	width: 475px;
+	text-transform: capitalize;
+}
+.legend table td {
+	padding: 2px;
+	border: 0;
+}
+.graph_container {
+	position: relative;
+}
+.legend {
+	position: relative;
+	left: 50px;
+	top: -7px;
+}
+.ylabel {
+	position: absolute;
+	top: 40%;
+	left: 10px;
+	text-align: center;
+	padding: 5px;
+	background-color: #F0F0F0;
+	-o-transform: rotate(-90deg);
+	-o-transform-origin: left;
+	-moz-transform: rotate(-90deg);
+	-moz-transform-origin: left;
+	-webkit-transform: rotate(-90deg);
+	-webkit-transform-origin: left;
+	transform: rotate(-90deg);
+	transform-origin: left;
+	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+.ajax_info {
+	position: absolute;
+	top: -20px;
+	right: 0;
+}
+.ajax_info, .options ul li {
+	padding: 5px;
+	margin-right: 5px;
+	background-color: #F0F0F0;
+	font-size: smaller;
+}
+.toggle, .update {
+	display: inline;
+}
+.toggle, .options ul li {
+	cursor: pointer;
+}
+.options {
+	position: absolute;
+	top: -15px;
+	left: 0;
+}
+.options ul {
+	padding: 0;
+	margin: 0;
+}
+.options ul li {
+	display: inline;
+}
+.options .selected {
+	font-weight: bold;
+}
+.hidden {
+	visibility: hidden;
+}
+
+/* Service listings */
+.service {
+	padding-bottom: 10px;
+}
+.services td {
+	padding: 5px;
+	border-top: 1px solid lightgrey;
+	border-bottom: 1px solid lightgrey;
+}
+.services h2 {
+	font-size: 14pt;
+	margin: 0;
+}
+.services {
+	font-size: 10pt;
+}
