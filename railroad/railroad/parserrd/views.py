@@ -17,6 +17,28 @@ from railroad.pathsettings import rra_path
 import rrdtool, json, os, coil, types
 from django.http import HttpResponse
 
+def sigfigs(float):
+    desired_sigfigs = 3
+    powers = range(desired_sigfigs)
+    power = 0
+    while power < powers:
+        if float / pow(10,power) < 1:
+            break
+        power += 1
+
+    if power == 3:
+        return int(float)
+    else:
+        return round(float, desired_sigfigs - power)
+
+def labelize(data, index, base, unit):
+    statistics = data[index]['statistics']
+    return ' (min:' + str(sigfigs(statistics['min'] / base)) + unit \
+        + ', max:' + str(sigfigs(statistics['max'] / base)) + unit  \
+        + ', avg:' + str(sigfigs(statistics['avg'] / base)) + unit  \
+        + ')'
+
+
 def index(request, host, data, start, end, resolution='150'):
     global rra_path
     rrd = rra_path + host + '/' + data + '.rrd'
@@ -24,6 +46,8 @@ def index(request, host, data, start, end, resolution='150'):
     railroad_conf = 'railroad_conf'
     statistics = 'statistics'
     trend_settings = ['color','stack','scale','display']
+
+    DEFAULT_MIN = 99999999999999999999999
 
 
     # calculate custom resolution
@@ -131,7 +155,7 @@ def index(request, host, data, start, end, resolution='150'):
         flot_data[index][statistics]['num'] = 0
         flot_data[index][statistics]['sum'] = 0
         flot_data[index][statistics]['max'] = 0
-        flot_data[index][statistics]['min'] = 99999999999999999999999
+        flot_data[index][statistics]['min'] = DEFAULT_MIN
         if data:
             flot_data[index][statistics]['max'] =                     \
                 flot_data[index][statistics]['min'] =                 \
@@ -147,8 +171,8 @@ def index(request, host, data, start, end, resolution='150'):
         for index in indices:
             label,data = datapoints[transform[index]]
 
-            flot_data[index][statistics]['num'] += 1
-            if data:
+            if data != None:
+                flot_data[index][statistics]['num'] += 1
                 data *= flot_data[index][railroad_conf]['scale']
                 flot_data[index][statistics]['sum'] += data
                 if data > flot_data[index][statistics]['max']:
@@ -171,18 +195,34 @@ def index(request, host, data, start, end, resolution='150'):
             base = int(value)
 
         max = flot_data[0][statistics]['max']
+
         for index in indices:
-            flot_data[index][statistics]['avg'] =           \
-                flot_data[index][statistics]['sum']         \
-                    / flot_data[index][statistics]['num']
-            if flot_data[index][statistics]['max'] > max:
-                max = flot_data[index][statistics]['max']
-            if flot_data[index][statistics]['max'] > 0:
+            if flot_data[index][statistics]['num'] > 0:
+                flot_data[index][statistics]['avg'] =           \
+                    flot_data[index][statistics]['sum']         \
+                        / flot_data[index][statistics]['num']
+                if flot_data[index][statistics]['max'] > max:
+                    max = flot_data[index][statistics]['max']
+
+        bases = ['', 'K', 'M', 'G', 'T']
+        for interval in range(len(bases)):
+            if(max / (pow(base, interval)) <= base):
+                break
+
+        final_base = pow(base, interval)
+        unit = bases[interval]
+
+        for index in indices:
+            if flot_data[index][statistics]['num'] > 0:
+                flot_data[index]['label'] +=    \
+                        labelize(flot_data, index, final_base, unit)
+            else:
                 flot_data[index]['label'] = flot_data[index]['label']       \
-                    + ' (min: ' + str(flot_data[index][statistics]['min'])  \
-                    + ', max: ' + str(flot_data[index][statistics]['max'])  \
-                    + ', avg: ' + str(flot_data[index][statistics]['avg'])  \
+                    + ' (min: ' + 'N/A' \
+                    + ', max: ' + 'N/A' \
+                    + ', avg: ' + 'N/A' \
                     + ')'
+                
 
     graph_options['yaxis']['max'] = max * 1.1
 
@@ -202,7 +242,7 @@ def index(request, host, data, start, end, resolution='150'):
         del(flot_data[index][railroad_conf])
 
     #flot_data = []
-    colors = ['#33FF00','#FFFF00','#FF0000','#BEBEBE']
+    colors = ['#BBFFBB','#FFFFBB','#FFBBBB','#BEBEBE']
     markings = []
     state = state_data[0][1]
     if type(state) == types.FloatType:
@@ -232,9 +272,9 @@ def graphable(host, serviceList):
     global rra_path
     graphflags = []
     for service in serviceList:
-        coilfile = rra_path + host + '/'	\
+        coilfile = rra_path + host + '/'    \
             + service['service_description'] + '.coil'
-        rrd = rra_path + host + '/'   		\
+        rrd = rra_path + host + '/'         \
             + service['service_description'] + '.rrd'
         if(os.path.exists(coilfile) and os.path.exists(rrd)):
             coilstring = open(coilfile).read()
