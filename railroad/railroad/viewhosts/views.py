@@ -14,17 +14,16 @@
 
 from railroad.pathsettings import data_path
 
-import rrdtool, simplejson, os, coil, sys, time
+import rrdtool, os, coil, sys, time
 from django.http import HttpResponse
 from django.template import Context, loader
 from railroad.parserrd.views import graphable
 
 
-sys.path.append('/ita/installs/nagcat/trunk/python')
+sys.path.append('/ita/installs/nagcat/python')
 
 from nagcat import nagios_objects
 
-rrapath = data_path + 'rra'
 stat_file = data_path + 'status.dat'
 obj_file = data_path + 'objects.cache'
 
@@ -33,26 +32,30 @@ def hostlist():
     return host_list
 
 def hostdetail(host):
-    host_detail = nagios_objects.ObjectParser(obj_file, ('host',), {'host_name': host})
+    host_detail = nagios_objects.ObjectParser(obj_file, \
+                    ('host',), {'host_name': host})
     return host_detail
 
 def grouplist():
-    group_list = nagios_objects.ObjectParser(obj_file, ('hostgroup',))['hostgroup']
+    group_list = nagios_objects.ObjectParser(obj_file,  \
+                    ('hostgroup',))['hostgroup']
     return group_list
 
 def servicelist(host):
-    objects = nagios_objects.ObjectParser(obj_file, ('host',), {'host_name': host})
-    status = nagios_objects.ObjectParser(stat_file,
-            ('host','service'), {'host_name': host})
+    objects = nagios_objects.ObjectParser(obj_file,     \
+                    ('host',), {'host_name': host})
+    status = nagios_objects.ObjectParser(stat_file,     \
+                    ('host','service'), {'host_name': host})
     host_conf = objects['host'][0]
 
     services = ""
-    serviceList = status['service']
-    serviceList = zip(serviceList, graphable(host, serviceList))
-    return serviceList
+    service_list = status['service']
+    service_list = zip(service_list, graphable(host, service_list))
+    return service_list
 
 def servicedetail(host, service):
-    status = nagios_objects.ObjectParser(stat_file, ('service'), {'host_name': host, 'service_description': service})
+    status = nagios_objects.ObjectParser(stat_file, ('service'),    \
+                {'host_name': host, 'service_description': service})
     service_dict = status['service'][0]
 
     str = service_dict.get('plugin_output','')
@@ -62,7 +65,7 @@ def servicedetail(host, service):
     
     return str
 
-def getTimeIntervals():
+def get_time_intervals():
     intervals = [86400,604800,2592000,31104000]
     times = ['Day','Week','Month','Year']
     ending = int(time.time())
@@ -93,10 +96,13 @@ def host(request, host):
     t = loader.get_template('host.html')
     services = servicelist(host)
     host_detail = hostdetail(host)
+    ending = int(time.time())
+    starting = ending - 86400
     context_data = {
         'host_name': host,
         'host': host_detail,
         'services': services,
+        'time_interval': [starting,ending]
     }
     
     context_data = add_hostlist(context_data)
@@ -106,12 +112,12 @@ def host(request, host):
 def service(request, host, service):
     t = loader.get_template('service.html')
     service_detail = servicedetail(host, service)
-    timeIntervals = getTimeIntervals()
+    time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
         'service_name': service,
         'service': service_detail,
-        'time_intervals': timeIntervals
+        'time_intervals': time_intervals
     }
 
     context_data = add_hostlist(context_data)

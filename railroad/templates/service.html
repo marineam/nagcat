@@ -11,7 +11,13 @@
 <table>
 {% for time_interval in time_intervals %}
 	<tr>
-		<td><h2>{{time_interval.0}}</h2><div class="graph_container"><div id="{{service_name|slugify}}" class="graph">{{host_name}}/{{service_name}}/{{time_interval.1.0}}/{{time_interval.1.1}}/100</div><div class="legend"></div></div></td>
+		<td><h2>{{time_interval.0}}</h2>
+            <div class="graph_container">
+            <div id="{{service_name|slugify}}" class="graph">{{host_name}}/{{service_name}}/{{time_interval.1.0}}/{{time_interval.1.1}}/100
+            </div>
+            <div class="legend"></div>
+            </div>
+        </td>
 	</tr>
 {% endfor %}
 </table>
