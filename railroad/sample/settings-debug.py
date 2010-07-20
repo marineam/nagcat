@@ -15,7 +15,8 @@
 ### Railroad settings. ###
 
 # Path to the nagcat data directory (remember trailing slash)
-DATA_PATH = '/var/lib/nagcat/rra/'
+DATA_PATH = '/var/lib/nagcat/data/'
+RRA_PATH = '/var/lib/nagcat/rra/'
 
 ### Django settings for railroad project. ###
 

@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from railroad.pathsettings import rra_path
-
-import rrdtool, json, os, coil, types
+from django.conf import settings
 from django.http import HttpResponse
+import rrdtool, json, os, coil, types
 
 def sigfigs(float):
     desired_sigfigs = 3
@@ -40,12 +39,12 @@ def labelize(data, index, base, unit):
 
 
 def index(request, host, data, start, end, resolution='150'):
-    global rra_path
+    rra_path = settings.RRA_PATH
     rrd = rra_path + host + '/' + data + '.rrd'
     coilfile = rra_path + host + '/' + data + '.coil'
     railroad_conf = 'railroad_conf'
     statistics = 'statistics'
-    trend_settings = ['color','stack','scale','display']
+    trend_attributes = ['color','stack','scale','display']
 
     DEFAULT_MIN = 99999999999999999999999
 
@@ -120,23 +119,23 @@ def index(request, host, data, start, end, resolution='150'):
         if not(trend):
             continue
 
-        settings = {}
-        for var in trend_settings: 
-            settings[var] = trend.get(var,'')
+        trend_settings = {}
+        for var in trend_attributes: 
+            trend_settings[var] = trend.get(var,'')
 
-        if settings['display']:
+        if trend_settings['display']:
             flot_data[index]['lines'] =     \
-                {'fill': 0.5 if settings['display'] == 'area' else 0}
+                {'fill': 0.5 if trend_settings['display'] == 'area' else 0}
 
-        if settings['scale']:
-            flot_data[index][railroad_conf]['scale'] = settings['scale']
+        if trend_settings['scale']:
+            flot_data[index][railroad_conf]['scale'] = trend_settings['scale']
         else:
             flot_data[index][railroad_conf]['scale'] = 1
 
-        if settings['color']:
-            flot_data[index]['color'] = settings['color']
+        if trend_settings['color']:
+            flot_data[index]['color'] = trend_settings['color']
 
-        if settings['stack']:
+        if trend_settings['stack']:
             flot_data[index]['stack'] = True
             if index > 0:
                 flot_data[index-1]['stack'] = True
@@ -264,12 +263,14 @@ def index(request, host, data, start, end, resolution='150'):
     graph_options['grid']['markings'] = markings
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
-    result = [graph_options, flot_data, base]
+    result = [graph_options, flot_data, base, os.getenv('DJANGO_SETTINGS_MODULE')]
 
     return HttpResponse(json.dumps(result))
 
 def graphable(host, serviceList):
-    global rra_path
+    rra_path = settings.DEBUG
+    print settings.TEMPLATE_DEBUG
+    rra_path = settings.RRA_PATH
     graphflags = []
     for service in serviceList:
         coilfile = rra_path + host + '/'    \

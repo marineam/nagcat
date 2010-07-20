@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from railroad.pathsettings import data_path
 
 import rrdtool, os, coil, sys, time
+from django.conf import settings
 from django.http import HttpResponse
 from django.template import Context, loader
 from railroad.parserrd.views import graphable
@@ -24,6 +24,7 @@ sys.path.append('/ita/installs/nagcat/python')
 
 from nagcat import nagios_objects
 
+data_path = settings.DATA_PATH
 stat_file = data_path + 'status.dat'
 obj_file = data_path + 'objects.cache'
 

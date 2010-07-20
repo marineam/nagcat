@@ -18,14 +18,27 @@
 // TODO: A global variable? I hate you.
 base = 0;
 
-// Generate ticks, passed as an option to Flot
-function tickGenerator(range) {
+function chooseBase(max) {
+    if (this.chooseBase.result != undefined && this.chooseBase.result.max == max) {
+        return result;
+    }
     bases = ['', 'K', 'M', 'G', 'T'];
     for(interval = 0; interval < bases.length; interval++) {
-        if(range.max / (Math.pow(base, interval)) <= base) {
+        if(max / (Math.pow(base, interval)) <= base) {
             break;
         }
     }
+    var result = new Array();
+    result.interval = interval;
+    result.bases = bases;
+    result.max = max;
+    return result;
+}
+
+// Generate ticks, passed as an option to Flot
+function tickGenerator(range) {
+    result = chooseBase(range.max);
+    interval = result['interval']
 
     final_base = Math.pow(base, interval);
 
@@ -68,15 +81,21 @@ function tickGenerator(range) {
 
 // Format ticks for displayed, passed as option to Flot
 function tickFormatter(val, axis) {
-    bases = ['', 'K', 'M', 'G', 'T'];
-    for(interval = 0; interval < bases.length; interval++) {
-        if(axis.max / (Math.pow(base, interval)) <= base) {
-            break;
-        }
-    }
+    result = chooseBase(axis.max)
+
+    final_base = (Math.pow(base, interval));
 
     //return val + '--' + (val / (Math.pow(base, interval))).toFixed(axis.tickDecimals) + bases[interval];
-    return (val / (Math.pow(base, interval))).toFixed(axis.tickDecimals) + bases[interval];
+    //arr = [];
+    //for (var attr in axis) {
+        //arr.push(attr);
+    //}
+    //alert(arr.toString());
+
+    while ((val / final_base).toFixed(axis.tickDecimals) != val / final_base)
+        axis.tickDecimals++;
+
+    return (val / final_base).toFixed(axis.tickDecimals) + bases[interval];
 }
 
 // Format a label, passed to Flot
