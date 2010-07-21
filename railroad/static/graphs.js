@@ -90,8 +90,15 @@ function tickFormatter(val, axis) {
 
     // flot computes tickDecimals before dividing by final_base, so we update
     // tickDecimals accordingly
-    while ((val / final_base).toFixed(axis.tickDecimals) != val / final_base)
-        axis.tickDecimals++;
+    if (final_base != 1) {
+        tickDecimals = axis.tickDecimals;
+        while (tickDecimals <= 3 && 
+			(val / final_base).toFixed(tickDecimals) != val / final_base)
+            tickDecimals++;
+
+		if (tickDecimals <= 3)
+			axis.tickDecimals = tickDecimals; 
+    }
 
     return (val / final_base).toFixed(axis.tickDecimals) + bases[interval];
 }
