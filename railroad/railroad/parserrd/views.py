@@ -32,9 +32,9 @@ def sigfigs(float):
 
 def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
-    return ' (min:' + str(sigfigs(statistics['min'] / base)) + unit \
-        + ', max:' + str(sigfigs(statistics['max'] / base)) + unit  \
-        + ', avg:' + str(sigfigs(statistics['avg'] / base)) + unit  \
+    return ' (min: ' + str(sigfigs(statistics['min'] / base)) + unit \
+        + ', max: ' + str(sigfigs(statistics['max'] / base)) + unit  \
+        + ', avg: ' + str(sigfigs(statistics['avg'] / base)) + unit  \
         + ')'
 
 
@@ -240,7 +240,6 @@ def index(request, host, data, start, end, resolution='150'):
     for index in indices:
         del(flot_data[index][railroad_conf])
 
-    #flot_data = []
     colors = ['#BBFFBB','#FFFFBB','#FFBBBB','#BEBEBE']
     markings = []
     state = state_data[0][1]
@@ -263,7 +262,7 @@ def index(request, host, data, start, end, resolution='150'):
     graph_options['grid']['markings'] = markings
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
-    result = [graph_options, flot_data, base, os.getenv('DJANGO_SETTINGS_MODULE')]
+    result = {'options': graph_options, 'data': flot_data, 'base': base}
 
     return HttpResponse(json.dumps(result))
 

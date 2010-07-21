@@ -29,13 +29,9 @@ The following configuration changes must be made:
   is recommended).
 - Reload the Apache daemon
 - Edit the example Django configuration file railroad/sample/settings.py to
-  reflect the correct templates directory. You may optionally change the
-  timezone, language, and other Django settings as you prefer.
+  reflect the correct paths for templates, data (status.dat and objects.cache), 
+  and rra. You may optionally change the timezone, language, and other Django 
+  settings as you prefer.
 - Copy railroad/sample/settings.py to railroad/railroad/settings.py.
-- Edit the example path settings file railroad/sample/pathsettings.py to
-  reflect the correct path to the nagcat data directory.
-- Copy railroad/sample/pathsettings.py to railroad/railroad/pathsettings.py
 - Browse to http://<hostname>/railroad, which should now display the Railroad
   welcome message as well as the list of currently configured hosts in Nagios.
-
-

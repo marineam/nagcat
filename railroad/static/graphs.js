@@ -19,6 +19,7 @@
 base = 0;
 
 function chooseBase(max) {
+    // Memoizes results!
     if (this.chooseBase.result != undefined && this.chooseBase.result.max == max) {
         return result;
     }
@@ -38,7 +39,7 @@ function chooseBase(max) {
 // Generate ticks, passed as an option to Flot
 function tickGenerator(range) {
     result = chooseBase(range.max);
-    interval = result['interval']
+    interval = result.interval
 
     final_base = Math.pow(base, interval);
 
@@ -81,17 +82,14 @@ function tickGenerator(range) {
 
 // Format ticks for displayed, passed as option to Flot
 function tickFormatter(val, axis) {
-    result = chooseBase(axis.max)
+    result = chooseBase(axis.max);
+    interval = result.interval;
+    bases = result.bases;
 
     final_base = (Math.pow(base, interval));
 
-    //return val + '--' + (val / (Math.pow(base, interval))).toFixed(axis.tickDecimals) + bases[interval];
-    //arr = [];
-    //for (var attr in axis) {
-        //arr.push(attr);
-    //}
-    //alert(arr.toString());
-
+    // flot computes tickDecimals before dividing by final_base, so we update
+    // tickDecimals accordingly
     while ((val / final_base).toFixed(axis.tickDecimals) != val / final_base)
         axis.tickDecimals++;
 
@@ -105,15 +103,15 @@ function labelFormatter(label, series) {
 
 // Takes the raw data and sets up required Flot formatting options
 function formatGraph(element, data) {
-    base = data[2];
+    base = data.base;
 
-    data[0]['yaxis']['ticks'] = tickGenerator;
-    data[0]['yaxis']['tickFormatter'] = tickFormatter;
+    data.options.yaxis.ticks = tickGenerator;
+    data.options.yaxis.tickFormatter = tickFormatter;
 
     // TODO: Cleanup legend and axis label creation
-    data[0]['legend'] = {}
-    data[0]['legend']['container'] = $(element).next(".legend");
-    data[0]['legend']['labelFormatter'] = labelFormatter;
+    data.options.legend = {}
+    data.options.legend.container = $(element).next(".legend");
+    data.options.legend.labelFormatter = labelFormatter;
     return data;
 }
 
@@ -154,9 +152,9 @@ $(document).ready(function() {
         graph.removeClass('ajax');
 
         serviceData = $(graph).data();
-        $.getJSON('/railroad/parserrd/' + serviceData['host'] + '/' + serviceData['service'] + '/' + start + '/' + end + '/' + serviceData['res'], function(data) {
+        $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + start + '/' + end + '/' + serviceData.res, function(data) {
             data = formatGraph(graph, data);
-            $.plot($(graph), data[1], data[0]);
+            $.plot($(graph), data.data, data.options);
         });
        
     });
@@ -174,19 +172,19 @@ $(document).ready(function() {
         $.getJSON('/railroad/parserrd/' + path, function(data) {
             $(element).html("");
             data = formatGraph(element, data);
-            $.plot($(element), data[1], data[0]);
-            if(data[0]['yaxis']['label']) {
-                $(element).before("<div class='ylabel'>" + data[0]['yaxis']['label'] + "</div>");
+            $.plot($(element), data.data, data.options);
+            if(data.options.yaxis.label) {
+                $(element).before("<div class='ylabel'>" + data.options.yaxis.label + "</div>");
             }
         });
 
         // Allow for zooming
         $(element).bind("plotselected", function (event, ranges) {
             serviceData = $(element).data();
-            $.getJSON('/railroad/parserrd/' + serviceData['host'] + '/' + serviceData['service'] + '/' + parseInt(ranges.xaxis.from/1000) + '/' + parseInt(ranges.xaxis.to/1000) + '/' + serviceData['res'], function(data) {
+            $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + parseInt(ranges.xaxis.from/1000) + '/' + parseInt(ranges.xaxis.to/1000) + '/' + serviceData.res, function(data) {
                 data = formatGraph(element, data);
                 $(element).removeClass('ajax');
-                $.plot($(element), data[1], data[0]);
+                $.plot($(element), data.data, data.options);
                 zoom = $(element).closest('.graph_container').find('.zoom');
                 selected = $(element).closest('.graph_container').find('.selected');
                 selected.removeClass('selected');
@@ -205,9 +203,9 @@ $(document).ready(function() {
             time = new Date();
             end = parseInt(time.getTime() / 1000);
             start = parseInt(end - 60 * 60 * 24);
-            $.getJSON('/railroad/parserrd/' + serviceData['host'] + '/' + serviceData['service'] + '/' + start + '/' + end + '/' + serviceData['res'], function(data) {
+            $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + start + '/' + end + '/' + serviceData.res, function(data) {
                 data = formatGraph(element, data);
-                $.plot($(element), data[1], data[0]);
+                $.plot($(element), data.data, data.options);
             });
             $(element).closest('.graph_container').find('.update').html("updated: " + time.toString());
             $(element).closest('.graph_container').find('.update').css('visibility', 'visible');
