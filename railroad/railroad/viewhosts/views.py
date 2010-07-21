@@ -17,7 +17,7 @@ import rrdtool, os, coil, sys, time
 from django.conf import settings
 from django.http import HttpResponse
 from django.template import Context, loader
-from railroad.parserrd.views import graphable
+from railroad.parserrd.views import graphable, is_graphable
 
 
 sys.path.append('/ita/installs/nagcat/python')
@@ -118,6 +118,8 @@ def service(request, host, service):
         'host_name': host,
         'service_name': service,
         'service': service_detail,
+		'graphable': is_graphable(host, service),
+		'true': True,
         'time_intervals': time_intervals
     }
 

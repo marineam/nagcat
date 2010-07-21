@@ -266,9 +266,36 @@ def index(request, host, data, start, end, resolution='150'):
 
     return HttpResponse(json.dumps(result))
 
+def is_graphable(host, service):
+    rra_path = settings.RRA_PATH
+    coilfile = rra_path + host + '/' + service + '.coil'
+    rrd = rra_path + host + '/' + service + '.rrd'
+    if(os.path.exists(coilfile) and os.path.exists(rrd)):
+        coilstring = open(coilfile).read()
+        coilstruct = coil.parse(coilstring)
+        query = coilstruct.get('query')
+
+        # rrdtool hates unicode strings, and Django gives us one, 
+        # so convert to ascii
+        rrdslice = rrdtool.fetch(str(rrd),
+                    '--start', '0',
+                    '--end', '10',
+                    '--resolution', '1',
+                    'AVERAGE')
+
+        try:
+            rrdslice[1].index('_state')
+            return True
+        except ValueError:
+            for key in query.keys():
+                val = query.get(key)
+                if type() == type(query) and val.has_key('trend'):
+                    return True
+            return False
+    return False
+
+
 def graphable(host, serviceList):
-    rra_path = settings.DEBUG
-    print settings.TEMPLATE_DEBUG
     rra_path = settings.RRA_PATH
     graphflags = []
     for service in serviceList:
