@@ -23,6 +23,7 @@ from railroad.parserrd.views import graphable, is_graphable
 sys.path.append('/ita/installs/nagcat/python')
 
 from nagcat import nagios_objects
+from railroad.errors import RailroadError
 
 data_path = settings.DATA_PATH
 stat_file = data_path + 'status.dat'
@@ -32,10 +33,21 @@ def hostlist():
     host_list = nagios_objects.ObjectParser(stat_file, ('host',))['host']
     return host_list
 
+def hostlist_by_group(group):
+    group_list = nagios_objects.ObjectParser(obj_file, ('hostgroup'), {'alias': group})['hostgroup']
+    try:
+        group_dict = group_list[0]
+        return group_dict['members'].split(',')
+    except IndexError as e:
+        raise RailroadError(group + ' not found in objects.cache')
+
 def hostdetail(host):
-    host_detail = nagios_objects.ObjectParser(obj_file, \
-                    ('host',), {'host_name': host})
-    return host_detail
+    try:
+        host_detail = nagios_objects.ObjectParser(stat_file, \
+                        ('host',), {'host_name': host})['host']
+        return host_detail[0]
+    except IndexError as e:
+        raise RailroadError(group + ' not found in objects.cache')
 
 def grouplist():
     group_list = nagios_objects.ObjectParser(obj_file,  \
@@ -43,28 +55,23 @@ def grouplist():
     return group_list
 
 def servicelist(host):
-    objects = nagios_objects.ObjectParser(obj_file,     \
-                    ('host',), {'host_name': host})
     status = nagios_objects.ObjectParser(stat_file,     \
-                    ('host','service'), {'host_name': host})
-    host_conf = objects['host'][0]
-
+                    ('service'), {'host_name': host})
     services = ""
     service_list = status['service']
     service_list = zip(service_list, graphable(host, service_list))
     return service_list
 
 def servicedetail(host, service):
-    status = nagios_objects.ObjectParser(stat_file, ('service'),    \
+    service_list = nagios_objects.ObjectParser(stat_file, ('service'),  \
                 {'host_name': host, 'service_description': service})
-    service_dict = status['service'][0]
+    try:
+        return service_list['service'][0]
+    except KeyError as e:
+        return None
+    except IndexError as e:
+        return None
 
-    str = service_dict.get('plugin_output','')
-    if str:
-        str += '\n'
-        str += service_dict.get('long_plugin_output','')
-    
-    return str
 
 def get_time_intervals():
     intervals = [86400,604800,2592000,31104000]
@@ -113,16 +120,82 @@ def host(request, host):
 def service(request, host, service):
     t = loader.get_template('service.html')
     service_detail = servicedetail(host, service)
+
+    str = service_detail.get('plugin_output','')
+    if str:
+        str += '\n'
+        str += service_detail.get('long_plugin_output','')
+    
     time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
         'service_name': service,
-        'service': service_detail,
-		'graphable': is_graphable(host, service),
-		'true': True,
+        'service_output': str,
+        'graphable': is_graphable(host, service),
+        'true': True,
         'time_intervals': time_intervals
     }
 
+    context_data = add_hostlist(context_data)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
+
+def group(request, group):
+    t = loader.get_template('group.html')
+    host_names = hostlist_by_group(group)
+    service_set = set([])
+
+    host_list = map(hostdetail, host_names)
+
+    for host in host_names:
+        service_list = servicelist(host)
+        mapped = map(lambda x: x[0]['service_description'], service_list)
+        new_set = set(mapped)
+        service_set = service_set.union(new_set)
+
+    services = list(service_set)
+
+    hostlen = len(host_list)
+    servicelen = len(services)
+    
+    if (servicelen > hostlen):
+        host_list.extend([None] * (servicelen-hostlen))
+    else:
+        services.extend([None] * (hostlen-servicelen))
+
+    members = zip(host_list,services)
+
+    
+    ending = int(time.time())
+    starting = ending - 86400
+    context_data = {
+        'group_name': group,
+        'members': members,
+        'time_interval': [starting,ending]
+    }
+    
+    context_data = add_hostlist(context_data)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
+
+def groupservice(request, group, service):
+    t = loader.get_template('groupservice.html')
+    host_names = hostlist_by_group(group)
+    host_list = map(hostdetail, host_names)
+
+    services = [servicedetail(host, service) for host in host_names]
+
+    members = zip(host_list, services)
+
+    ending = int(time.time())
+    starting = ending - 86400
+    context_data = {
+        'group_name': group,
+        'service_name': service,
+        'members': members,
+        'time_interval': [starting,ending]
+    }
+    
     context_data = add_hostlist(context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))

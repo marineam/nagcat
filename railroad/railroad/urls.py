@@ -25,6 +25,8 @@ urlpatterns = patterns('',
 
     (r'^viewhost/(?P<host>\w+)$', 'railroad.viewhosts.views.host'),
     (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$', 'railroad.viewhosts.views.service'),
+    (r'^viewgroup/(?P<group>[^/]+)$', 'railroad.viewhosts.views.group'),
+    (r'^viewgroup/(?P<group>[^/]+)/(?P<service>.+)$', 'railroad.viewhosts.views.groupservice'),
 
     # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
     # to INSTALLED_APPS to enable admin documentation:

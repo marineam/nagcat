@@ -38,7 +38,7 @@
 {% for host in hosts %}
 	{% ifchanged host.group %}
 		</ul>
-		<div class="listheader">{{host.group}}</div>
+		<div class="listheader"><a href="/railroad/viewgroup/{{host.group}}">{{host.group}}</a></div>
 		<ul>
 	{% endifchanged %}
 	{% ifequal host.current_state 0 %}

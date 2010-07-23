@@ -14,6 +14,8 @@
 
 from django.conf import settings
 from django.http import HttpResponse
+from railroad.errors import RailroadError
+
 import rrdtool, json, os, coil, types
 
 def sigfigs(float):
@@ -72,7 +74,7 @@ def index(request, host, data, start, end, resolution='150'):
     query = coilstruct.get('query',{})
 
     if not(query):
-        return HttpResponse("OMG PONIES! query doesn't exist in coil file")
+        raise RailroadError("OMG PONIES! query doesn't exist in coil file")
 
     graph_options = {
         'xaxis': {
