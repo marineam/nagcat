@@ -183,7 +183,13 @@ def groupservice(request, group, service):
     host_names = hostlist_by_group(group)
     host_list = map(hostdetail, host_names)
 
-    services = [servicedetail(host, service) for host in host_names]
+    def checkgraphable (host):
+        serv = servicedetail(host, service)
+        if serv:
+            serv['graphable'] = is_graphable(host, service)
+        return serv
+        
+    services = [checkgraphable(host) for host in host_names]
 
     members = zip(host_list, services)
 
@@ -193,7 +199,8 @@ def groupservice(request, group, service):
         'group_name': group,
         'service_name': service,
         'members': members,
-        'time_interval': [starting,ending]
+        'time_interval': [starting,ending],
+        'true': True
     }
     
     context_data = add_hostlist(context_data)
