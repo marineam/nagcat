@@ -26,14 +26,23 @@ stat_file = data_path + 'status.dat'
 obj_file = data_path + 'objects.cache'
 
 def hostlist():
-    host_list = nagios_objects.ObjectParser(stat_file, ('host',))['host']
-    return host_list
+    try:
+        return nagios_objects.ObjectParser(stat_file, ('host',))['host']
+    except IndexError as e:
+        raise RailroadError('Unexpected ObjectParser failure')
+
 
 def hostlist_by_group(group):
     group_list = nagios_objects.ObjectParser(obj_file, ('hostgroup'), {'alias': group})['hostgroup']
+    all_hosts = hostlist()
+    host_list = []
     try:
         group_dict = group_list[0]
-        return group_dict['members'].split(',')
+        target = group_dict['members'].split(',')
+        for host in all_hosts:
+            if host['host_name'] in target:
+                host_list.append(host)
+        return host_list
     except IndexError as e:
         raise RailroadError(group + ' not found in objects.cache')
 
@@ -80,13 +89,22 @@ def get_time_intervals():
 def add_hostlist(c):
     groups = grouplist()
     hosts = hostlist()
-    for host in hosts:
-        host['group'] = '(no group)'
-        for group in groups:
-            if host['host_name'] in group['members'].split(','):
-                host['group'] = group['alias']
-    c['groups'] = groups
-    c['hosts'] =  hosts
+    sidebar = []
+
+    for group in groups:
+        group_name = group['alias']
+        addinghosts = group['members'].split(',')
+        hosts_of_group = []
+        for added in addinghosts:
+            for host in hosts:
+                if host['host_name'] == added:
+                    hosts_of_group.append(host) 
+                    host['has_group'] = True
+                    break
+        sidebar.append((group_name, hosts_of_group))
+
+    sidebar.append(('(no group)', filter(lambda x: not(x.has_key('has_group')), hosts)))
+    c['sidebar'] = sidebar
     return c
 
 def index(request):
@@ -138,18 +156,22 @@ def service(request, host, service):
 
 def group(request, group):
     t = loader.get_template('group.html')
-    host_names = hostlist_by_group(group)
-    service_set = set([])
+    service_dict = {}
+    service_list = nagios_objects.ObjectParser(stat_file, ('service',))['service']
+        
+    host_list = hostlist_by_group(group)
+    host_names = map(lambda x: x['host_name'], host_list)
 
-    host_list = map(hostdetail, host_names)
+    for service in service_list:
+        service_name = service['service_description']
+        if service_name in service_dict:
+            continue
 
-    for host in host_names:
-        service_list = servicelist(host)
-        mapped = map(lambda x: x[0]['service_description'], service_list)
-        new_set = set(mapped)
-        service_set = service_set.union(new_set)
+        service_dict[service_name] = service['host_name'] in host_names
 
-    services = list(service_set)
+    services = filter(lambda x: service_dict[x], service_dict.keys())
+    host_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
+    services.sort()
 
     hostlen = len(host_list)
     servicelen = len(services)
@@ -176,8 +198,7 @@ def group(request, group):
 
 def groupservice(request, group, service):
     t = loader.get_template('groupservice.html')
-    host_names = hostlist_by_group(group)
-    host_list = map(hostdetail, host_names)
+    host_list = hostlist_by_group(group)
 
     def checkgraphable (host):
         serv = servicedetail(host, service)
@@ -185,7 +206,7 @@ def groupservice(request, group, service):
             serv['graphable'] = is_graphable(host, service)
         return serv
         
-    services = [checkgraphable(host) for host in host_names]
+    services = [checkgraphable(host['host_name']) for host in host_list]
 
     members = zip(host_list, services)
 
