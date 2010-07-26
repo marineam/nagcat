@@ -18,6 +18,7 @@ import sys
 os.environ['DJANGO_SETTINGS_MODULE'] = 'railroad.settings'
 
 sys.path.append('/var/lib/nagcat/railroad')
+sys.path.append('/var/lib/nagcat/python')
 
 import django.core.handlers.wsgi
 application = django.core.handlers.wsgi.WSGIHandler()

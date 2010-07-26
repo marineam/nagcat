@@ -18,10 +18,6 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.template import Context, loader
 from railroad.parserrd.views import graphable, is_graphable
-
-
-sys.path.append('/ita/installs/nagcat/python')
-
 from nagcat import nagios_objects
 from railroad.errors import RailroadError
 
