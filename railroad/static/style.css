@@ -193,3 +193,10 @@ body {
 .services {
 	font-size: 10pt;
 }
+
+/* Ajax Loading Throbber */
+.throbber {
+	width: 16px;
+	height: 16px;
+	background-image: url('/railroad-static/throbber.gif');
+}

@@ -127,6 +127,7 @@ $(document).ready(function() {
     // Bind the graph time range selection buttons
     $(".options ul li").click(function() {
         graph = $(this).closest(".graph_container").find('.graph');
+        graph.append('<div class="throbber"></div>');
         time = new Date();
         end = parseInt(time.getTime() / 1000);
 
@@ -162,6 +163,7 @@ $(document).ready(function() {
         $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + start + '/' + end + '/' + serviceData.res, function(data) {
             data = formatGraph(graph, data);
             $.plot($(graph), data.data, data.options);
+            $('.throbber').remove();
         });
        
     });
