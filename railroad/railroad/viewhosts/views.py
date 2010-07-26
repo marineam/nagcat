@@ -103,7 +103,9 @@ def add_hostlist(c):
                     break
         sidebar.append((group_name, hosts_of_group))
 
-    sidebar.append(('(no group)', filter(lambda x: not(x.has_key('has_group')), hosts)))
+    no_group = filter(lambda x: not(x.has_key('has_group')), hosts)
+    if len(no_group):
+        sidebar.append(('(no group)', no_group))
     c['sidebar'] = sidebar
     return c
 
