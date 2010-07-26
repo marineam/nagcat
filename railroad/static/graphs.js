@@ -122,12 +122,21 @@ function formatGraph(element, data) {
     return data;
 }
 
+// Toggles for throbbers
+function throb(graph) {
+    graph.append('<div class="throbber"></div');
+}
+
+function unthrob(graph) {
+    graph.remove('throbber');
+}
+
 // Execute setup code when page loads
 $(document).ready(function() {
     // Bind the graph time range selection buttons
     $(".options ul li").click(function() {
         graph = $(this).closest(".graph_container").find('.graph');
-        graph.append('<div class="throbber"></div>');
+        throb(graph);
         time = new Date();
         end = parseInt(time.getTime() / 1000);
 
@@ -163,7 +172,7 @@ $(document).ready(function() {
         $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + start + '/' + end + '/' + serviceData.res, function(data) {
             data = formatGraph(graph, data);
             $.plot($(graph), data.data, data.options);
-            $('.throbber').remove();
+            unthrob(graph);
         });
        
     });
@@ -190,6 +199,7 @@ $(document).ready(function() {
         // Allow for zooming
         $(element).bind("plotselected", function (event, ranges) {
             serviceData = $(element).data();
+            throb($(element));
             $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + parseInt(ranges.xaxis.from/1000) + '/' + parseInt(ranges.xaxis.to/1000) + '/' + serviceData.res, function(data) {
                 data = formatGraph(element, data);
                 $(element).removeClass('ajax');
@@ -199,6 +209,7 @@ $(document).ready(function() {
                 selected.removeClass('selected');
                 zoom.css('visibility', 'visible');
                 zoom.addClass('selected');
+                unthrob($(element));
             });
             
         });
