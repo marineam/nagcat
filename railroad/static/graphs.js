@@ -128,41 +128,47 @@ function throb(graph) {
 }
 
 function unthrob(graph) {
-    graph.remove('throbber');
+    graph.remove('.throbber');
+}
+
+// Update an AJAX timestamp
+function updateTimestamp(element) {
+    // TODO: Format time cleaner?
+    time = new Date();
+    element.html("updated: " + time.toString());
 }
 
 // Execute setup code when page loads
 $(document).ready(function() {
     // Bind the graph time range selection buttons
     $(".options ul li").click(function() {
-        graph = $(this).closest(".graph_container").find('.graph');
+        button = $(this)
+        graph = button.closest(".graph_container").find('.graph');
         throb(graph);
         time = new Date();
         end = parseInt(time.getTime() / 1000);
 
-        $(this).closest('.graph_container').find('.options .selected').removeClass('selected');
-        $(this).addClass('selected');
-
         // Depending on which button is hit, change the behavior
         // TODO: Look at possibilities at cleaning this up
 
-        if($(this).hasClass('zoom')) {
+        if(button.hasClass('zoom')) {
             return;
         }
 
-        $(this).closest('.graph_container').find('.zoom').css('visibility', 'hidden');
+        button.closest('.graph_container').find('.zoom').css('visibility', 'hidden');
 
-        if($(this).hasClass('reset')) {
+        if(button.hasClass('reset')) {
             graph.addClass('ajax');
-            autoFetchData();
-            return;
-        } else if($(this).hasClass('day')) {
+            update = graph.closest('.graph_container').find('.update');
+            updateTimestamp(update);
+            update.css('visibility', 'visible');
+        } if(button.hasClass('day') || button.hasClass('reset')) {
             start = parseInt(end - 60 * 60 * 24);
-        } else if($(this).hasClass('week')) {
+        } else if(button.hasClass('week')) {
             start = parseInt(end - 60 * 60 * 24 * 7);
-        } else if($(this).hasClass('month')) {
+        } else if(button.hasClass('month')) {
             start = parseInt(end - 60 * 60 * 24 * 30);
-        } else if($(this).hasClass('year')) {
+        } else if(button.hasClass('year')) {
             start = parseInt(end - 60 * 60 * 24 * 365);
         }
 
@@ -172,6 +178,8 @@ $(document).ready(function() {
         $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + start + '/' + end + '/' + serviceData.res, function(data) {
             data = formatGraph(graph, data);
             $.plot($(graph), data.data, data.options);
+            button.closest('.graph_container').find('.options .selected').removeClass('selected');
+            button.addClass('selected');
             unthrob(graph);
         });
        
@@ -227,11 +235,10 @@ $(document).ready(function() {
                 data = formatGraph(element, data);
                 $.plot($(element), data.data, data.options);
             });
-            $(element).closest('.graph_container').find('.update').html("updated: " + time.toString());
+            updateTimestamp($(element).closest('.graph_container').find('.update'));
             $(element).closest('.graph_container').find('.update').css('visibility', 'visible');
         });
-        // TODO: Change both timeouts before deploying!
-        setTimeout(autoFetchData, 10 * 1000);
+        setTimeout(autoFetchData, 60 * 1000);
     }
     setTimeout(autoFetchData, 1 * 1000);
 });
