@@ -199,16 +199,15 @@ def group(request, group):
 def groupservice(request, group, service):
     t = loader.get_template('groupservice.html')
     host_list = hostlist_by_group(group)
+    service_list = nagios_objects.ObjectParser(stat_file, ('service'),  \
+                        {'service_description': service})['service']
 
-    def checkgraphable (host):
-        serv = servicedetail(host, service)
-        if serv:
-            serv['graphable'] = is_graphable(host, service)
-        return serv
-        
-    services = [checkgraphable(host['host_name']) for host in host_list]
+    host_list = filter(lambda x: is_graphable(x['host_name'],service), host_list)
+    target = map(lambda x: x['host_name'], host_list)
+    service_list = filter(lambda x: x['host_name'] in target, service_list)
+            
 
-    members = zip(host_list, services)
+    members = zip(host_list, service_list)
 
     ending = int(time.time())
     starting = ending - 86400

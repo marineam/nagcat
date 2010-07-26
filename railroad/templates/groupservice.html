@@ -11,23 +11,22 @@
 {% for member in members %}
     <tr>
     {% ifnotequal member.0.host_name None %}
-		{% ifequal member.0.current_state '0' %}
-			<td class="greenbg">
-		{% else %}
-			{% ifequal member.0.current_state '1' %}
-				<td class="yellowbg">
-			{% else %}
-				<td class="redbg">
-        	{% endifequal %}
-       	{% endifequal %}
-		<h2><a href="../../viewhost/{{member.0.host_name}}">{{member.0.host_name}}</a></h2>
-		</td>
-	{% else %}
-		<td></td>
-	{% endifnotequal %}
+        {% ifequal member.0.current_state '0' %}
+            <td class="greenbg">
+        {% else %}
+            {% ifequal member.0.current_state '1' %}
+                <td class="yellowbg">
+            {% else %}
+                <td class="redbg">
+            {% endifequal %}
+        {% endifequal %}
+        <h2><a href="../../viewhost/{{member.0.host_name}}">{{member.0.host_name}}</a></h2>
+        </td>
+    {% else %}
+        <td></td>
+    {% endifnotequal %}
 
     {% ifnotequal member.1 None %}
-        {% ifequal member.1.graphable true %}
             <td>
                 <div class="graph_container">
                     <div class="options">
@@ -52,8 +51,7 @@
                     </div>
                 </div>
             </td>
-        {% endifequal %}
-	{% endifnotequal %}
+    {% endifnotequal %}
     </tr>
 {% endfor %}
 </table>
