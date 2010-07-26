@@ -20,8 +20,8 @@
 				<td class="redbg">
         	{% endifequal %}
        	{% endifequal %}
-		<h2><a href="../../viewhost/{{member.0.host_name}}">{{member.0.host_name}}</a></h2>
-        {{member.1.plugin_output}}
+		<h2><a href="/railroad/viewhost/{{member.0.host_name}}">{{member.0.host_name}}</a></h2>
+        <a href="/railroad/viewhost/{{member.0.host_name}}/{{member.1.service_description}}">{{member.1.plugin_output}}</a>
 		</td>
 	{% else %}
 		<td></td>
