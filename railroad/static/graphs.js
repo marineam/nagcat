@@ -20,7 +20,8 @@ base = 0;
 
 function chooseBase(max) {
     // Memoizes results!
-    if (this.chooseBase.result != undefined && this.chooseBase.result.max == max) {
+    if (this.chooseBase.result != undefined &&
+        this.chooseBase.result.max == max) {
         return result;
     }
     bases = ['', 'K', 'M', 'G', 'T'];
@@ -117,14 +118,14 @@ function formatGraph(element, data) {
 
     // TODO: Cleanup legend and axis label creation
     data.options.legend = {}
-    data.options.legend.container = $(element).next(".legend");
+    data.options.legend.container = $(element).next('.legend');
     data.options.legend.labelFormatter = labelFormatter;
     return data;
 }
 
 // Toggles for throbbers
 function throb(graph) {
-    graph.append('<div class="throbber"></div');
+    graph.append('<div class="throbber"></div>');
 }
 
 function unthrob(graph) {
@@ -135,15 +136,16 @@ function unthrob(graph) {
 function updateTimestamp(element) {
     // TODO: Format time cleaner?
     time = new Date();
-    element.html("updated: " + time.toString());
+    element.html('updated: ' + time.toString());
 }
 
 // Execute setup code when page loads
 $(document).ready(function() {
     // Bind the graph time range selection buttons
-    $(".options ul li").click(function() {
+    $('.options ul li').click(function() {
         button = $(this)
-        graph = button.closest(".graph_container").find('.graph');
+        graph = button.closest('.graph_container')
+                      .find('.graph');
         throb(graph);
         time = new Date();
         end = parseInt(time.getTime() / 1000);
@@ -155,11 +157,14 @@ $(document).ready(function() {
             return;
         }
 
-        button.closest('.graph_container').find('.zoom').css('visibility', 'hidden');
+        button.closest('.graph_container')
+              .find('.zoom')
+              .css('visibility', 'hidden');
 
         if(button.hasClass('reset')) {
             graph.addClass('ajax');
-            update = graph.closest('.graph_container').find('.update');
+            update = graph.closest('.graph_container')
+                          .find('.update');
             updateTimestamp(update);
             update.css('visibility', 'visible');
         } if(button.hasClass('day') || button.hasClass('reset')) {
@@ -175,10 +180,18 @@ $(document).ready(function() {
         graph.removeClass('ajax');
 
         serviceData = $(graph).data();
-        $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + start + '/' + end + '/' + serviceData.res, function(data) {
+        $.getJSON('/railroad/parserrd/' +
+                  serviceData.host + '/' +
+                  serviceData.service + '/' +
+                  start + '/' +
+                  end + '/' +
+                  serviceData.res,
+                  function(data) {
             data = formatGraph(graph, data);
             $.plot($(graph), data.data, data.options);
-            button.closest('.graph_container').find('.options .selected').removeClass('selected');
+            button.closest('.graph_container')
+                  .find('.options .selected')
+                  .removeClass('selected');
             button.addClass('selected');
             unthrob(graph);
         });
@@ -190,7 +203,7 @@ $(document).ready(function() {
 
         // Store the graph data for usage later
         path = $(element).html();
-        splitPath = path.split("/");
+        splitPath = path.split('/');
         $(element).data('host', splitPath[0]);
         $(element).data('service', splitPath[1]);
         $(element).data('res', splitPath[4]);
@@ -200,20 +213,30 @@ $(document).ready(function() {
             data = formatGraph(element, data);
             $.plot($(element), data.data, data.options);
             if(data.options.yaxis.label) {
-                $(element).before("<div class='ylabel'>" + data.options.yaxis.label + "</div>");
+                $(element).before('<div class="ylabel">' +
+                                  data.options.yaxis.label +
+                                  '</div>');
             }
         });
 
         // Allow for zooming
-        $(element).bind("plotselected", function (event, ranges) {
+        $(element).bind('plotselected', function (event, ranges) {
             serviceData = $(element).data();
             throb($(element));
-            $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + parseInt(ranges.xaxis.from/1000) + '/' + parseInt(ranges.xaxis.to/1000) + '/' + serviceData.res, function(data) {
+            $.getJSON('/railroad/parserrd/' +
+                      serviceData.host + '/' +
+                      serviceData.service + '/' +
+                      parseInt(ranges.xaxis.from/1000) + '/' +
+                      parseInt(ranges.xaxis.to/1000) + '/' +
+                      serviceData.res,
+                      function(data) {
                 data = formatGraph(element, data);
                 $(element).removeClass('ajax');
                 $.plot($(element), data.data, data.options);
-                zoom = $(element).closest('.graph_container').find('.zoom');
-                selected = $(element).closest('.graph_container').find('.selected');
+                zoom = $(element).closest('.graph_container')
+                                 .find('.zoom');
+                selected = $(element).closest('.graph_container')
+                                     .find('.selected');
                 selected.removeClass('selected');
                 zoom.css('visibility', 'visible');
                 zoom.addClass('selected');
@@ -226,17 +249,26 @@ $(document).ready(function() {
 
 
     function autoFetchData() {
-        $(".graph.ajax").each(function(index, element) {
+        $('.graph.ajax').each(function(index, element) {
             serviceData = $(element).data();
             time = new Date();
             end = parseInt(time.getTime() / 1000);
             start = parseInt(end - 60 * 60 * 24);
-            $.getJSON('/railroad/parserrd/' + serviceData.host + '/' + serviceData.service + '/' + start + '/' + end + '/' + serviceData.res, function(data) {
+            $.getJSON('/railroad/parserrd/' +
+                      serviceData.host + '/' +
+                      serviceData.service + '/' +
+                      start + '/' +
+                      end + '/' +
+                      serviceData.res,
+                      function(data) {
                 data = formatGraph(element, data);
                 $.plot($(element), data.data, data.options);
             });
-            updateTimestamp($(element).closest('.graph_container').find('.update'));
-            $(element).closest('.graph_container').find('.update').css('visibility', 'visible');
+            updateTimestamp($(element).closest('.graph_container')
+                                      .find('.update'));
+            $(element).closest('.graph_container')
+                      .find('.update')
+                      .css('visibility', 'visible');
         });
         setTimeout(autoFetchData, 60 * 1000);
     }
