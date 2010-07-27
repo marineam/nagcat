@@ -204,11 +204,22 @@ def groupservice(request, group, service):
     service_list = nagios_objects.ObjectParser(stat_file, ('service'),  \
                         {'service_description': service})['service']
 
-    host_list = filter(lambda x: is_graphable(x['host_name'],service), host_list)
+    def has_service(host):
+        for service in service_list:
+           if service['host_name'] == host:
+               return True
+
+        return False
+        
+    host_list = filter(lambda x: has_service(x['host_name']), host_list)
     target = map(lambda x: x['host_name'], host_list)
     service_list = filter(lambda x: x['host_name'] in target, service_list)
     host_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
     service_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
+
+    for s in service_list:
+        s['is_graphable'] = is_graphable(s['host_name'], s['service_description'])
+
     members = zip(host_list, service_list)
 
     ending = int(time.time())

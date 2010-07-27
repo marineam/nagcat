@@ -245,7 +245,7 @@ def index(request, host, data, start, end, resolution='150'):
     for index in indices:
         del(flot_data[index][railroad_conf])
 
-    colors = ['#BBFFBB','#FFFFBB','#FFBBBB','#BEBEBE']
+    colors = ['#BBFFBB','#FFFFBB','#FFBBBB','#C0C0C0']
     markings = []
     state = state_data[0][1]
     if type(state) == types.FloatType:
@@ -263,6 +263,8 @@ def index(request, host, data, start, end, resolution='150'):
                 markings.append({'xaxis': {'from': x}, 'color': colors[state]})
     if type(state) == types.FloatType:
         markings[-1]['xaxis']['to'] = state_data[-1][0]
+
+    empty_graph = empty_graph and (not(len(markings)))
 
     graph_options['grid']['markings'] = markings
     flot_data.append({'data': state_data, 'lines': {'show': False}})
