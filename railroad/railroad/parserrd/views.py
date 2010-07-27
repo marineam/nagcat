@@ -185,7 +185,10 @@ def index(request, host, data, start, end, resolution='150'):
     
         x += res
 
-        #[[x,y * value] for x,y in d['data']]
+    empty_graph = True
+    for index in indices:
+        if flot_data[index][statistics]['num']:
+            empty_graph = False
 
     base = 1000
     max = 100
@@ -264,7 +267,7 @@ def index(request, host, data, start, end, resolution='150'):
     graph_options['grid']['markings'] = markings
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
-    result = {'options': graph_options, 'data': flot_data, 'base': base}
+    result = {'options': graph_options, 'data': flot_data, 'base': base, 'empty': empty_graph}
 
     return HttpResponse(json.dumps(result))
 
