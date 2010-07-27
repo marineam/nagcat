@@ -176,6 +176,12 @@ body {
 .hidden {
 	visibility: hidden;
 }
+.empty {
+	position: absolute;
+	top: 100px;
+	width: 100%;
+	text-align: center;
+}
 
 /* Service listings */
 .service {

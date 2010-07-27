@@ -106,7 +106,7 @@ function tickFormatter(val, axis) {
 
 // Format a label, passed to Flot
 function labelFormatter(label, series) {
-    return label.replace(/_/g, " ");
+    return label.replace(/_/g, ' ');
 }
 
 // Takes the raw data and sets up required Flot formatting options
@@ -123,15 +123,29 @@ function formatGraph(element, data) {
     return data;
 }
 
-// Toggles for throbbers
-function throb(graph) {
-    graph.append('<div class="throbber"></div>');
+// Creates a graph
+function createGraph(element, path, callback) {
+    $(element).append('<div class="throbber"></div>');
+    $(element).remove('.empty');
+    $.getJSON('/railroad/parserrd/' + path, function(data) {
+        $(element).html("");
+        data = formatGraph(element, data);
+        $.plot($(element), data.data, data.options);
+        if(data.options.yaxis.label) {
+            $(element).before('<div class="ylabel">' +
+                              data.options.yaxis.label +
+                              '</div>');
+        }
+        if(data.empty == true) {
+            $(element).append('<div class="empty">no data</div>');
+        }
+        if(callback != null) {
+            callback();
+        }
+        $(element).remove('.throbber');
+    });
 }
-
-function unthrob(graph) {
-    graph.remove('.throbber');
-}
-
+   
 // Update an AJAX timestamp
 function updateTimestamp(element) {
     // TODO: Format time cleaner?
@@ -146,7 +160,6 @@ $(document).ready(function() {
         button = $(this)
         graph = button.closest('.graph_container')
                       .find('.graph');
-        throb(graph);
         time = new Date();
         end = parseInt(time.getTime() / 1000);
 
@@ -180,21 +193,21 @@ $(document).ready(function() {
         graph.removeClass('ajax');
 
         serviceData = $(graph).data();
-        $.getJSON('/railroad/parserrd/' +
-                  serviceData.host + '/' +
-                  serviceData.service + '/' +
-                  start + '/' +
-                  end + '/' +
-                  serviceData.res,
-                  function(data) {
-            data = formatGraph(graph, data);
-            $.plot($(graph), data.data, data.options);
-            button.closest('.graph_container')
-                  .find('.options .selected')
-                  .removeClass('selected');
-            button.addClass('selected');
-            unthrob(graph);
-        });
+
+        path = [serviceData.host,
+                serviceData.service,
+                start,
+                end,
+                serviceData.res].join('/');
+
+        createGraph(graph,
+                    path,
+                    function() {
+                        button.closest('.graph_container')
+                              .find('.options .selected')
+                              .removeClass('selected');
+                        button.addClass('selected');
+                    });      
        
     });
 
@@ -208,40 +221,30 @@ $(document).ready(function() {
         $(element).data('service', splitPath[1]);
         $(element).data('res', splitPath[4]);
 
-        $.getJSON('/railroad/parserrd/' + path, function(data) {
-            $(element).html("");
-            data = formatGraph(element, data);
-            $.plot($(element), data.data, data.options);
-            if(data.options.yaxis.label) {
-                $(element).before('<div class="ylabel">' +
-                                  data.options.yaxis.label +
-                                  '</div>');
-            }
-        });
+        createGraph(element, path);
 
         // Allow for zooming
         $(element).bind('plotselected', function (event, ranges) {
             serviceData = $(element).data();
-            throb($(element));
-            $.getJSON('/railroad/parserrd/' +
-                      serviceData.host + '/' +
-                      serviceData.service + '/' +
-                      parseInt(ranges.xaxis.from/1000) + '/' +
-                      parseInt(ranges.xaxis.to/1000) + '/' +
-                      serviceData.res,
-                      function(data) {
-                data = formatGraph(element, data);
-                $(element).removeClass('ajax');
-                $.plot($(element), data.data, data.options);
-                zoom = $(element).closest('.graph_container')
-                                 .find('.zoom');
-                selected = $(element).closest('.graph_container')
-                                     .find('.selected');
-                selected.removeClass('selected');
-                zoom.css('visibility', 'visible');
-                zoom.addClass('selected');
-                unthrob($(element));
-            });
+
+            path = [serviceData.host,
+                    serviceData.service,
+                    parseInt(ranges.xaxis.from / 1000),
+                    parseInt(ranges.xaxis.to / 1000),
+                    serviceData.res].join('/');
+
+            createGraph(element,
+                        path,
+                        function() {
+                            $(element).removeClass('ajax');
+                            zoom = $(element).closest('.graph_container')
+                                             .find('.zoom');
+                            selected = $(element).closest('.graph_container')
+                                                 .find('.selected');
+                            selected.removeClass('selected');
+                            zoom.css('visibility', 'visible');
+                            zoom.addClass('selected');
+                        });
             
         });
 
@@ -254,21 +257,23 @@ $(document).ready(function() {
             time = new Date();
             end = parseInt(time.getTime() / 1000);
             start = parseInt(end - 60 * 60 * 24);
-            $.getJSON('/railroad/parserrd/' +
-                      serviceData.host + '/' +
-                      serviceData.service + '/' +
-                      start + '/' +
-                      end + '/' +
-                      serviceData.res,
-                      function(data) {
-                data = formatGraph(element, data);
-                $.plot($(element), data.data, data.options);
-            });
-            updateTimestamp($(element).closest('.graph_container')
-                                      .find('.update'));
-            $(element).closest('.graph_container')
-                      .find('.update')
-                      .css('visibility', 'visible');
+
+            path = [serviceData.host,
+                    serviceData.service,
+                    start,
+                    end,
+                    serviceData.res].join('/');
+
+            createGraph(element,
+                        path,
+                        function() {
+                            updateTimestamp($(element)
+                                            .closest('.graph_container')
+                                            .find('.update'));
+                            $(element).closest('.graph_container')
+                                      .find('.update')
+                                      .css('visibility', 'visible');
+                        });
         });
         setTimeout(autoFetchData, 60 * 1000);
     }
