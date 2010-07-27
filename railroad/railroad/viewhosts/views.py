@@ -159,10 +159,11 @@ def service(request, host, service):
 def group(request, group):
     t = loader.get_template('group.html')
     service_dict = {}
-    service_list = nagios_objects.ObjectParser(stat_file, ('service',))['service']
         
     host_list = hostlist_by_group(group)
     host_names = map(lambda x: x['host_name'], host_list)
+
+    service_list = nagios_objects.ObjectParser(stat_file, ('service'), {'host_name': host_names})['service']
 
     for service in service_list:
         service_name = service['service_description']
