@@ -163,6 +163,12 @@ def group(request, group):
     host_list = hostlist_by_group(group)
     host_names = map(lambda x: x['host_name'], host_list)
 
+    def test():
+        test1 = nagios_objects.ObjectParser(stat_file, ('service','host'), )
+        test2 = nagios_objects.ObjectParser(obj_file, ('host_group'), )
+
+    test()
+
     service_list = nagios_objects.ObjectParser(stat_file, ('service'), {'host_name': host_names})['service']
 
     for service in service_list:
