@@ -207,8 +207,8 @@ def groupservice(request, group, service):
     host_list = filter(lambda x: is_graphable(x['host_name'],service), host_list)
     target = map(lambda x: x['host_name'], host_list)
     service_list = filter(lambda x: x['host_name'] in target, service_list)
-            
-
+    host_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
+    service_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
     members = zip(host_list, service_list)
 
     ending = int(time.time())
