@@ -42,7 +42,7 @@
                 </div>
                 {# TODO: This has to be one line, as we grab the inner HTML to figure out what to graph, need a solution eventually #}
                 <div id="{{service.service_description|slugify}}" 
-                     class="graph ajax">{{host_name}}/{{service.service_description}}/{{time_interval.0}}/{{time_interval.1}}/100
+                     class="graph ajax"><a href="{{host_name}}/{{service.service_description}}/{{time_interval.0}}/{{time_interval.1}}/100"></a>
                 </div>
                 <div class="legend">
                 </div>

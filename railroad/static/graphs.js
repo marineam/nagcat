@@ -224,7 +224,7 @@ $(document).ready(function() {
     $(".graph").each(function(index, element) {
 
         // Store the graph data for usage later
-        path = $(element).html();
+        path = $(element).find('a').attr('href');
         splitPath = path.split('/');
         $(element).data('host', splitPath[0]);
         $(element).data('service', splitPath[1]);
