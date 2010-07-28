@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-import rrdtool, os, coil, sys, time
+import rrdtool, os, coil, sys, time, re
 from django.conf import settings
 from django.http import HttpResponse
 from django.template import Context, loader
@@ -85,11 +85,23 @@ def are_graphable(host, service_list):
 
 def parse():
     data_path = settings.DATA_PATH
-    stat_file = data_path + 'status.dat'
-    obj_file = data_path + 'objects.cache'
-    stat = nagios_objects.ObjectParser(stat_file, ('service','host'),)
-    obj = nagios_objects.ObjectParser(obj_file, ('hostgroup'), )
-    return (stat,obj)
+    stat_path = data_path + 'status.dat'
+    obj_path = data_path + 'objects.cache'
+    stat = nagios_objects.ObjectParser(stat_path, ('service','host'),)
+    obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'), )
+    stat_file  = open(stat_path)
+    obj_file  = open(obj_path)
+    stat_str = stat_file.read()
+    obj_str = obj_file.read()
+    dict = {}
+    result = re.findall('(\w+?status|\w+) {\n((?:\s*[^}]*\n)+)\s*}', stat_str)
+    for tuple in result:
+        break
+        
+
+    result2 = re.findall('\s*([^=]+)=([^=]+)\n', stat_str)
+    return stat,obj
+
 
 def grouplist(obj):
     return obj['hostgroup']
@@ -176,6 +188,7 @@ def host(request, host):
     t = loader.get_template('host.html')
     stat,obj = parse()
     services = servicelist_by_host(stat, host)
+    are_graphable(host, services)
     host_detail = hostdetail(stat, host)
     ending = int(time.time())
     starting = ending - 86400
@@ -183,6 +196,7 @@ def host(request, host):
         'host_name': host,
         'host': host_detail,
         'services': services,
+        'true' : True,
         'time_interval': [starting,ending]
     }
     
