@@ -127,22 +127,31 @@ function formatGraph(element, data) {
 function createGraph(element, path, callback) {
     $(element).append('<div class="throbber"></div>');
     $(element).remove('.empty');
-    $.getJSON('/railroad/parserrd/' + path, function(data) {
-        $(element).html("");
-        data = formatGraph(element, data);
-        $.plot($(element), data.data, data.options);
-        if(data.options.yaxis.label) {
-            $(element).before('<div class="ylabel">' +
-                              data.options.yaxis.label +
-                              '</div>');
+    $.ajax({
+        url: '/railroad/parserrd/' + path,
+        dataType: 'json',
+        success: function(data) {
+            $(element).html("");
+            data = formatGraph(element, data);
+            $.plot($(element), data.data, data.options);
+            if(data.options.yaxis.label) {
+                $(element).before('<div class="ylabel">' +
+                                  data.options.yaxis.label +
+                                  '</div>');
+            }
+            if(data.empty == true) {
+                $(element).append('<div class="empty">no data</div>');
+            }
+            if(callback != null) {
+                callback();
+            }
+            $(element).remove('.throbber');
+        },
+        error: function(request, status, error) {
+            // If there's an error just bail out
+            $(element).html('');
+            $(element).append('<div class="empty">error</div>');
         }
-        if(data.empty == true) {
-            $(element).append('<div class="empty">no data</div>');
-        }
-        if(callback != null) {
-            callback();
-        }
-        $(element).remove('.throbber');
     });
 }
    
@@ -172,14 +181,14 @@ $(document).ready(function() {
 
         button.closest('.graph_container')
               .find('.zoom')
-              .css('visibility', 'hidden');
+              .hide();
 
         if(button.hasClass('reset')) {
             graph.addClass('ajax');
             update = graph.closest('.graph_container')
                           .find('.update');
             updateTimestamp(update);
-            update.css('visibility', 'visible');
+            update.show();
         } if(button.hasClass('day') || button.hasClass('reset')) {
             start = parseInt(end - 60 * 60 * 24);
         } else if(button.hasClass('week')) {
@@ -242,7 +251,7 @@ $(document).ready(function() {
                             selected = $(element).closest('.graph_container')
                                                  .find('.selected');
                             selected.removeClass('selected');
-                            zoom.css('visibility', 'visible');
+                            zoom.show();
                             zoom.addClass('selected');
                         });
             
@@ -272,7 +281,7 @@ $(document).ready(function() {
                                             .find('.update'));
                             $(element).closest('.graph_container')
                                       .find('.update')
-                                      .css('visibility', 'visible');
+                                      .show();
                         });
         });
         setTimeout(autoFetchData, 60 * 1000);
