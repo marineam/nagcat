@@ -81,6 +81,8 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
+    'railroad.middleware.profiler.ProfilerMiddleware',
 )
 
 ROOT_URLCONF = 'railroad.urls'
