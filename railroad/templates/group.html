@@ -6,39 +6,32 @@
 
 <h1>{{group_name}}</h1>
 <div class="services">
+<h2>Hosts</h2>
 <table>
 <tr>
-<th>
-<h2>Hosts</h2>
-</th>
-<th>
-<h2>Services</h2>
-</th>
-</tr>
-{% for member in members %}
-    <tr>
-    {% ifnotequal member.0.host_name None %}
-		{% ifequal member.0.current_state '0' %}
-			<td class="greenbg">
-		{% else %}
-			{% ifequal member.0.current_state '1' %}
-				<td class="yellowbg">
-			{% else %}
-				<td class="redbg">
-        	{% endifequal %}
-       	{% endifequal %}
-		<h2><a href="../viewhost/{{member.0.host_name}}">{{member.0.host_name}}</a></h2>
-		</td>
+{% for host in hosts %}
+	{% ifequal host.current_state '0' %}
+		<td class="greenbg">
 	{% else %}
-		<td></td>
-	{% endifnotequal %}
-
-    {% ifnotequal member.1 None %}
-		<td>
-			<h2><a href="../viewgroup/{{group_name}}/{{member.1}}">{{member.1}}</a></h2>
-		</td>
-	{% endifnotequal %}
-    </tr>
+		{% ifequal host.current_state '1' %}
+			<td class="yellowbg">
+		{% else %}
+			<td class="redbg">
+		{% endifequal %}
+	{% endifequal %}
+	<a href="/railroad/viewhost/{{host.host_name}}">{{host.host_name}}</a>
+	</td>
+	{% if forloop.counter|divisibleby:"3" %}</tr><tr>{% endif %}	
+{% endfor %}
+</tr>
+</table>
+<br />
+<table>
+<h2>Services</h2>
+{% for service in services %}
+	<tr><td>
+		<a href="/railroad/viewgroup/{{group_name}}/{{service}}">{{service}}</a>
+	</tr></td>
 {% endfor %}
 </table>
 </div>

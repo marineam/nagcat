@@ -247,22 +247,12 @@ def group(request, group):
     host_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
     services.sort()
 
-    hostlen = len(host_list)
-    servicelen = len(services)
-    
-    if (servicelen > hostlen):
-        host_list.extend([None] * (servicelen-hostlen))
-    else:
-        services.extend([None] * (hostlen-servicelen))
-
-    members = zip(host_list,services)
-
-    
     ending = int(time.time())
     starting = ending - 86400
     context_data = {
         'group_name': group,
-        'members': members,
+        'hosts': host_list,
+        'services': services,
         'time_interval': [starting,ending]
     }
     
