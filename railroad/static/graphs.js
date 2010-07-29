@@ -143,7 +143,7 @@ function createGraph(element, path, callback) {
                 $(element).append('<div class="empty">no data</div>');
             }
             if(callback != null) {
-                callback();
+                callback(data);
             }
             $(element).remove('.throbber');
         },
@@ -275,10 +275,13 @@ $(document).ready(function() {
 
             createGraph(element,
                         path,
-                        function() {
-                            updateTimestamp($(element)
+                        function(data) {
+/*                            updateTimestamp($(element)
                                             .closest('.graph_container')
-                                            .find('.update'));
+                                            .find('.update'));*/
+                            updated = $(element).closest('.graph_container')
+                                                .find('.update');
+                            updated.html('updated: ' + data.current_time);
                             $(element).closest('.graph_container')
                                       .find('.update')
                                       .show();
