@@ -89,19 +89,7 @@ def parse():
     obj_path = data_path + 'objects.cache'
     stat = nagios_objects.ObjectParser(stat_path, ('service','host'),)
     obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'), )
-    stat_file  = open(stat_path)
-    obj_file  = open(obj_path)
-    stat_str = stat_file.read()
-    obj_str = obj_file.read()
-    dict = {}
-    result = re.findall('(\w+?status|\w+) {\n((?:\s*[^}]*\n)+)\s*}', stat_str)
-    for tuple in result:
-        break
-        
-
-    result2 = re.findall('\s*([^=]+)=([^=]+)\n', stat_str)
     return stat,obj
-
 
 def grouplist(obj):
     return obj['hostgroup']
@@ -155,21 +143,19 @@ def get_time_intervals():
 # will have to include this on each and every page
 def add_hostlist(stat, obj, c):
     groups = grouplist(obj)
+    groups.sort(lambda x,y: cmp(x['alias'],y['alias']))
     hosts = hostlist(stat)
     sidebar = []
-
     for group in groups:
         group_name = group['alias']
         addinghosts = group['members'].split(',')
         hosts_of_group = []
-        for added in addinghosts:
-            for host in hosts:
-                if host['host_name'] == added:
-                    hosts_of_group.append(host) 
-                    host['has_group'] = True
-                    break
+        for host in hosts:
+            if host['host_name'] in addinghosts:
+                hosts_of_group.append(host) 
+                host['has_group'] = True
+        hosts_of_group.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
         sidebar.append((group_name, hosts_of_group))
-
     no_group = filter(lambda x: not(x.has_key('has_group')), hosts)
     if len(no_group):
         sidebar.append(('(no group)', no_group))
