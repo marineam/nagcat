@@ -126,11 +126,12 @@ body {
 }
 .ylabel {
 	position: absolute;
-	top: 40%;
+	top: 200px;
+	width: 200px;
 	left: 10px;
 	text-align: center;
-	padding: 5px;
-	background-color: #F0F0F0;
+/*	padding: 5px;*/
+/*	background-color: #F0F0F0;*/
 	-o-transform: rotate(-90deg);
 	-o-transform-origin: left;
 	-moz-transform: rotate(-90deg);
@@ -141,6 +142,15 @@ body {
 	transform-origin: left;
 	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
 }
+.ylabel span {
+	background-color: #F0F0F0;
+	padding: 5px;
+}
+/*.ylabel::first-line {
+	background-color: #F0F0F0;
+	margin: 5px;
+}*/
+
 .ajax_info {
 	position: absolute;
 	top: -20px;

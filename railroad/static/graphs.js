@@ -135,9 +135,9 @@ function createGraph(element, path, callback) {
             data = formatGraph(element, data);
             $.plot($(element), data.data, data.options);
             if(data.options.yaxis.label) {
-                $(element).before('<div class="ylabel">' +
+                $(element).before('<div class="ylabel"><span>' +
                                   data.options.yaxis.label +
-                                  '</div>');
+                                  '</span></div>');
             }
             if(data.empty == true) {
                 $(element).append('<div class="empty">no data</div>');
