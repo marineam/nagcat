@@ -105,6 +105,9 @@ body {
 	margin-top: 20px;
 	font-size: 12pt;
 }
+.graph_container {
+	font-size: 10pt;
+}
 
 .legend {
 	position: absolute;
@@ -216,4 +219,7 @@ body {
 	width: 16px;
 	height: 16px;
 	background-image: url('/railroad-static/throbber.gif');
+}
+pre {
+	font-size: 8pt;
 }

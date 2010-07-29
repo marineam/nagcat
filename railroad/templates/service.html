@@ -6,14 +6,21 @@
 
 <h1><a href="/railroad/viewhost/{{host_name}}">{{host_name}}</a> &gt; {{service_name}}</h1>
 
-<pre>{{service_output}}</pre>
+<pre style="float: left; min-width: 250px; padding-right: 35px">{{service_output}}</pre>
 
+<div class="services">
 <table>
 {% ifequal graphable true %}
 	{% for time_interval in time_intervals %}
 		<tr>
-			<td><h2>{{time_interval.0}}</h2>
+			<td width="100"><h2>{{time_interval.0|title}}</h2>
 				<div class="graph_container">
+					<div class="options">
+						<ul>
+							<li class="{{time_interval.0}} selected">{{time_interval.0}}</li>
+							<li class="zoom" style="visibility: hidden">zoomed</li>
+						</ul>
+					</div>
 				<div id="{{service_name|slugify}}" class="graph"><a href="{{host_name}}/{{service_name}}/{{time_interval.1.0}}/{{time_interval.1.1}}/100"></a>
 				</div>
 				<div class="legend"></div>
@@ -23,4 +30,5 @@
 	{% endfor %}
 {% endifequal %}
 </table>
+</div>
 {% endblock %}

@@ -181,7 +181,7 @@ $(document).ready(function() {
 
         button.closest('.graph_container')
               .find('.zoom')
-              .hide();
+              .css('visibility', 'hidden');
 
         if(button.hasClass('reset')) {
             graph.addClass('ajax');
@@ -251,7 +251,7 @@ $(document).ready(function() {
                             selected = $(element).closest('.graph_container')
                                                  .find('.selected');
                             selected.removeClass('selected');
-                            zoom.show();
+                            zoom.css('visibility', 'visible');
                             zoom.addClass('selected');
                         });
             

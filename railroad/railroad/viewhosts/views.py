@@ -135,7 +135,7 @@ def servicelist_by_host(stat, host):
 
 def get_time_intervals():
     intervals = [86400,604800,2592000,31104000]
-    times = ['Day','Week','Month','Year']
+    times = ['day','week','month','year']
     ending = int(time.time())
     return zip(times, [[ending-interval, ending] for interval in intervals])
 
