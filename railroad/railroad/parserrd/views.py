@@ -16,7 +16,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from railroad.errors import RailroadError
 
-import rrdtool, json, os, coil, types
+import rrdtool, json, os, coil, types, time
 
 def sigfigs(float):
     desired_sigfigs = 3
@@ -39,19 +39,6 @@ def labelize(data, index, base, unit):
         + ', avg: ' + str(sigfigs(statistics['avg'] / base)) + unit  \
         + ')'
 
-def get_root_label(host, service):
-    rra_path = settings.RRA_PATH
-    coilfile = rra_path + host + '/' + service + '.coil'
-    if(os.path.exists(coilfile)):
-        coilstring = open(coilfile).read()
-        coilstruct = coil.parse(coilstring)
-        trend = coilstruct.get('trend', None)
-
-        if trend:
-            return trend.get('label', None)
-
-    return None
-
 def index(request, host, service, start, end, resolution='150'):
     rra_path = settings.RRA_PATH
     rrd = rra_path + host + '/' + service + '.rrd'
@@ -73,6 +60,10 @@ def index(request, host, service, start, end, resolution='150'):
                 '--end', str(end),
                 '--resolution', str(resolution),
                 'AVERAGE')
+
+    time_struct = time.gmtime()
+    current_time = str(time_struct.tm_hour) + str(time_struct.tm_min)   \
+                    + str(time_struct.tm_sec)
 
     # Parse the data
     start,end,res = rrdslice[0]
@@ -100,28 +91,41 @@ def index(request, host, service, start, end, resolution='150'):
         'grid': {}
     }
 
-    graph_trend = coilstruct.get('trend',{})
-
-
+    root_trend = coilstruct.get('trend',{})
     all_labels = rrdslice[1]
-
     labels = []
 
-    root_keys = ['_result','query']
-    root_label = get_root_label(host, service)
-    for key in query.keys():
-        val = query.get(key)
-        if type(val) == type(query) and val.has_key('trend'):
-            labels.append((key,key))
+    root_label = None
+    if root_trend:
+        root_label = root_trend.get('label', None)
+        if not(root_label):
+            root_label = coilstruct.get('label', None)
 
-    root_key = None
-    if root_label:
-        for key in root_keys:
-            if key in all_labels:
-                root_key = key
+    compound = query.get('type') == 'compound'
 
-    if root_key:
-        labels.append((root_key,root_label))
+    if compound:
+        for key in query.keys():
+            val = query.get(key)
+            if isinstance(val, coil.struct.Struct):
+                trend = val.get('trend', None)
+                if trend and trend.get('type', None):
+                    label = trend.get('label', None)
+                    if not(label):
+                        label = key
+                    labels.append((key,label))
+
+
+    if 'query' in all_labels:
+        trend = query.get('trend', None)
+        if trend:
+            query_label = trend.get('label', None)
+            if not(query_label):
+                query_label = root_label
+            labels.append(('query', query_label if query_label else 'Result'))
+        
+
+    if '_result' in all_labels:
+        labels.append(('_result', root_label if root_label else 'Result'))
 
     length = len(labels)
         
@@ -256,15 +260,15 @@ def index(request, host, service, start, end, resolution='150'):
 
     graph_options['yaxis']['max'] = max * 1.1
 
-    if graph_trend:
-        axis_max = graph_trend.get('axis_max','')
+    if root_trend:
+        axis_max = root_trend.get('axis_max','')
         if axis_max and graph_options['yaxis']['max'] < axis_max:
             graph_options['yaxis']['max'] = axis_max * 1.1
     
     fill = graph_options['yaxis']['max']
 
-    if graph_trend:
-        axis_label = graph_trend.get('axis_label','')
+    if root_trend:
+        axis_label = root_trend.get('axis_label','')
         if axis_label:
             graph_options['yaxis']['label'] = axis_label
         
@@ -293,8 +297,10 @@ def index(request, host, service, start, end, resolution='150'):
     empty_graph = empty_graph and (not(len(markings)))
 
     graph_options['grid']['markings'] = markings
+    # Pass state, BUT DONT DRAW!! this is so taht graphs with ONLY state
+    # still draw (otherwise they don't get axes, ticks, etc)
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
-    result = {'options': graph_options, 'data': flot_data, 'base': base, 'empty': empty_graph}
+    result = {'options': graph_options, 'data': flot_data, 'base': base, 'empty': empty_graph, 'current_time': current_time}
 
     return HttpResponse(json.dumps(result))
