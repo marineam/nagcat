@@ -21,18 +21,21 @@
 	{% endifequal %}
 	<a href="/railroad/viewhost/{{host.host_name}}">{{host.host_name}}</a>
 	</td>
-	{% if forloop.counter|divisibleby:"3" %}</tr><tr>{% endif %}	
+	{% if forloop.counter|divisibleby:"5" %}</tr><tr>{% endif %}	
 {% endfor %}
 </tr>
 </table>
 <br />
-<table>
 <h2>Services</h2>
+<table>
+<tr>
 {% for service in services %}
-	<tr><td>
+	<td>
 		<a href="/railroad/viewgroup/{{group_name}}/{{service}}">{{service}}</a>
-	</tr></td>
+	</td>
+	{% if forloop.counter|divisibleby:"2" %}</tr><tr>{% endif %}	
 {% endfor %}
+</tr>
 </table>
 </div>
 {% endblock %}
