@@ -19,7 +19,7 @@ from django.conf.urls.defaults import *
 # admin.autodiscover()
 
 urlpatterns = patterns('',
-    (r'^parserrd/(?P<host>.+)/(?P<data>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/$', 'railroad.parserrd.views.index'),
+    (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/$', 'railroad.parserrd.views.index'),
     (r'^pagetest/$', 'railroad.pagetest.views.index'),
     (r'^$', 'railroad.viewhosts.views.index'),
 

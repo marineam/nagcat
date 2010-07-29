@@ -174,6 +174,7 @@ def host(request, host):
     t = loader.get_template('host.html')
     stat,obj = parse()
     services = servicelist_by_host(stat, host)
+    services.sort(lambda x,y: cmp(x['service_description'],y['service_description']))
     are_graphable(host, services)
     host_detail = hostdetail(stat, host)
     ending = int(time.time())

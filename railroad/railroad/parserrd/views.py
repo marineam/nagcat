@@ -39,11 +39,23 @@ def labelize(data, index, base, unit):
         + ', avg: ' + str(sigfigs(statistics['avg'] / base)) + unit  \
         + ')'
 
-
-def index(request, host, data, start, end, resolution='150'):
+def get_root_label(host, service):
     rra_path = settings.RRA_PATH
-    rrd = rra_path + host + '/' + data + '.rrd'
-    coilfile = rra_path + host + '/' + data + '.coil'
+    coilfile = rra_path + host + '/' + service + '.coil'
+    if(os.path.exists(coilfile)):
+        coilstring = open(coilfile).read()
+        coilstruct = coil.parse(coilstring)
+        trend = coilstruct.get('trend', None)
+
+        if trend:
+            return trend.get('label', None)
+
+    return None
+
+def index(request, host, service, start, end, resolution='150'):
+    rra_path = settings.RRA_PATH
+    rrd = rra_path + host + '/' + service + '.rrd'
+    coilfile = rra_path + host + '/' + service + '.coil'
     railroad_conf = 'railroad_conf'
     statistics = 'statistics'
     trend_attributes = ['color','stack','scale','display']
@@ -91,14 +103,25 @@ def index(request, host, data, start, end, resolution='150'):
     graph_trend = coilstruct.get('trend',{})
 
 
-    allLabels = rrdslice[1]
+    all_labels = rrdslice[1]
 
     labels = []
 
+    root_keys = ['_result','query']
+    root_label = get_root_label(host, service)
     for key in query.keys():
         val = query.get(key)
         if type(val) == type(query) and val.has_key('trend'):
-            labels.append(key)
+            labels.append((key,key))
+
+    root_key = None
+    if root_label:
+        for key in root_keys:
+            if key in all_labels:
+                root_key = key
+
+    if root_key:
+        labels.append((root_key,root_label))
 
     length = len(labels)
         
@@ -110,8 +133,10 @@ def index(request, host, data, start, end, resolution='150'):
     # [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
     #   { label: "Bar", data: [ [11, 13], [19, 11], [30, -7] ] } ]
     # See Flot Reference (http://flot.googlecode.com/svn/trunk/API.txt)
-    flot_data = [{'label': label, railroad_conf: {}, 'data': []}    \
+    flot_data = [{'label': label[1], railroad_conf: {}, 'data': []}    \
                     for label in labels]
+
+    labels = map(lambda x: x[0], labels)
     state_data = []
     
     # Reading graph options
@@ -145,10 +170,10 @@ def index(request, host, data, start, end, resolution='150'):
     # See above
     x = start * 1000
 
-    transform = [allLabels.index(z) for z in labels]
-    stateIndex = allLabels.index('_state')
+    transform = [all_labels.index(z) for z in labels]
+    stateIndex = all_labels.index('_state')
 
-    datapoints = zip(allLabels,rrdslice[2][0])
+    datapoints = zip(all_labels,rrdslice[2][0])
     for index in indices:
         label,data = datapoints[transform[index]]
 
@@ -157,6 +182,7 @@ def index(request, host, data, start, end, resolution='150'):
         flot_data[index][statistics]['sum'] = 0
         flot_data[index][statistics]['max'] = 0
         flot_data[index][statistics]['min'] = DEFAULT_MIN
+        flot_data[index][railroad_conf]['scale'] = 1
         if data:
             flot_data[index][statistics]['max'] =                     \
                 flot_data[index][statistics]['min'] =                 \
@@ -164,7 +190,7 @@ def index(request, host, data, start, end, resolution='150'):
 
 
     for tuple in rrdslice[2]:
-        datapoints = zip(allLabels,tuple)
+        datapoints = zip(all_labels,tuple)
     
         label,data = datapoints[stateIndex]
         state_data.append([x,data])
