@@ -62,8 +62,9 @@ def index(request, host, service, start, end, resolution='150'):
                 'AVERAGE')
 
     time_struct = time.gmtime()
-    current_time = str(time_struct.tm_hour) + str(time_struct.tm_min)   \
-                    + str(time_struct.tm_sec)
+    current_time = ':'.join([str(time_struct.tm_hour),  \
+                             str(time_struct.tm_min),   \
+                             str(time_struct.tm_sec) + ' UTC'])
 
     # Parse the data
     start,end,res = rrdslice[0]
