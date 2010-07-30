@@ -12,19 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import sys
+import re
+import time
 
-import rrdtool, os, coil, sys, time, re
+import coil
+import rrdtool
 from django.conf import settings
 from django.http import HttpResponse
 from django.template import Context, loader
 from nagcat import nagios_objects
+
 from railroad.errors import RailroadError
 
 def is_graphable(host, service):
     rra_path = settings.RRA_PATH
     coilfile = rra_path + host + '/' + service + '.coil'
     rrd = rra_path + host + '/' + service + '.rrd'
-    if(os.path.exists(coilfile) and os.path.exists(rrd)):
+    if os.path.exists(coilfile) and os.path.exists(rrd):
         coilstring = open(coilfile).read()
         coilstruct = coil.parse(coilstring)
         query = coilstruct.get('query')
@@ -56,7 +62,7 @@ def are_graphable(host, service_list):
             + service['service_description'] + '.coil'
         rrd = rra_path + host + '/'         \
             + service['service_description'] + '.rrd'
-        if(os.path.exists(coilfile) and os.path.exists(rrd)):
+        if os.path.exists(coilfile) and os.path.exists(rrd):
             coilstring = open(coilfile).read()
             coilstruct = coil.parse(coilstring)
             query = coilstruct.get('query')
@@ -87,9 +93,9 @@ def parse():
     data_path = settings.DATA_PATH
     stat_path = data_path + 'status.dat'
     obj_path = data_path + 'objects.cache'
-    stat = nagios_objects.ObjectParser(stat_path, ('service','host'),)
-    obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'), )
-    return stat,obj
+    stat = nagios_objects.ObjectParser(stat_path, ('service','host'))
+    obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
+    return stat, obj
 
 def grouplist(obj):
     return obj['hostgroup']
@@ -134,8 +140,9 @@ def servicelist_by_host(stat, host):
 
 
 def get_time_intervals():
-    intervals = [86400,604800,2592000,31104000]
-    times = ['day','week','month','year']
+    #            day  , week  , month  , year
+    intervals = [86400, 604800, 2592000, 31104000]
+    times = ['day', 'week', 'month', 'year']
     ending = int(time.time())
     return zip(times, [[ending-interval, ending] for interval in intervals])
 
@@ -143,7 +150,7 @@ def get_time_intervals():
 # will have to include this on each and every page
 def add_hostlist(stat, obj, c):
     groups = grouplist(obj)
-    groups.sort(lambda x,y: cmp(x['alias'],y['alias']))
+    groups.sort(lambda x, y: cmp(x['alias'], y['alias']))
     hosts = hostlist(stat)
     sidebar = []
     for group in groups:
@@ -154,7 +161,7 @@ def add_hostlist(stat, obj, c):
             if host['host_name'] in addinghosts:
                 hosts_of_group.append(host) 
                 host['has_group'] = True
-        hosts_of_group.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
+        hosts_of_group.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
         sidebar.append((group_name, hosts_of_group))
     no_group = filter(lambda x: not(x.has_key('has_group')), hosts)
     if len(no_group):
@@ -164,7 +171,7 @@ def add_hostlist(stat, obj, c):
 
 def index(request):
     t = loader.get_template('index.html')
-    stat,obj = parse()
+    stat, obj = parse()
     context_data = {}
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
@@ -172,9 +179,9 @@ def index(request):
 
 def host(request, host):
     t = loader.get_template('host.html')
-    stat,obj = parse()
+    stat, obj = parse()
     services = servicelist_by_host(stat, host)
-    services.sort(lambda x,y: cmp(x['service_description'],y['service_description']))
+    services.sort(lambda x, y: cmp(x['service_description'], y['service_description']))
     are_graphable(host, services)
     host_detail = hostdetail(stat, host)
     ending = int(time.time())
@@ -184,7 +191,7 @@ def host(request, host):
         'host': host_detail,
         'services': services,
         'true' : True,
-        'time_interval': [starting,ending]
+        'time_interval': [starting, ending]
     }
     
     context_data = add_hostlist(stat, obj, context_data)
@@ -193,13 +200,13 @@ def host(request, host):
 
 def service(request, host, service):
     t = loader.get_template('service.html')
-    stat,obj = parse()
+    stat, obj = parse()
     service_detail = servicedetail(stat, host, service)
 
-    str = service_detail.get('plugin_output','')
+    str = service_detail.get('plugin_output', '')
     if str:
         str += '\n'
-        str += service_detail.get('long_plugin_output','')
+        str += service_detail.get('long_plugin_output', '')
     
     time_intervals = get_time_intervals()
     context_data = {
@@ -217,7 +224,7 @@ def service(request, host, service):
 
 def group(request, group):
     t = loader.get_template('group.html')
-    stat,obj = parse()
+    stat, obj = parse()
     service_dict = {}
         
     host_list = hostlist_by_group(stat, obj, group)
@@ -231,7 +238,7 @@ def group(request, group):
             service_dict[service_name] = True
 
     services = service_dict.keys()
-    host_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
+    host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
     services.sort()
 
     ending = int(time.time())
@@ -240,7 +247,7 @@ def group(request, group):
         'group_name': group,
         'hosts': host_list,
         'services': services,
-        'time_interval': [starting,ending]
+        'time_interval': [starting, ending]
     }
     
     context_data = add_hostlist(stat, obj, context_data)
@@ -249,7 +256,7 @@ def group(request, group):
 
 def groupservice(request, group, service):
     t = loader.get_template('groupservice.html')
-    stat,obj = parse()
+    stat, obj = parse()
     host_list = hostlist_by_group(stat, obj, group)
     service_list = servicelist_by_description(stat, service)
 
@@ -263,8 +270,8 @@ def groupservice(request, group, service):
     host_list = filter(lambda x: has_service(x['host_name']), host_list)
     target = map(lambda x: x['host_name'], host_list)
     service_list = filter(lambda x: x['host_name'] in target, service_list)
-    host_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
-    service_list.sort(lambda x,y: cmp(x['host_name'],y['host_name']))
+    host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
+    service_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
 
     for s in service_list:
         s['is_graphable'] = is_graphable(s['host_name'], s['service_description'])
@@ -277,7 +284,7 @@ def groupservice(request, group, service):
         'group_name': group,
         'service_name': service,
         'members': members,
-        'time_interval': [starting,ending],
+        'time_interval': [starting, ending],
         'true': True
     }
     

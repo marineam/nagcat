@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import os
+import types
+import time
+
+import rrdtool
+import coil
 from django.conf import settings
 from django.http import HttpResponse
-from railroad.errors import RailroadError
 
-import rrdtool, json, os, coil, types, time
+from railroad.errors import RailroadError
 
 def sigfigs(float):
     desired_sigfigs = 3
@@ -45,7 +51,7 @@ def index(request, host, service, start, end, resolution='150'):
     coilfile = rra_path + host + '/' + service + '.coil'
     railroad_conf = 'railroad_conf'
     statistics = 'statistics'
-    trend_attributes = ['color','stack','scale','display']
+    trend_attributes = ['color', 'stack', 'scale', 'display']
 
     DEFAULT_MIN = 99999999999999999999999
 
@@ -67,7 +73,7 @@ def index(request, host, service, start, end, resolution='150'):
                              str(time_struct.tm_sec) + ' UTC'])
 
     # Parse the data
-    start,end,res = rrdslice[0]
+    start, end, res = rrdslice[0]
 
     # Multiply by 1000 to convert to JS timestamp (millisecond resolution)
     res *= 1000
@@ -75,7 +81,7 @@ def index(request, host, service, start, end, resolution='150'):
     coilstring = open(coilfile).read()
     coilstruct = coil.parse(coilstring)
 
-    query = coilstruct.get('query',{})
+    query = coilstruct.get('query', {})
 
     if not(query):
         raise RailroadError("OMG PONIES! query doesn't exist in coil file")
@@ -113,7 +119,7 @@ def index(request, host, service, start, end, resolution='150'):
                     label = trend.get('label', None)
                     if not(label):
                         label = key
-                    labels.append((key,label))
+                    labels.append((key, label))
 
 
     if 'query' in all_labels:
@@ -147,13 +153,13 @@ def index(request, host, service, start, end, resolution='150'):
     # Reading graph options
     for index in indices:
         key = labels[index]
-        trend = query.get(key,{}).get('trend',{})
+        trend = query.get(key,{}).get('trend', {})
         if not(trend):
             continue
 
         trend_settings = {}
         for var in trend_attributes: 
-            trend_settings[var] = trend.get(var,'')
+            trend_settings[var] = trend.get(var, '')
 
         if trend_settings['display']:
             flot_data[index]['lines'] =     \
@@ -195,13 +201,13 @@ def index(request, host, service, start, end, resolution='150'):
 
 
     for tuple in rrdslice[2]:
-        datapoints = zip(all_labels,tuple)
+        datapoints = zip(all_labels, tuple)
     
         label,data = datapoints[stateIndex]
-        state_data.append([x,data])
+        state_data.append([x, data])
 
         for index in indices:
-            label,data = datapoints[transform[index]]
+            label, data = datapoints[transform[index]]
 
             if data != None:
                 flot_data[index][statistics]['num'] += 1
@@ -212,7 +218,7 @@ def index(request, host, service, start, end, resolution='150'):
                 if data < flot_data[index][statistics]['min']:
                     flot_data[index][statistics]['min'] = data
 
-            flot_data[index]['data'].append([x,data])
+            flot_data[index]['data'].append([x, data])
     
         x += res
 
@@ -225,7 +231,7 @@ def index(request, host, service, start, end, resolution='150'):
     max = 100
 
     if length > 0:
-        value = query.get(labels[0],{}).get('trend',{}).get('base','')
+        value = query.get(labels[0], {}).get('trend', {}).get('base', '')
         if value:
             base = int(value)
 
@@ -234,8 +240,8 @@ def index(request, host, service, start, end, resolution='150'):
         for index in indices:
             if flot_data[index][statistics]['num'] > 0:
                 flot_data[index][statistics]['avg'] =           \
-                    flot_data[index][statistics]['sum']         \
-                        / flot_data[index][statistics]['num']
+                    flot_data[index][statistics]['sum'] /       \
+                        flot_data[index][statistics]['num']
                 if flot_data[index][statistics]['max'] > max:
                     max = flot_data[index][statistics]['max']
 
@@ -269,7 +275,7 @@ def index(request, host, service, start, end, resolution='150'):
     fill = graph_options['yaxis']['max']
 
     if root_trend:
-        axis_label = root_trend.get('axis_label','')
+        axis_label = root_trend.get('axis_label', '')
         if axis_label:
             graph_options['yaxis']['label'] = axis_label
         
@@ -298,7 +304,7 @@ def index(request, host, service, start, end, resolution='150'):
     empty_graph = empty_graph and (not(len(markings)))
 
     graph_options['grid']['markings'] = markings
-    # Pass state, BUT DONT DRAW!! this is so taht graphs with ONLY state
+    # Pass state, BUT DONT DRAW!! this is so that graphs with ONLY state
     # still draw (otherwise they don't get axes, ticks, etc)
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
