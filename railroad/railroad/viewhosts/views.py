@@ -234,12 +234,24 @@ def group(request, group):
 
     for service in service_list:
         service_name = service['service_description']
+        service_test = service.get('_TEST', None)
+        service_test = service_test if service_test else service['check_command']
         if service['host_name'] in host_names:
-            service_dict[service_name] = True
+            if not(service_dict.get(service_test, None)):
+                service_dict[service_test] = []
+            service_dict[service_test].append(service_name)
 
-    services = service_dict.keys()
+    services = []
+    service_tests = service_dict.keys()
+    for service_test in service_tests:
+        prefix = os.path.commonprefix(service_dict[service_test])
+        suffix = os.path.commonprefix(map(lambda x: x[:len(prefix):-1], service_dict[service_test]))[::-1]
+        d = locals()
+        service = ('%(prefix)s' % d) + ('%(suffix)s' % d)
+        services.append({'service_test': service_test, 'service_name' : service})
+
+    services.sort(lambda x, y: cmp(x['service_name'], y['service_name']))
     host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-    services.sort()
 
     ending = int(time.time())
     starting = ending - 86400
@@ -254,36 +266,37 @@ def group(request, group):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
-def groupservice(request, group, service):
+def groupservice(request, group, test):
     t = loader.get_template('groupservice.html')
     stat, obj = parse()
     host_list = hostlist_by_group(stat, obj, group)
-    service_list = servicelist_by_description(stat, service)
-
-    def has_service(host):
-        for service in service_list:
-           if service['host_name'] == host:
-               return True
-
-        return False
-        
-    host_list = filter(lambda x: has_service(x['host_name']), host_list)
     target = map(lambda x: x['host_name'], host_list)
-    service_list = filter(lambda x: x['host_name'] in target, service_list)
+    all_services = servicelist(stat)
+
+    for service in all_services:
+        service_test = service.get('_TEST', None) if        \
+                       service.get('_TEST', None) else      \
+                       service.get('check_command', None)
+        if service_test == test:
+            host_name = service['host_name']
+            try: 
+                host = host_list[target.index(host_name)]
+                if not(host.has_key('services')): host['services'] = []
+                service['is_graphable'] = is_graphable(host_name, service['service_description'])
+                host['services'].append(service)
+            except ValueError:
+                continue
+                
+    host_list = filter(lambda x: x.has_key('services'), host_list)
     host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-    service_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-
-    for s in service_list:
-        s['is_graphable'] = is_graphable(s['host_name'], s['service_description'])
-
-    members = zip(host_list, service_list)
+    map(lambda z: z['services'].sort(lambda x, y: cmp(x['service_description'], y['service_description'])), host_list)
 
     ending = int(time.time())
     starting = ending - 86400
     context_data = {
         'group_name': group,
-        'service_name': service,
-        'members': members,
+        'service_name': test,
+        'host_list': host_list,
         'time_interval': [starting, ending],
         'true': True
     }

@@ -31,7 +31,7 @@
 <tr>
 {% for service in services %}
 	<td>
-		<a href="/railroad/viewgroup/{{group_name}}/{{service}}">{{service}}</a>
+		<a href="/railroad/viewgroup/{{group_name}}/{{service.service_test}}">{{service.service_name}}</a>
 	</td>
 	{% if forloop.counter|divisibleby:"2" %}</tr><tr>{% endif %}	
 {% endfor %}
