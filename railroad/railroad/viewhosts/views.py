@@ -93,7 +93,7 @@ def parse():
     data_path = settings.DATA_PATH
     stat_path = data_path + 'status.dat'
     obj_path = data_path + 'objects.cache'
-    stat = nagios_objects.ObjectParser(stat_path, ('service','host'))
+    stat = nagios_objects.ObjectParser(stat_path, ('service', 'host'))
     obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
     return stat, obj
 

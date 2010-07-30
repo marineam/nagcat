@@ -29,7 +29,7 @@ def sigfigs(float):
     powers = range(desired_sigfigs)
     power = 0
     while power < powers:
-        if float / pow(10,power) < 1:
+        if float / pow(10, power) < 1:
             break
         power += 1
 
@@ -68,9 +68,10 @@ def index(request, host, service, start, end, resolution='150'):
                 'AVERAGE')
 
     time_struct = time.gmtime()
-    current_time = ':'.join([str(time_struct.tm_hour),  \
-                             str(time_struct.tm_min),   \
-                             str(time_struct.tm_sec) + ' UTC'])
+    time_dict = {'h': time_struct.tm_hour, 'm': time_struct.tm_min, \
+                 's': time_struct.tm_sec}
+    current_time = '%(h)02d:%(m)02d:%(s)02d UTC' % time_dict
+    
 
     # Parse the data
     start, end, res = rrdslice[0]
@@ -98,7 +99,7 @@ def index(request, host, service, start, end, resolution='150'):
         'grid': {}
     }
 
-    root_trend = coilstruct.get('trend',{})
+    root_trend = coilstruct.get('trend', {})
     all_labels = rrdslice[1]
     labels = []
 
@@ -153,7 +154,7 @@ def index(request, host, service, start, end, resolution='150'):
     # Reading graph options
     for index in indices:
         key = labels[index]
-        trend = query.get(key,{}).get('trend', {})
+        trend = query.get(key, {}).get('trend', {})
         if not(trend):
             continue
 
@@ -184,9 +185,9 @@ def index(request, host, service, start, end, resolution='150'):
     transform = [all_labels.index(z) for z in labels]
     stateIndex = all_labels.index('_state')
 
-    datapoints = zip(all_labels,rrdslice[2][0])
+    datapoints = zip(all_labels, rrdslice[2][0])
     for index in indices:
-        label,data = datapoints[transform[index]]
+        label, data = datapoints[transform[index]]
 
         flot_data[index][statistics] = {}
         flot_data[index][statistics]['num'] = 0
@@ -203,7 +204,7 @@ def index(request, host, service, start, end, resolution='150'):
     for tuple in rrdslice[2]:
         datapoints = zip(all_labels, tuple)
     
-        label,data = datapoints[stateIndex]
+        label, data = datapoints[stateIndex]
         state_data.append([x, data])
 
         for index in indices:
@@ -268,7 +269,7 @@ def index(request, host, service, start, end, resolution='150'):
     graph_options['yaxis']['max'] = max * 1.1 + 1
 
     if root_trend:
-        axis_max = root_trend.get('axis_max','')
+        axis_max = root_trend.get('axis_max', '')
         if axis_max and graph_options['yaxis']['max'] < axis_max:
             graph_options['yaxis']['max'] = axis_max * 1.1 + 1
     
@@ -282,14 +283,14 @@ def index(request, host, service, start, end, resolution='150'):
     for index in indices:
         del(flot_data[index][railroad_conf])
 
-    colors = ['#BBFFBB','#FFFFBB','#FFBBBB','#C0C0C0']
+    colors = ['#BBFFBB', '#FFFFBB', '#FFBBBB', '#C0C0C0']
     markings = []
     state = state_data[0][1]
     if type(state) == types.FloatType:
         state = int(state) if float.is_integer(state) else 3
         markings.append({'xaxis': {'from': state_data[0][0]},   \
                             'color': colors[state]})
-    for x,y in state_data:
+    for x, y in state_data:
         if type(y) == types.FloatType:
             y = int(y) if float.is_integer(y) else 3
         if y != state:
