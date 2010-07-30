@@ -142,6 +142,11 @@ function createGraph(element, path, callback) {
             if(data.empty == true) {
                 $(element).append('<div class="empty">no data</div>');
             }
+
+            update = $(element).closest('.graph_container')
+                               .find('.update');
+            update.html('updated: ' + data.current_time);
+
             if(callback != null) {
                 callback(data);
             }
@@ -185,11 +190,11 @@ $(document).ready(function() {
 
         if(button.hasClass('reset')) {
             graph.addClass('ajax');
-            update = graph.closest('.graph_container')
-                          .find('.update');
-            updateTimestamp(update);
-            update.show();
-        } if(button.hasClass('day') || button.hasClass('reset')) {
+        } else {
+            graph.removeClass('ajax');
+        }
+        
+        if(button.hasClass('day') || button.hasClass('reset')) {
             start = parseInt(end - 60 * 60 * 24);
         } else if(button.hasClass('week')) {
             start = parseInt(end - 60 * 60 * 24 * 7);
@@ -198,8 +203,6 @@ $(document).ready(function() {
         } else if(button.hasClass('year')) {
             start = parseInt(end - 60 * 60 * 24 * 365);
         }
-
-        graph.removeClass('ajax');
 
         serviceData = $(graph).data();
 
@@ -273,22 +276,10 @@ $(document).ready(function() {
                     end,
                     serviceData.res].join('/');
 
-            createGraph(element,
-                        path,
-                        function(data) {
-/*                            updateTimestamp($(element)
-                                            .closest('.graph_container')
-                                            .find('.update'));*/
-                            updated = $(element).closest('.graph_container')
-                                                .find('.update');
-                            updated.html('updated: ' + data.current_time);
-                            $(element).closest('.graph_container')
-                                      .find('.update')
-                                      .show();
-                        });
+            createGraph(element, path);
         });
         setTimeout(autoFetchData, 60 * 1000);
     }
-    setTimeout(autoFetchData, 1 * 1000);
+    setTimeout(autoFetchData, 60 * 1000);
 });
 
