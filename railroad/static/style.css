@@ -190,12 +190,18 @@ body {
 .hidden {
 	visibility: hidden;
 }
-.empty {
+.empty, .error {
 	position: absolute;
-	top: 100px;
 	width: 100%;
 	text-align: center;
 }
+.empty {
+	top: 100px;
+}
+.error {
+	top: 120px;
+	color: red;
+}	
 
 /* Service listings */
 .service {

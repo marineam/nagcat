@@ -124,38 +124,52 @@ function formatGraph(element, data) {
 }
 
 // Creates a graph
-function createGraph(element, path, callback) {
+function createGraph(element, path, callback, zoom) {
     $(element).append('<div class="throbber"></div>');
     $(element).remove('.empty');
     $.ajax({
         url: '/railroad/parserrd/' + path,
         dataType: 'json',
         success: function(data) {
-            $(element).html("");
-            data = formatGraph(element, data);
-            $.plot($(element), data.data, data.options);
-            if(data.options.yaxis.label) {
-                $(element).before('<div class="ylabel"><span>' +
-                                  data.options.yaxis.label +
-                                  '</span></div>');
-            }
-            if(data.empty == true) {
-                $(element).append('<div class="empty">no data</div>');
-            }
+            // If we are zooming and there's no data, just bail with an error
+            if(zoom && data.empty) {
+                plot = $(element).data('plot');
+                plot.clearSelection();
+                $(element).append('<div class="error">no data to zoom</div>');
+                $(element).find('.error').delay(500).fadeOut(500);
+            } else {
+                data = formatGraph(element, data);
+                $(element).data('plot', $.plot($(element), data.data, data.options));
+                if(data.options.yaxis.label) {
+                    $(element).before('<div class="ylabel"><span>' +
+                                      data.options.yaxis.label +
+                                      '</span></div>');
+                }
+                if(data.empty == true) {
+                    $(element).append('<div class="empty">no data</div>');
+                }
 
-            update = $(element).closest('.graph_container')
-                               .find('.update');
-            update.html('updated: ' + data.current_time);
+                update = $(element).closest('.graph_container')
+                                   .find('.update');
+                update.html('updated: ' + data.current_time);
 
-            if(callback != null) {
-                callback(data);
+                if(callback != null) {
+                    callback(data);
+                }
             }
-            $(element).remove('.throbber');
+            $(element).find('.throbber').remove();
         },
+        // If there's an error, toss out a warning about it
         error: function(request, status, error) {
-            // If there's an error just bail out
-            $(element).html('');
-            $(element).append('<div class="empty">error</div>');
+            plot = $(element).data('plot');
+            if(zoom) {
+                plot.clearSelection();
+            }
+            $(element).find('.throbber').remove();
+            $(element).append('<div class="error">error</div>');
+            if(zoom) {
+                $(element).find('.error').delay(500).fadeOut(500);
+            }
         }
     });
 }
@@ -256,7 +270,8 @@ $(document).ready(function() {
                             selected.removeClass('selected');
                             zoom.css('visibility', 'visible');
                             zoom.addClass('selected');
-                        });
+                        },
+                        true);
             
         });
 
