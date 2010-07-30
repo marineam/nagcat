@@ -136,7 +136,13 @@ function createGraph(element, path, callback, zoom) {
                 plot = $(element).data('plot');
                 plot.clearSelection();
                 $(element).append('<div class="error">no data to zoom</div>');
-                $(element).find('.error').delay(500).fadeOut(500);
+                // Nice fadeOut won't let us remove the element, so use a callback
+                $(element).find('.error')
+                          .delay(500)
+                          .fadeOut(500,
+                                   function() {
+                                       $(this).remove();
+                                   });
             } else {
                 data = formatGraph(element, data);
                 $(element).data('plot', $.plot($(element), data.data, data.options));
@@ -168,7 +174,13 @@ function createGraph(element, path, callback, zoom) {
             $(element).find('.throbber').remove();
             $(element).append('<div class="error">error</div>');
             if(zoom) {
-                $(element).find('.error').delay(500).fadeOut(500);
+                // Nice fadeOut won't let us remove the element, so use a callback
+                $(element).find('.error')
+                          .delay(500)
+                          .fadeOut(500,
+                                   function() {
+                                       $(this).remove();
+                                   });
             }
         }
     });
