@@ -259,12 +259,12 @@ def index(request, host, service, start, end, resolution='150'):
                     + ')'
                 
 
-    graph_options['yaxis']['max'] = max * 1.1
+    graph_options['yaxis']['max'] = max * 1.1 + 1
 
     if root_trend:
         axis_max = root_trend.get('axis_max','')
         if axis_max and graph_options['yaxis']['max'] < axis_max:
-            graph_options['yaxis']['max'] = axis_max * 1.1
+            graph_options['yaxis']['max'] = axis_max * 1.1 + 1
     
     fill = graph_options['yaxis']['max']
 
