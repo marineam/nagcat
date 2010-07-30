@@ -16,22 +16,6 @@ import time
 from twisted.trial import unittest
 from nagcat import errors, filters
 
-class RegexTestCase(unittest.TestCase):
-
-    def testBasic(self):
-        f = filters.Filter(object(), "regex:^foo$")
-        self.assertEquals(f.filter("foo"), "foo")
-        self.assertIsInstance(f.filter("bar"), errors.Failure)
-
-    def testDefault(self):
-        f = filters.Filter(object(), "regex[def]:^foo$")
-        self.assertEquals(f.filter("foo"), "foo")
-        self.assertEquals(f.filter("bar"), "def")
-
-    def testGroup(self):
-        f = filters.Filter(object(), "regex:^(f)(oo)$")
-        self.assertEquals(f.filter("foo"), "f")
-
 class DateTestCase(unittest.TestCase):
 
     def testBasic(self):

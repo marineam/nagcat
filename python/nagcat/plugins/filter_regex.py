@@ -43,9 +43,50 @@ class RegexFilter(filters._Filter):
                 return match.group(1)
             else:
                 return match.group(0)
+        elif self.default is not None:
+            return self.default
         else:
-            if self.default is not None:
-                return self.default
+            raise errors.TestCritical(
+                    "Failed to match regex '%s'" % self.arguments)
+
+class GrepFilter(filters._Filter):
+    """Grep data based on a regular expression"""
+
+    classProvides(filters.IFilter)
+
+    name = "grep"
+    invert = False
+
+    def __init__(self, test, default, arguments):
+        super(GrepFilter, self).__init__(test, default, arguments)
+        try:
+            self.regex = re.compile(self.arguments)
+        except re.error, ex:
+            raise errors.InitError(
+                    "Invalid regex '%s': %s" % (self.arguments, ex))
+
+    @errors.callback
+    def filter(self, result):
+        log.debug("Grepping regex '%s'", self.arguments)
+
+        output = ""
+        for line in result.splitlines(True):
+            if self.regex.search(line):
+                if not self.invert:
+                    output += line
             else:
-                raise errors.TestCritical(
-                        "Failed to match regex '%s'" % self.arguments)
+                if self.invert:
+                    output += line
+
+        if output:
+            return output
+        elif self.default is not None:
+            return self.default
+        else:
+            raise errors.TestCritical(
+                    "Failed to match regex '%s'" % self.arguments)
+
+class GrepVFilter(GrepFilter):
+    classProvides(filters.IFilter)
+    name = "grepv"
+    invert = True

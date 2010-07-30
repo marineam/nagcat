@@ -203,6 +203,14 @@ test-name: {
     #       result will be the first grouping, otherwise it is the match
     #       of the entire expression.
     #
+    #   "grep:<some regular expression>"
+    #       This is a variation on the regex filter but instead of
+    #       returning the first match it returns all lines that contain
+    #       a match, just like the tool we know and love.
+    #
+    #   "grepv:<some regular expression>"
+    #       Inverse grep, named after the "grep -v" command.
+    #
     #   "date2epoch:<date format>"
     #       Convert a date using the given format to a time in seconds
     #       since the epoch, useful for doing math with $(NOW).
