@@ -125,65 +125,71 @@ function formatGraph(element, data) {
 
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
-    $(element).append('<div class="throbber"></div>');
-    $(element).remove('.empty');
-    $.ajax({
-        url: '/railroad/parserrd/' + path,
-        dataType: 'json',
-        success: function(data) {
-            // If we are zooming and there's no data, just bail with an error
-            if(zoom && data.empty) {
+    // If the graph isn't busy
+    if(!$(element).data('busy')) {
+        $(element).data('busy', true);
+        $(element).append('<div class="throbber"></div>');
+        $(element).remove('.empty');
+        $.ajax({
+            url: '/railroad/parserrd/' + path,
+            dataType: 'json',
+            success: function(data) {
+                // If we are zooming and there's no data, just bail with an error
+                if(zoom && data.empty) {
+                    plot = $(element).data('plot');
+                    plot.clearSelection();
+                    $(element).append('<div class="error">no data to zoom</div>');
+                    // Nice fadeOut won't let us remove the element, so use a callback
+                    $(element).find('.error')
+                              .delay(500)
+                              .fadeOut(500,
+                                       function() {
+                                           $(this).remove();
+                                       });
+                } else {
+                    data = formatGraph(element, data);
+                    $(element).data('plot', $.plot($(element), data.data, data.options));
+                    if(data.options.yaxis.label) {
+                        $(element).before('<div class="ylabel"><span>' +
+                                          data.options.yaxis.label +
+                                          '</span></div>');
+                    }
+                    if(data.empty == true) {
+                        $(element).append('<div class="empty">no data</div>');
+                    }
+
+                    update = $(element).closest('.graph_container')
+                                       .find('.update');
+                    update.html('updated: ' + data.current_time);
+
+                    if(callback != null) {
+                        callback(data);
+                    }
+                }
+                $(element).find('.throbber').remove();
+            },
+            // If there's an error, toss out a warning about it
+            error: function(request, status, error) {
                 plot = $(element).data('plot');
-                plot.clearSelection();
-                $(element).append('<div class="error">no data to zoom</div>');
-                // Nice fadeOut won't let us remove the element, so use a callback
-                $(element).find('.error')
-                          .delay(500)
-                          .fadeOut(500,
-                                   function() {
-                                       $(this).remove();
-                                   });
-            } else {
-                data = formatGraph(element, data);
-                $(element).data('plot', $.plot($(element), data.data, data.options));
-                if(data.options.yaxis.label) {
-                    $(element).before('<div class="ylabel"><span>' +
-                                      data.options.yaxis.label +
-                                      '</span></div>');
+                if(zoom) {
+                    plot.clearSelection();
                 }
-                if(data.empty == true) {
-                    $(element).append('<div class="empty">no data</div>');
-                }
-
-                update = $(element).closest('.graph_container')
-                                   .find('.update');
-                update.html('updated: ' + data.current_time);
-
-                if(callback != null) {
-                    callback(data);
+                $(element).find('.throbber').remove();
+                $(element).append('<div class="error">error</div>');
+                if(zoom) {
+                    // Nice fadeOut won't let us remove the element, so use a callback
+                    $(element).find('.error')
+                              .delay(500)
+                              .fadeOut(500,
+                                       function() {
+                                           $(this).remove();
+                                       });
                 }
             }
-            $(element).find('.throbber').remove();
-        },
-        // If there's an error, toss out a warning about it
-        error: function(request, status, error) {
-            plot = $(element).data('plot');
-            if(zoom) {
-                plot.clearSelection();
-            }
-            $(element).find('.throbber').remove();
-            $(element).append('<div class="error">error</div>');
-            if(zoom) {
-                // Nice fadeOut won't let us remove the element, so use a callback
-                $(element).find('.error')
-                          .delay(500)
-                          .fadeOut(500,
-                                   function() {
-                                       $(this).remove();
-                                   });
-            }
-        }
-    });
+        });
+    // Release the graph
+    $(element).data('busy', null);
+    }
 }
    
 // Update an AJAX timestamp
@@ -271,6 +277,9 @@ $(document).ready(function() {
                     parseInt(ranges.xaxis.to / 1000),
                     serviceData.res].join('/');
 
+            // The graph isn't busy anymore, allow updates
+            $(element).data('busy', null); 
+
             createGraph(element,
                         path,
                         function() {
@@ -284,7 +293,10 @@ $(document).ready(function() {
                             zoom.addClass('selected');
                         },
                         true);
-            
+        });
+        $(element).bind('plotselecting', function() {
+            // If we are selecting, mark the graph as busy so no AJAX fires
+            $(element).data('busy', true);
         });
 
     });
