@@ -211,7 +211,7 @@ def service(request, host, service):
     time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
-        'service_alias': service,
+        'service_name': service,
         'service_output': str,
         'graphable': is_graphable(host, service),
         'true': True,
