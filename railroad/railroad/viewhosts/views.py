@@ -122,10 +122,10 @@ def servicelist_by_description(stat, service_description):
     all_services = servicelist(stat)
     return [service for service in all_services if service['service_description'] == service_description]
 
-def servicedetail(stat, host, service_name):
+def servicedetail(stat, host, service_alias):
     all_services = servicelist(stat)
     for service in all_services:
-        if service['host_name'] == host and service['service_description'] == service_name:
+        if service['host_name'] == host and service['service_description'] == service_alias:
             return service
 
 def hostlist_by_group(stat, obj, group_name):
@@ -211,7 +211,7 @@ def service(request, host, service):
     time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
-        'service_name': service,
+        'service_alias': service,
         'service_output': str,
         'graphable': is_graphable(host, service),
         'true': True,
@@ -229,28 +229,30 @@ def group(request, group):
         
     host_list = hostlist_by_group(stat, obj, group)
     host_names = map(lambda x: x['host_name'], host_list)
-
     service_list = servicelist(stat)
+    digits = re.compile("\d+")
 
     for service in service_list:
-        service_name = service['service_description']
+        service_alias = digits.sub("", service['service_description'])
         service_test = service.get('_TEST', None)
         service_test = service_test if service_test else service['check_command']
         if service['host_name'] in host_names:
             if not(service_dict.get(service_test, None)):
                 service_dict[service_test] = []
-            service_dict[service_test].append(service_name)
+            if not (service_alias in service_dict[service_test]):
+                service_dict[service_test].append(service_alias)
 
     services = []
     service_tests = service_dict.keys()
     for service_test in service_tests:
-        prefix = os.path.commonprefix(service_dict[service_test])
-        suffix = os.path.commonprefix(map(lambda x: x[:len(prefix):-1], service_dict[service_test]))[::-1]
-        d = locals()
-        service = ('%(prefix)s' % d) + ('%(suffix)s' % d)
-        services.append({'service_test': service_test, 'service_name' : service})
+        #prefix = os.path.commonprefix(service_dict[service_test])
+        #suffix = os.path.commonprefix(map(lambda x: x[:len(prefix):-1], service_dict[service_test]))[::-1]
+        #d = locals()
+        #service = ('%(prefix)s' % d) + ('%(suffix)s' % d)
+        for service_alias in service_dict[service_test]:
+            services.append({'service_test': service_test, 'service_alias' : service_alias})
 
-    services.sort(lambda x, y: cmp(x['service_name'], y['service_name']))
+    services.sort(lambda x, y: cmp(x['service_alias'], y['service_alias']))
     host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
 
     ending = int(time.time())
@@ -266,18 +268,21 @@ def group(request, group):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
-def groupservice(request, group, test):
+def groupservice(request, group, test, alias):
     t = loader.get_template('groupservice.html')
     stat, obj = parse()
     host_list = hostlist_by_group(stat, obj, group)
     target = map(lambda x: x['host_name'], host_list)
     all_services = servicelist(stat)
 
+    digits = re.compile("\d+")
     for service in all_services:
         service_test = service.get('_TEST', None) if        \
                        service.get('_TEST', None) else      \
                        service.get('check_command', None)
-        if service_test == test:
+        service_alias = digits.sub("", service['service_description'])
+
+        if service_test == test and service_alias == alias:
             host_name = service['host_name']
             try: 
                 host = host_list[target.index(host_name)]
@@ -295,7 +300,7 @@ def groupservice(request, group, test):
     starting = ending - 86400
     context_data = {
         'group_name': group,
-        'service_name': test,
+        'service_alias': alias,
         'host_list': host_list,
         'time_interval': [starting, ending],
         'true': True
