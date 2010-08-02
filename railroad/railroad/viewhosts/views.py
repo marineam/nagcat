@@ -230,10 +230,13 @@ def group(request, group):
     host_list = hostlist_by_group(stat, obj, group)
     host_names = map(lambda x: x['host_name'], host_list)
     service_list = servicelist(stat)
-    digits = re.compile("\d+")
+
+    # Handles removing unique digits, dashes, commas, and version numbers
+    # Duplicated in groupservice
+    janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
 
     for service in service_list:
-        service_alias = digits.sub("", service['service_description'])
+        service_alias = janitor.sub("", service['service_description'])
         service_test = service.get('_TEST', None)
         service_test = service_test if service_test else service['check_command']
         if service['host_name'] in host_names:
@@ -275,12 +278,12 @@ def groupservice(request, group, test, alias):
     target = map(lambda x: x['host_name'], host_list)
     all_services = servicelist(stat)
 
-    digits = re.compile("\d+")
+    janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
     for service in all_services:
         service_test = service.get('_TEST', None) if        \
                        service.get('_TEST', None) else      \
                        service.get('check_command', None)
-        service_alias = digits.sub("", service['service_description'])
+        service_alias = janitor.sub("", service['service_description'])
 
         if service_test == test and service_alias == alias:
             host_name = service['host_name']
