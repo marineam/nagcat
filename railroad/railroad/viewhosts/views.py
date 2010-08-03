@@ -307,7 +307,8 @@ def groupservice(request, group, test, alias):
         'service_alias': alias,
         'host_list': host_list,
         'time_interval': [starting, ending],
-        'true': True
+        'true': True,
+        'graphs': True,
     }
     
     context_data = add_hostlist(stat, obj, context_data)
