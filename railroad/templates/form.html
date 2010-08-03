@@ -15,7 +15,7 @@
 <select name="service">
 <option value="none">--Select Service--</option>
 {% for service in service_list %}
-    <option value="{{service.service_description}}">{{service.service_description}}</option>
+    <option value="{{service}}">{{service}}</option>
 {% endfor %}
 </select>
 <input type="submit" value="Submit" />
