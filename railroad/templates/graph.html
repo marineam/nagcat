@@ -1,0 +1,41 @@
+<tr>
+{% ifequal service.current_state '0' %}
+    <td class="greenbg">
+{% else %}
+    {% ifequal service.current_state '1' %}
+        <td class="yellowbg">
+    {% else %}
+        <td class="redbg">
+    {% endifequal %}
+{% endifequal %}
+<h2><a href="{{host_name}}/{{service.service_description}}">{{service.service_description}}</a></h2>
+{{service.plugin_output}}
+</td>
+
+{% ifequal service.is_graphable true %}
+    <td>
+        <div class="graph_container">
+            <div class="options">
+                <ul>
+                    {# TODO: Find a better way to set selected to match which graph we want? #}
+                    <li class="reset selected">live (day)</li>
+                    <li class="day">day</li>
+                    <li class="week">week</li>
+                    <li class="month">month</li>
+                    <li class="year">year</li>
+                    <li class="zoom" style="visibility: hidden">zoomed</li>
+                </ul>
+            </div>
+            <div class="ajax_info">
+                <div class="update"></div>
+            </div>
+            {# TODO: This has to be one line, as we grab the inner HTML to figure out what to graph, need a solution eventually #}
+            <div id="{{service.service_description|slugify}}" 
+                 class="graph ajax"><a href="{{host_name}}/{{service.service_description}}/{{time_interval.0}}/{{time_interval.1}}/100"></a>
+            </div>
+            <div class="legend">
+            </div>
+        </div>
+    </td>
+{% endifequal %}
+</tr>

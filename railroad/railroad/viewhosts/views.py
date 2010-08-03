@@ -313,3 +313,27 @@ def groupservice(request, group, test, alias):
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))
+
+def form(request):
+    t = loader.get_template('form.html')
+    stat, obj = parse()
+    context_data = {
+        'group_list': grouplist(obj),
+        'host_list': hostlist(stat),
+        'service_list': servicelist(stat),
+    }
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
+
+def graph(request, host, service):
+    t = loader.get_template('graph.html')
+    stat, obj = parse()
+    service_detail = servicedetail(stat, host, service)
+    service_detail['is_graphable'] = is_graphable(host, service)
+
+    context_data = {
+        'host_name': host,
+        'service': service_detail,
+    }
+    c = Context(context_data)
+    return HttpResponse(t.render(c))

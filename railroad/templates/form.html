@@ -1,0 +1,23 @@
+<html><body>
+<form name="input" action="" method="get">
+<select name="group">
+<option value="group">Group</option>
+{% for group in group_list %}
+    <option value="{{group.alias}}">{{group.alias}}</option>
+{% endfor %}
+</select>
+<select name="host">
+<option value="host">Host</option>
+{% for host in host_list %}
+    <option value="{{host.host_name}}">{{host.host_name}}</option>
+{% endfor %}
+</select>
+<select name="service">
+<option value="service">Service</option>
+{% for service in service_list %}
+    <option value="{{service.service_description}}">{{service.service_description}}</option>
+{% endfor %}
+</select>
+<input type="submit" value="Submit" />
+</form>
+</body></html>
