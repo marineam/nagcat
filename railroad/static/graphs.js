@@ -292,30 +292,41 @@ $(document).ready(function() {
 
         // Allow for zooming
         $(element).bind('plotselected', function (event, ranges) {
-            serviceData = $(element).data();
-
-            path = [serviceData.host,
-                    serviceData.service,
-                    parseInt(ranges.xaxis.from / 1000),
-                    parseInt(ranges.xaxis.to / 1000),
-                    serviceData.res].join('/');
-
             // The graph isn't busy anymore, allow updates
             $(element).data('busy', null); 
 
-            createGraph(element,
-                        path,
-                        function() {
-                            $(element).removeClass('ajax');
-                            zoom = $(element).closest('.graph_container')
-                                             .find('.zoom');
-                            selected = $(element).closest('.graph_container')
-                                                 .find('.selected');
-                            selected.removeClass('selected');
-                            zoom.css('visibility', 'visible');
-                            zoom.addClass('selected');
-                        },
-                        true);
+            // If we are supposed to sync the graphs, loop over all graphs
+            if($('#sync').attr('checked')) {
+                graphs = $('.graph');
+            // Otherwise only loop over the graph associated with this button
+            } else {
+                graphs = $(element);
+            }
+
+            graphs.each(function(index, element) {
+
+                serviceData = $(element).data();
+
+                path = [serviceData.host,
+                        serviceData.service,
+                        parseInt(ranges.xaxis.from / 1000),
+                        parseInt(ranges.xaxis.to / 1000),
+                        serviceData.res].join('/');
+
+                createGraph(element,
+                            path,
+                            function() {
+                                $(element).removeClass('ajax');
+                                zoom = $(element).closest('.graph_container')
+                                                 .find('.zoom');
+                                selected = $(element).closest('.graph_container')
+                                                     .find('.selected');
+                                selected.removeClass('selected');
+                                zoom.css('visibility', 'visible');
+                                zoom.addClass('selected');
+                            },
+                            true);
+            });
         });
         $(element).bind('plotselecting', function() {
             // If we are selecting, mark the graph as busy so no AJAX fires
