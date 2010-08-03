@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import sys
 import re
@@ -134,10 +135,13 @@ def hostlist_by_group(stat, obj, group_name):
     target = group['members'].split(',')
     return [host for host in all_hosts if host['host_name'] in target]
 
+def hostlist_by_service(stat, service):
+    all_services = servicelist(stat)
+    return [hostdetail(stat, s['host_name']) for s in all_services if s['service_description'] == service]
+
 def servicelist_by_host(stat, host):
     all_services = servicelist(stat)
     return [service for service in all_services if service['host_name'] == host]
-
 
 def get_time_intervals():
     #            day  , week  , month  , year
@@ -318,10 +322,16 @@ def groupservice(request, group, test, alias):
 def form(request):
     t = loader.get_template('form.html')
     stat, obj = parse()
+    group_list = grouplist(obj)
+    group_list.sort(lambda x,y: cmp(x['alias'], y['alias']))
+    host_list = hostlist(stat)
+    host_list.sort(lambda x,y: cmp(x['host_name'], y['host_name']))
+    service_list = servicelist(stat)
+    service_list.sort(lambda x,y: cmp(x['service_description'], y['service_description']))
     context_data = {
-        'group_list': grouplist(obj),
-        'host_list': hostlist(stat),
-        'service_list': servicelist(stat),
+        'group_list': group_list,
+        'host_list': host_list,
+        'service_list': service_list,
     }
     c = Context(context_data)
     return HttpResponse(t.render(c))
@@ -338,3 +348,19 @@ def graph(request, host, service):
     }
     c = Context(context_data)
     return HttpResponse(t.render(c))
+
+def selectgroup(request, group):
+    stat, obj = parse()
+    host_list = hostlist_by_group(stat, obj, group)
+    service_list = []
+    for host in host_list:
+        service_list.extend(servicelist_by_host(stat, host))
+    json.dumps({'host_list': host_list, 'service_list': service_list, })
+
+def selecthost(request, host):
+    stat, obj = parse()
+    json.dumps({'service_list': servicelist_by_host(stat, host), })
+
+def selectservice(request, service):
+    stat, obj = parse()
+    json.dumps({'host_list': hostlist_by_service(stat, service), })
