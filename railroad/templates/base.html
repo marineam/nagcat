@@ -29,6 +29,9 @@
 <li><a href="/railroad/">Home</a></li>
 {# <li><a href="">Something</a></li> #}
 </ul>
+{% if graphs %}
+<span id="graph_options"><input type="checkbox" name="sync" id="sync"><label for="sync">Keep graphs in sync</label></span>
+{% endif %}
 </div>
 {% block sidebar %}
 <div id="sidebar">

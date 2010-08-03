@@ -203,56 +203,79 @@ function updateTimestamp(element) {
 $(document).ready(function() {
     // Bind the graph time range selection buttons
     $('.options ul li').click(function() {
-        button = $(this)
-        graph = button.closest('.graph_container')
-                      .find('.graph');
-        time = new Date();
-        end = parseInt(time.getTime() / 1000);
-
-        // Depending on which button is hit, change the behavior
-        // TODO: Look at possibilities at cleaning this up
-
-        if(button.hasClass('zoom')) {
-            return;
-        }
-
-        button.closest('.graph_container')
-              .find('.zoom')
-              .css('visibility', 'hidden');
-
-        if(button.hasClass('reset')) {
-            graph.addClass('ajax');
+        clicked = $(this);
+        // If we are supposed to sync the graphs, loop over all graphs
+        if($('#sync').attr('checked')) {
+            graphs = $('.graph');
+        // Otherwise only loop over the graph associated with this button
         } else {
-            graph.removeClass('ajax');
+            graphs = $(this).closest('.graph_container')
+                             .find('.graph');
         }
-        
-        if(button.hasClass('day') || button.hasClass('reset')) {
-            start = parseInt(end - 60 * 60 * 24);
-        } else if(button.hasClass('week')) {
-            start = parseInt(end - 60 * 60 * 24 * 7);
-        } else if(button.hasClass('month')) {
-            start = parseInt(end - 60 * 60 * 24 * 30);
-        } else if(button.hasClass('year')) {
-            start = parseInt(end - 60 * 60 * 24 * 365);
-        }
+        graphs.each(function(index, graph) {
+            button = $(graph).closest('.graph_container')
+                             .find('.year');
+            time = new Date();
+            end = parseInt(time.getTime() / 1000);
 
-        serviceData = $(graph).data();
+            // Depending on which button is hit, change the behavior
+            // TODO: Look at possibilities at cleaning this up
 
-        path = [serviceData.host,
-                serviceData.service,
-                start,
-                end,
-                serviceData.res].join('/');
+            if(clicked.hasClass('zoom')) {
+                return;
+            }
 
-        createGraph(graph,
-                    path,
-                    function() {
-                        button.closest('.graph_container')
-                              .find('.options .selected')
-                              .removeClass('selected');
-                        button.addClass('selected');
-                    });      
-       
+            $(graph).closest('.graph_container')
+                    .find('.zoom')
+                    .css('visibility', 'hidden');
+
+            if(clicked.hasClass('reset')) {
+                $(graph).addClass('ajax');
+            } else {
+                $(graph).removeClass('ajax');
+            }
+           
+            if(clicked.hasClass('day') || clicked.hasClass('reset')) {
+                start = parseInt(end - 60 * 60 * 24);
+            } else if(clicked.hasClass('week')) {
+                start = parseInt(end - 60 * 60 * 24 * 7);
+            } else if(clicked.hasClass('month')) {
+                start = parseInt(end - 60 * 60 * 24 * 30);
+            } else if(clicked.hasClass('year')) {
+                start = parseInt(end - 60 * 60 * 24 * 365);
+            }
+
+            serviceData = $(graph).data();
+
+            path = [serviceData.host,
+                    serviceData.service,
+                    start,
+                    end,
+                    serviceData.res].join('/');
+
+            createGraph(graph,
+                        path,
+                        function() {
+                            $(graph).closest('.graph_container')
+                                    .find('.options .selected')
+                                    .removeClass('selected');
+                            // This is pretty horrible, perhaps there is a better way
+                            if(clicked.hasClass('reset')) {
+                                buttonClass = '.reset';
+                            } else if(clicked.hasClass('day')) {
+                                buttonClass = '.day';
+                            } else if(clicked.hasClass('week')) {
+                                buttonClass = '.week';
+                            } else if(clicked.hasClass('month')) {
+                                buttonClass = '.month';
+                            } else if(clicked.hasClass('year')) {
+                                buttonClass = '.year';
+                            } else if(clicked.hasClass('zoom')) {
+                                buttonClass = '.zoom';
+                            }
+                            $(graph).closest('.graph_container').find(buttonClass).addClass('selected');
+                        });      
+        });
     });
 
     // Loop over the things to be graphed and produce graphs for each

@@ -28,13 +28,14 @@ body {
 	width: 100%;
 	/* flot graphs get a high z-index, so to float above them we need to compensate */
 	z-index: 5;
+	background-color: #EEE;
 }
 #header ul {
 	margin: 0;
 	padding: 0;
 	list-style-type: none;
-	background-color: #EEE;
 	font-size: 15pt;
+	float: left;
 }
 #header ul li {
 	display: inline;
@@ -45,6 +46,10 @@ body {
 #header #title {
 	font-weight: bold;
 	padding: 0 5px;
+}
+#header #graph_options {
+	float: right;
+	padding-right: 5px;
 }
 
 /* Content and sidebars */

@@ -191,7 +191,8 @@ def host(request, host):
         'host': host_detail,
         'services': services,
         'true' : True,
-        'time_interval': [starting, ending]
+        'time_interval': [starting, ending],
+        'graphs': True,
     }
     
     context_data = add_hostlist(stat, obj, context_data)
