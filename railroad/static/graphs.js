@@ -298,9 +298,12 @@ $(document).ready(function() {
             // If we are supposed to sync the graphs, loop over all graphs
             if($('#sync').attr('checked')) {
                 graphs = $('.graph');
+                // Allow us to zoom even when it makes no sense if we are synced
+                zoom = false;
             // Otherwise only loop over the graph associated with this button
             } else {
                 graphs = $(element);
+                zoom = true;
             }
 
             graphs.each(function(index, element) {
@@ -317,15 +320,15 @@ $(document).ready(function() {
                             path,
                             function() {
                                 $(element).removeClass('ajax');
-                                zoom = $(element).closest('.graph_container')
-                                                 .find('.zoom');
+                                zoomButton = $(element).closest('.graph_container')
+                                                       .find('.zoom');
                                 selected = $(element).closest('.graph_container')
                                                      .find('.selected');
                                 selected.removeClass('selected');
-                                zoom.css('visibility', 'visible');
-                                zoom.addClass('selected');
+                                zoomButton.css('visibility', 'visible');
+                                zoomButton.addClass('selected');
                             },
-                            true);
+                            zoom);
             });
         });
         $(element).bind('plotselecting', function() {
