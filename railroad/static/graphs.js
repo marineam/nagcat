@@ -377,6 +377,7 @@ $(document).ready(function() {
         value = $('#value' + id);
         $(value).empty();
         state = $('#configurator').data('state');
+        $(value).append(new Option());
         $.each(state[$(this).attr('value')], function(index, item) {
             $(value).append(new Option(item, item));
         });
@@ -397,10 +398,12 @@ $(document).ready(function() {
                     $('#configurator').data('state', data);
                     // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
                     $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
-                    $.each(state['options'], function(index, item) {
+                    $('#type' + old_id).append(new Option(' ', null));
+                    $.each(data['options'], function(index, item) {
                         $('#type' + id).append(new Option(item, item));
                     });
                     $('#type' + old_id).attr('disabled', 'disabled');
+                    $('#value' + old_id).attr('disabled', 'disabled');
                 }
             });
         }
