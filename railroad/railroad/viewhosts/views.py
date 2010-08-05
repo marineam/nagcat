@@ -426,7 +426,7 @@ def selecthost(state, host):
     all_services = state['service']
     state['group'] = []
     state['host'] = []
-    state['service'] = [service['service_description'] for service in all_services if service['host_name'] == host]
+    state['service'] = [service for service in all_services if service['host_name'] == host]
 
 def selectservice(state, service):
     all_services = state['service']
