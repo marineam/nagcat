@@ -405,7 +405,7 @@ def stripstate(state):
     state['service'] = map(lambda x: x['service_description'], state['service'])
     return state
 
-def selectgroup(request, state, group):
+def selectgroup(state, group_name):
     service_list = []
 
     group_list = state['group']
@@ -413,26 +413,27 @@ def selectgroup(request, state, group):
         if group['alias'] == group_name:
             break
 
-    group['members'].split(',')
+    target = group['members'].split(',')
+    host_list = [host for host in state['host'] if host['host_name'] in target]
     all_services = state['service']
 
-    service_list.extend([service['service_description'] for service in all_services if service['host_name'] in host_list])
-    state['group'] = None
+    service_list.extend([service for service in all_services if service['host_name'] in map(lambda x: x['host_name'], host_list)])
+    state['group'] = []
     state['host'] = host_list
     state['service'] = service_list
 
-def selecthost(request, state, host):
+def selecthost(state, host):
     all_services = state['service']
-    state['group'] = None
-    state['host'] = None
+    state['group'] = []
+    state['host'] = []
     state['service'] = [service['service_description'] for service in all_services if service['host_name'] == host]
 
-def selectservice(request, state, service):
+def selectservice(state, service):
     all_services = state['service']
     host_list = [s['host_name'] for s in all_services if s['service_description'] == service]
-    state['group'] = None
+    state['group'] = []
     state['host'] = host_list
-    state['service'] = None
+    state['service'] = []
 
 def formstate(request):
     querydict = request.GET
@@ -448,10 +449,13 @@ def formstate(request):
         return HttpResponse(json.dumps(stripstate(state)))
 
     format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
-    typeDict = {'group': None, 'host': None, 'service': None, }
+    typeDict = {'group': [], 'host': [], 'service': [], }
 
     for match in format:
-        typeDict[match[0]] = match[1]
+        type = querydict.get(match[0], None)
+        val = querydict.get(match[1], None)
+        if type and val:
+            typeDict[type] = val
 
     group = typeDict['group']
     host = typeDict['host']
