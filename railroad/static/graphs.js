@@ -348,6 +348,8 @@ $(document).ready(function() {
         },
     });*/
 
+    $('#configurator').data('types', new Array());
+
     $('#configurator').submit(function() {
         fields = $('#configurator').formSerialize();
         $.ajax({
@@ -363,38 +365,30 @@ $(document).ready(function() {
         return false;
     });
 
+    $.getJson('/railroad/custom/formstate', function(data) {
+        $('#configurator').data('state', data);
+    });
+
     $('.type').live('change', function() {
+        id = parseInt($(this).attr('name').replace('type', ''));
+        value = $('.value' + id);
+        $(value).empty();
+        state = $('#configurator').data('state');
+        $.each(state[$(this).attr('value')], function(index, item) {
+            $(value).append(new Option(item, item));
+        });
+    });
+
+    $('.value').live('change', function() {
         // Read the current id and fetch a new one that is higher
-        id = parseInt($(this).attr('name').replace('type', '')) + 1;
+        old_id = parseInt($(this).attr('name').replace('value', ''));
+        id = old_id + 1;
         // If we have a valid value and few enough ids, insert a field
-        if($(this).val() && id < 3) {
+        if($(this).val()) {
             // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
             $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
         }
-        if($(this).val() == "group") {
-            $('#configurator').data('group', true);
-            $.ajax({
-                url: '/railroad/selectgroup/
-        }
-        if($(this).val() == "host") {
-            $('#configurator').data('host', true);
-        }
-        if($(this).val() == "service") {
-            $('#configurator').data('service', true);
-        }
-
-        if(!$('#configurator').data('group')) {
-            $('#type' + id).append(new Option('Group', 'group'));
-        }
-        if(!$('#configurator').data('host')) {
-            $('#type' + id).append(new Option('Host', 'host'));
-        }
-        if(!$('#configurator').data('service')) {
-            $('#type' + id).append(new Option('Service', 'service'));
-        }
-
-        $(this).attr('disabled', 'disabled');
-
+        $('.type' + id).attr('disabled', 'disabled');
     });
 
     $('#group').change(function() {
@@ -453,5 +447,6 @@ $(document).ready(function() {
         setTimeout(autoFetchData, 60 * 1000);
     }
     setTimeout(autoFetchData, 60 * 1000);
+
 });
 
