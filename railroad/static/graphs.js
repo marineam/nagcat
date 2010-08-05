@@ -338,6 +338,31 @@ $(document).ready(function() {
 
     });
 
+    // Bind ourselves to form submissions
+/*    $('#configurator').ajaxForm({
+        target: '#target',
+        replaceTarget: true,
+        success: function() {
+            $('#configurator').remove();
+            $(
+        },
+    });*/
+
+    $('#configurator').submit(function() {
+        fields = $('#configurator').formSerialize();
+        $.ajax({
+            data: fields,
+            dataType: 'html',
+            url: $('#configurator').attr('action'),
+            success: function(data, textStatus, XMLHttpRequest) {
+                $('#configurator').before(data);
+                $('#configurator').resetForm();
+            }
+        });
+        // Prevent normal form submission
+        return false;
+    });
+        
 
     function autoFetchData() {
         $('.graph.ajax').each(function(index, element) {

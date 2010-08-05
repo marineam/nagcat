@@ -353,6 +353,27 @@ def graph(request, host, service):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
+def custom(request):
+    t = loader.get_template('custom.html')
+    stat, obj = parse()
+    group_list = grouplist(obj)
+    group_list.sort(lambda x,y: cmp(x['alias'], y['alias']))
+    host_list = hostlist(stat)
+    host_list.sort(lambda x,y: cmp(x['host_name'], y['host_name']))
+    service_list = list(set(map(lambda x: x['service_description'], servicelist(stat))))
+    service_list.sort()
+    context_data = {
+        'group_list': group_list,
+        'host_list': host_list,
+        'service_list': service_list,
+    }
+    context_data = add_hostlist(stat, obj, context_data)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
+
+def customgraph(request):
+    return HttpResponse("here is a graph.")
+
 def selectgroup(request, group):
     stat, obj = parse()
     host_list = hostlist_by_group(stat, obj, group)
