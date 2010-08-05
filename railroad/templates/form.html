@@ -1,18 +1,18 @@
 <form name="input" action="/railroad/customgraph" method="get" id="configurator">
 <select name="group">
-<option value="none">--Select Group--</option>
+<option value="none" id="group">--Select Group--</option>
 {% for group in group_list %}
     <option value="{{group.alias}}">{{group.alias}}</option>
 {% endfor %}
 </select>
 <select name="host">
-<option value="none">--Select Host--</option>
+<option value="none" id="host">--Select Host--</option>
 {% for host in host_list %}
     <option value="{{host.host_name}}">{{host.host_name}}</option>
 {% endfor %}
 </select>
 <select name="service">
-<option value="none">--Select Service--</option>
+<option value="none" id="service">--Select Service--</option>
 {% for service in service_list %}
     <option value="{{service}}">{{service}}</option>
 {% endfor %}
