@@ -340,15 +340,22 @@ def form(request):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
-def graph(request, host, service):
+def customgraph(request):
+    querydict = request.GET
+    host = querydict['host']
+    service = querydict['service']
+
     t = loader.get_template('graph.html')
     stat, obj = parse()
     service_detail = servicedetail(stat, host, service)
     service_detail['is_graphable'] = is_graphable(host, service)
+    ending = int(time.time())
+    starting = ending - 86400
 
     context_data = {
         'host_name': host,
         'service': service_detail,
+        'time_interval': [starting, ending], 
     }
     c = Context(context_data)
     return HttpResponse(t.render(c))
@@ -370,9 +377,6 @@ def custom(request):
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))
-
-def customgraph(request):
-    return HttpResponse("here is a graph.")
 
 def selectgroup(request, group):
     stat, obj = parse()

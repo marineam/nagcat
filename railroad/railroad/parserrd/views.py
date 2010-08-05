@@ -40,7 +40,8 @@ def sigfigs(float):
 
 def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
-    return ' (min: ' + str(sigfigs(statistics['min'] / base)) + unit \
+    return ' (cur: ' + str(sigfigs(statistics['cur'] / base)) + unit \
+        + ', min: ' + str(sigfigs(statistics['min'] / base)) + unit  \
         + ', max: ' + str(sigfigs(statistics['max'] / base)) + unit  \
         + ', avg: ' + str(sigfigs(statistics['avg'] / base)) + unit  \
         + ')'
@@ -190,6 +191,7 @@ def index(request, host, service, start, end, resolution='150'):
         label, data = datapoints[transform[index]]
 
         flot_data[index][statistics] = {}
+        flot_data[index][statistics]['cur'] = 'N/A'
         flot_data[index][statistics]['num'] = 0
         flot_data[index][statistics]['sum'] = 0
         flot_data[index][statistics]['max'] = 0
@@ -199,6 +201,7 @@ def index(request, host, service, start, end, resolution='150'):
             flot_data[index][statistics]['max'] =                     \
                 flot_data[index][statistics]['min'] =                 \
                     data * flot_data[index][railroad_conf]['scale']
+
 
 
     for tuple in rrdslice[2]:
@@ -211,6 +214,7 @@ def index(request, host, service, start, end, resolution='150'):
             label, data = datapoints[transform[index]]
 
             if data != None:
+                flot_data[index][statistics]['cur'] = data
                 flot_data[index][statistics]['num'] += 1
                 data *= flot_data[index][railroad_conf]['scale']
                 flot_data[index][statistics]['sum'] += data
@@ -260,7 +264,8 @@ def index(request, host, service, start, end, resolution='150'):
                         labelize(flot_data, index, final_base, unit)
             else:
                 flot_data[index]['label'] = flot_data[index]['label']       \
-                    + ' (min: ' + 'N/A' \
+                    + ' (cur: ' + 'N/A' \
+                    + ', min: ' + 'N/A' \
                     + ', max: ' + 'N/A' \
                     + ', avg: ' + 'N/A' \
                     + ')'
