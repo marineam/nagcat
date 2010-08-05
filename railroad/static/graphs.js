@@ -365,13 +365,16 @@ $(document).ready(function() {
         return false;
     });
 
-    $.getJson('/railroad/custom/formstate', function(data) {
-        $('#configurator').data('state', data);
-    });
+    // If we're on a configurator page, load the default state
+    if($('#configurator') != undefined) {
+        $.getJSON('/railroad/custom/formstate', function(data) {
+            $('#configurator').data('state', data);
+        });
+    }
 
     $('.type').live('change', function() {
         id = parseInt($(this).attr('name').replace('type', ''));
-        value = $('.value' + id);
+        value = $('#value' + id);
         $(value).empty();
         state = $('#configurator').data('state');
         $.each(state[$(this).attr('value')], function(index, item) {
@@ -385,10 +388,22 @@ $(document).ready(function() {
         id = old_id + 1;
         // If we have a valid value and few enough ids, insert a field
         if($(this).val()) {
-            // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
-            $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
+            fields = $('#configurator').formSerialize();
+            $.ajax({
+                data: fields,
+                dataType: 'json',
+                url: '/railroad/custom/formstate',
+                success: function(data, textStatus, XMLHttpRequest) {
+                    $('#configurator').data('state', data);
+                    // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
+                    $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
+                    $.each(state['options'], function(index, item) {
+                        $('#type' + id).append(new Option(item, item));
+                    });
+                    $('#type' + old_id).attr('disabled', 'disabled');
+                }
+            });
         }
-        $('.type' + id).attr('disabled', 'disabled');
     });
 
     $('#group').change(function() {

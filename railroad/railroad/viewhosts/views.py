@@ -400,9 +400,9 @@ def custom(request):
     return HttpResponse(t.render(c))
 
 def stripstate(state):
-    state['group_list'] = map(lambda x: x['alias'], state['group_list'])
-    state['host_list'] = map(lambda x: x['host_name'], state['host_list'])
-    state['service_list'] = map(lambda x: x['service_description'], state['service_list'])
+    state['group'] = map(lambda x: x['alias'], state['group'])
+    state['host'] = map(lambda x: x['host_name'], state['host'])
+    state['service'] = map(lambda x: x['service_description'], state['service'])
     return state
 
 def selectgroup(request, state, group):
@@ -414,25 +414,25 @@ def selectgroup(request, state, group):
             break
 
     group['members'].split(',')
-    all_services = state['service_list']
+    all_services = state['service']
 
     service_list.extend([service['service_description'] for service in all_services if service['host_name'] in host_list])
-    state['group_list'] = None
-    state['host_list'] = host_list
-    state['service_list'] = service_list
+    state['group'] = None
+    state['host'] = host_list
+    state['service'] = service_list
 
 def selecthost(request, state, host):
-    all_services = state['service_list']
-    state['group_list'] = None
-    state['host_list'] = None
-    state['service_list'] = [service['service_description'] for service in all_services if service['host_name'] == host]
+    all_services = state['service']
+    state['group'] = None
+    state['host'] = None
+    state['service'] = [service['service_description'] for service in all_services if service['host_name'] == host]
 
 def selectservice(request, state, service):
-    all_services = state['service_list']
+    all_services = state['service']
     host_list = [s['host_name'] for s in all_services if s['service_description'] == service]
-    state['group_list'] = None
-    state['host_list'] = host_list
-    state['service_list'] = None
+    state['group'] = None
+    state['host'] = host_list
+    state['service'] = None
 
 def formstate(request):
     querydict = request.GET
@@ -440,9 +440,9 @@ def formstate(request):
     state =                                         \
         {                                           \
          'options': ['group', 'host', 'service'],   \
-         'group_list': grouplist(obj),              \
-         'host_list': hostlist(stat),               \
-         'service_list': servicelist(stat),         \
+         'group': grouplist(obj),                   \
+         'host': hostlist(stat),                    \
+         'service': servicelist(stat),              \
          }
     if (not(querydict)):
         return HttpResponse(json.dumps(stripstate(state)))
