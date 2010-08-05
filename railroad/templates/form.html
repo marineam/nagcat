@@ -1,21 +1,16 @@
+Filters:
 <form name="input" action="/railroad/customgraph" method="get" id="configurator">
-<select name="group">
-<option value="none" id="group">--Select Group--</option>
-{% for group in group_list %}
-    <option value="{{group.alias}}">{{group.alias}}</option>
-{% endfor %}
+<div id="options">
+<select name="type0" class="type" id="type0">
+<option></option>
+<option value="group">Group</option>
+<option value="host">Host</option>
+<option value="service">Service</option>
 </select>
-<select name="host">
-<option value="none" id="host">--Select Host--</option>
-{% for host in host_list %}
-    <option value="{{host.host_name}}">{{host.host_name}}</option>
-{% endfor %}
+<select name="value0" class="value" id="value0">
 </select>
-<select name="service">
-<option value="none" id="service">--Select Service--</option>
-{% for service in service_list %}
-    <option value="{{service}}">{{service}}</option>
-{% endfor %}
-</select>
-<input type="submit" value="Submit" />
+<br />
+</div>
+<br />
+<input type="submit" value="Add" />
 </form>

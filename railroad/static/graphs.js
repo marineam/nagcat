@@ -362,7 +362,78 @@ $(document).ready(function() {
         // Prevent normal form submission
         return false;
     });
-        
+
+    $('.type').live('change', function() {
+        // Read the current id and fetch a new one that is higher
+        id = parseInt($(this).attr('name').replace('type', '')) + 1;
+        // If we have a valid value and few enough ids, insert a field
+        if($(this).val() && id < 3) {
+            // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
+            $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
+        }
+        if($(this).val() == "group") {
+            $('#configurator').data('group', true);
+            $.ajax({
+                url: '/railroad/selectgroup/
+        }
+        if($(this).val() == "host") {
+            $('#configurator').data('host', true);
+        }
+        if($(this).val() == "service") {
+            $('#configurator').data('service', true);
+        }
+
+        if(!$('#configurator').data('group')) {
+            $('#type' + id).append(new Option('Group', 'group'));
+        }
+        if(!$('#configurator').data('host')) {
+            $('#type' + id).append(new Option('Host', 'host'));
+        }
+        if(!$('#configurator').data('service')) {
+            $('#type' + id).append(new Option('Service', 'service'));
+        }
+
+        $(this).attr('disabled', 'disabled');
+
+    });
+
+    $('#group').change(function() {
+        $.ajax({
+            url: '/railroad/selectgroup/' + $(this).val(),
+            dataType: 'json',
+            success: function(data) {
+                $('#host').empty();
+                $('#host').append(new Option('All Hosts', null));
+                $.each(data['host_list'], function(index, item) {
+                    $('#host').append(new Option(item, item));
+                });
+                $('#service').empty();
+                $('#service').append(new Option('All Services', null));
+                $.each(data['service_list'], function(index, item) {
+                    $('#service').append(new Option(item, item));
+                });
+            }
+        });
+    });
+
+    $('#host').change(function() {
+        if(!$(this).val()) {
+            $('#group').change();
+        } else {
+            $.ajax({
+                url: '/railroad/selecthost/' + $(this).val(),
+                dataType: 'json',
+                success: function(data) {
+                    $('#service').empty();
+                    $('#service').append(new Option('All Services', null));
+                    $.each(data['service_list'], function(index, item) {
+                        $('#service').append(new Option(item, item));
+                    });
+                }
+            });
+        }
+    });
+
 
     function autoFetchData() {
         $('.graph.ajax').each(function(index, element) {
