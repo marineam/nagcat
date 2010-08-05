@@ -328,10 +328,14 @@ def form(request):
     host_list.sort(lambda x,y: cmp(x['host_name'], y['host_name']))
     service_list = list(set(map(lambda x: x['service_description'], servicelist(stat))))
     service_list.sort()
+
+    ending = int(time.time())
+    starting = ending - 86400
     context_data = {
         'group_list': group_list,
         'host_list': host_list,
         'service_list': service_list,
+        'time_interval': [starting, ending]
     }
     c = Context(context_data)
     return HttpResponse(t.render(c))
