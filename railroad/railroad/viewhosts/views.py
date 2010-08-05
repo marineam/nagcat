@@ -465,7 +465,7 @@ def formstate(request):
         selectservice(state, service)
 
 
-    state['options'] = [option for option in state['options'] if typeDict[option]]
+    state['options'] = [option for option in typeDict.keys() if not(typeDict[option])]
     if host and 'group' in state['options']:
         state['options'].remove('group')
 
