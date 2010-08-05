@@ -396,12 +396,12 @@ def selectgroup(request, group):
     service_list = []
     for host in host_list:
         service_list.extend(servicenames_by_host(stat, host))
-    json.dumps({'host_list': host_list, 'service_list': service_list, })
+    return HttpResponse(json.dumps({'host_list': host_list, 'service_list': service_list, }))
 
 def selecthost(request, host):
     stat, obj = parse()
-    json.dumps({'service_list': servicenames_by_host(stat, host), })
+    return HttpResponse(json.dumps({'service_list': servicenames_by_host(stat, host), }))
 
 def selectservice(request, service):
     stat, obj = parse()
-    json.dumps({'host_list': hostnames_by_service(stat, service), })
+    return HttpResponse(json.dumps({'host_list': hostnames_by_service(stat, service), }))
