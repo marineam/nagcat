@@ -135,13 +135,25 @@ def hostlist_by_group(stat, obj, group_name):
     target = group['members'].split(',')
     return [host for host in all_hosts if host['host_name'] in target]
 
+def hostnames_by_group(stat, obj, group_name):
+    group = groupdetail(obj, group_name)
+    return group['members'].split(',')
+
 def hostlist_by_service(stat, service):
     all_services = servicelist(stat)
     return [hostdetail(stat, s['host_name']) for s in all_services if s['service_description'] == service]
 
+def hostnames_by_service(stat, service):
+    all_services = servicelist(stat)
+    return [s['host_name'] for s in all_services if s['service_description'] == service]
+
 def servicelist_by_host(stat, host):
     all_services = servicelist(stat)
     return [service for service in all_services if service['host_name'] == host]
+
+def servicenames_by_host(stat, host):
+    all_services = servicelist(stat)
+    return [service['service_description'] for service in all_services if service['host_name'] == host]
 
 def get_time_intervals():
     #            day  , week  , month  , year
@@ -380,16 +392,16 @@ def custom(request):
 
 def selectgroup(request, group):
     stat, obj = parse()
-    host_list = hostlist_by_group(stat, obj, group)
+    host_list = hostnames_by_group(stat, obj, group)
     service_list = []
     for host in host_list:
-        service_list.extend(servicelist_by_host(stat, host))
+        service_list.extend(servicenames_by_host(stat, host))
     json.dumps({'host_list': host_list, 'service_list': service_list, })
 
 def selecthost(request, host):
     stat, obj = parse()
-    json.dumps({'service_list': servicelist_by_host(stat, host), })
+    json.dumps({'service_list': servicenames_by_host(stat, host), })
 
 def selectservice(request, service):
     stat, obj = parse()
-    json.dumps({'host_list': hostlist_by_service(stat, service), })
+    json.dumps({'host_list': hostnames_by_service(stat, service), })
