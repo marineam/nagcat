@@ -40,7 +40,8 @@ def sigfigs(float):
 
 def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
-    return ' (cur: ' + str(sigfigs(statistics['cur'] / base)) + unit \
+    cur = str(sigfigs(statistics['cur'] / base)) + unit if statistics['cur'] else 'Null'
+    return ' (cur: ' + cur                                           \
         + ', min: ' + str(sigfigs(statistics['min'] / base)) + unit  \
         + ', max: ' + str(sigfigs(statistics['max'] / base)) + unit  \
         + ', avg: ' + str(sigfigs(statistics['avg'] / base)) + unit  \
@@ -213,8 +214,8 @@ def index(request, host, service, start, end, resolution='150'):
         for index in indices:
             label, data = datapoints[transform[index]]
 
+            flot_data[index][statistics]['cur'] = data
             if data != None:
-                flot_data[index][statistics]['cur'] = data
                 flot_data[index][statistics]['num'] += 1
                 data *= flot_data[index][railroad_conf]['scale']
                 flot_data[index][statistics]['sum'] += data

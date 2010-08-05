@@ -107,6 +107,15 @@ def hostlist(stat):
 def servicelist(stat):
     return stat['service']
 
+def groupnames(obj):
+    return map(lambda x: x['alias'], obj['hostgroup'])
+
+def hostnames(stat):
+    return map(lambda x: x['host_name'], stat['host'])
+
+def servicenames(stat):
+    return map(lambda x: x['service_description'], stat['service'])
+
 def groupdetail(obj, group_name):
     group_list = grouplist(obj)
     for group in group_list:
@@ -390,18 +399,74 @@ def custom(request):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
-def selectgroup(request, group):
-    stat, obj = parse()
-    host_list = hostnames_by_group(stat, obj, group)
+def stripstate(state):
+    state['group_list'] = map(lambda x: x['alias'], state['group_list'])
+    state['host_list'] = map(lambda x: x['host_name'], state['host_list'])
+    state['service_list'] = map(lambda x: x['service_description'], state['service_list'])
+    return state
+
+def selectgroup(request, state, group):
     service_list = []
-    for host in host_list:
-        service_list.extend(servicenames_by_host(stat, host))
-    return HttpResponse(json.dumps({'host_list': host_list, 'service_list': service_list, }))
 
-def selecthost(request, host):
-    stat, obj = parse()
-    return HttpResponse(json.dumps({'service_list': servicenames_by_host(stat, host), }))
+    group_list = state['group']
+    for group in group_list:
+        if group['alias'] == group_name:
+            break
 
-def selectservice(request, service):
-    stat, obj = parse()
-    return HttpResponse(json.dumps({'host_list': hostnames_by_service(stat, service), }))
+    group['members'].split(',')
+    all_services = state['service_list']
+
+    service_list.extend([service['service_description'] for service in all_services if service['host_name'] in host_list])
+    state['group_list'] = None
+    state['host_list'] = host_list
+    state['service_list'] = service_list
+
+def selecthost(request, state, host):
+    all_services = state['service_list']
+    state['group_list'] = None
+    state['host_list'] = None
+    state['service_list'] = [service['service_description'] for service in all_services if service['host_name'] == host]
+
+def selectservice(request, state, service):
+    all_services = state['service_list']
+    host_list = [s['host_name'] for s in all_services if s['service_description'] == service]
+    state['group_list'] = None
+    state['host_list'] = host_list
+    state['service_list'] = None
+
+def formstate(request):
+    querydict = request.GET
+    stat,obj = parse()
+    state =                                         \
+        {                                           \
+         'options': ['group', 'host', 'service'],   \
+         'group_list': grouplist(obj),              \
+         'host_list': hostlist(stat),               \
+         'service_list': servicelist(stat),         \
+         }
+    if (not(querydict)):
+        return HttpResponse(json.dumps(stripstate(state)))
+
+    format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
+    typeDict = {'group': None, 'host': None, 'service': None, }
+
+    for match in format:
+        typeDict[match[0]] = match[1]
+
+    group = typeDict['group']
+    host = typeDict['host']
+    service = typeDict['service']
+
+    if group:
+        selectgroup(state, group)
+    if host:
+        selecthost(state, host)
+    if service:
+        selectservice(state, service)
+
+
+    state['options'] = [option for option in state['options'] if typeDict[option]]
+    if host and 'group' in state['options']:
+        state['options'].remove('group')
+
+    return HttpResponse(json.dumps(stripstate(state)))
