@@ -435,6 +435,7 @@ def custom(request):
         'group_list': group_list,
         'host_list': host_list,
         'service_list': service_list,
+        'graphs': True,
     }
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
