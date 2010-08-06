@@ -367,7 +367,6 @@ def customgraph(request):
     stat,obj = parse()
 
     t = loader.get_template('graph.html')
-    stat, obj = parse()
 
     format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
     typeDict = {'group': [], 'host': [], 'service': [], }
@@ -382,15 +381,43 @@ def customgraph(request):
     host = typeDict['host']
     service = typeDict['service']
 
-    service_detail = servicedetail(stat, host, service)
-    service_detail['is_graphable'] = is_graphable(host, service)
+    service_list = []
+
+    if not(service):
+        if host:
+            service_list = servicelist_by_host(stat, host)
+            service_list.sort(lambda x, y: cmp(x['service_description'], y['service_description']))
+            are_graphable(host, service_list)
+            host_detail = hostdetail(stat, host)
+        else:
+            return HttpResponse('')
+    else:
+        if host:
+            service_detail = servicedetail(stat, host, service)
+            service_detail['is_graphable'] = is_graphable(host, service)
+            service_list = [service_detail]
+        elif group:
+            host_list = hostlist_by_group(stat, obj, group)
+            target = map(lambda x: x['host_name'], host_list)
+            all_services = servicelist(stat)
+
+            service_list = [s for s in all_services if s['service_description'] == service and s['host_name'] in target]
+            for x in service_list: 
+                x['is_graphable'] = is_graphable(x['host_name'], x['service_description'])
+
+            #host_list = filter(lambda x: x.has_key('services'), host_list)
+            #host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
+            #map(lambda z: z['services'].sort(lambda x, y: cmp(x['service_description'], y['service_description'])), host_list)
+
+        
     ending = int(time.time())
     starting = ending - 86400
 
     context_data = {
         'host_name': host,
-        'service': service_detail,
+        'service_list': service_list,
         'time_interval': [starting, ending], 
+        'true': True,
     }
     c = Context(context_data)
     return HttpResponse(t.render(c))
@@ -485,7 +512,7 @@ def formstate(request):
 
 
     state['options'] = [option for option in typeDict.keys() if not(typeDict[option])]
-    if host and 'group' in state['options']:
+    if (host or service) and 'group' in state['options']:
         state['options'].remove('group')
 
     return HttpResponse(json.dumps(stripstate(state)))
