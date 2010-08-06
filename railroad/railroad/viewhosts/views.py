@@ -444,7 +444,8 @@ def custom(request):
 def stripstate(state):
     state['group'] = map(lambda x: x['alias'], state['group'])
     state['host'] = map(lambda x: x['host_name'], state['host'])
-    state['service'] = map(lambda x: x['service_description'], state['service'])
+    state['service'] = list(set(map(lambda x: x['service_description'], state['service'])))
+    state['service'].sort()
     return state
 
 def selectgroup(state, group_name):
