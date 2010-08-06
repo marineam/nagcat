@@ -202,7 +202,7 @@ function updateTimestamp(element) {
 // Execute setup code when page loads
 $(document).ready(function() {
     // Bind the graph time range selection buttons
-    $('.options ul li').click(function() {
+    $('.options ul li').live('click', function() {
         clicked = $(this);
         // If we are supposed to sync the graphs, loop over all graphs
         if($('#sync').attr('checked')) {
@@ -361,29 +361,34 @@ $(document).ready(function() {
         $('[id^=value]').attr('disabled', null);
 
         fields = $('#configurator').formSerialize();
-        alert($('#configurator').attr('action') + '?' + fields);
         $.ajax({
             data: fields,
             dataType: 'html',
             url: $('#configurator').attr('action'),
             success: function(data, textStatus, XMLHttpRequest) {
-                $('input:not(#type0)').remove();
-                $('input:not(#value0)').remove();
-                $('#configurator').before(data);
+//                $('select[id^=type]').not('#type0').remove();
+//                $('select[id^=value]').not('#value0').remove();
+                $('#options').empty();
+                $('#value0').empty();
+                $('#graphs').append(data);
                 $('.graph:not(.setup)').each(parse_graphs);
+                default_state();
                 $('#configurator').resetForm();
             }
         });
         // Prevent normal form submission
         return false;
     });
-
-    // If we're on a configurator page, load the default state
-    if($('#configurator') != undefined) {
-        $.getJSON('/railroad/custom/formstate', function(data) {
-            $('#configurator').data('state', data);
-        });
+    
+    function default_state() {
+        // If we're on a configurator page, load the default state
+        if($('#configurator') != undefined) {
+            $.getJSON('/railroad/custom/formstate', function(data) {
+                $('#configurator').data('state', data);
+            });
+        }
     }
+    default_state();
 
     $('.type').live('change', function() {
         id = parseInt($(this).attr('name').replace('type', ''));
@@ -419,7 +424,6 @@ $(document).ready(function() {
                     if(data['options'].length) {
                         // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
                         $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
-                        $('#type' + old_id).append(new Option(' ', null));
                         $.each(data['options'], function(index, item) {
                             $('#type' + id).append(new Option(item, item));
                         });
