@@ -363,11 +363,25 @@ def form(request):
 
 def customgraph(request):
     querydict = request.GET
-    host = querydict['host']
-    service = querydict['service']
+
+    stat,obj = parse()
 
     t = loader.get_template('graph.html')
     stat, obj = parse()
+
+    format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
+    typeDict = {'group': [], 'host': [], 'service': [], }
+
+    for match in format:
+        type = querydict.get(match[0], None)
+        val = querydict.get(match[1], None)
+        if type and val:
+            typeDict[type] = val
+
+    group = typeDict['group']
+    host = typeDict['host']
+    service = typeDict['service']
+
     service_detail = servicedetail(stat, host, service)
     service_detail['is_graphable'] = is_graphable(host, service)
     ending = int(time.time())
