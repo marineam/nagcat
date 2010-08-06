@@ -279,7 +279,10 @@ $(document).ready(function() {
     });
 
     // Loop over the things to be graphed and produce graphs for each
-    $(".graph").each(function(index, element) {
+    function parse_graphs(index, element) {
+
+        // Don't set up graphs already set up
+        $(element).addClass('setup');
 
         // Store the graph data for usage later
         path = $(element).find('a').attr('href');
@@ -336,7 +339,9 @@ $(document).ready(function() {
             $(element).data('busy', true);
         });
 
-    });
+    }
+
+    $(".graph").each(parse_graphs);
 
     // Bind ourselves to form submissions
 /*    $('#configurator').ajaxForm({
@@ -365,6 +370,7 @@ $(document).ready(function() {
                 $('input:not(#type0)').remove();
                 $('input:not(#value0)').remove();
                 $('#configurator').before(data);
+                $('.graph:not(.setup)').each(parse_graphs);
                 $('#configurator').resetForm();
             }
         });
