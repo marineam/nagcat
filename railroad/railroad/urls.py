@@ -34,7 +34,7 @@ urlpatterns = patterns('',
     (r'^selecthost/(?P<host>[^/]+)$', 'railroad.viewhosts.views.selecthost'),
     (r'^selectservice/(?P<service>[^/]+)$', 'railroad.viewhosts.views.selectservice'),
 
-    (r'^customgraph$', 'railroad.viewhosts.views.customgraph'),
+    (r'^custom/graph$', 'railroad.viewhosts.views.customgraph'),
     (r'^custom/formstate$', 'railroad.viewhosts.views.formstate'),
 
     # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 

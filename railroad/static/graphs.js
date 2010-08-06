@@ -351,12 +351,18 @@ $(document).ready(function() {
     $('#configurator').data('types', new Array());
 
     $('#configurator').submit(function() {
+        // Enable the fields again so they can be submitted
+        $('[id^=type]').attr('disabled', null);
+        $('[id^=value]').attr('disabled', null);
+
         fields = $('#configurator').formSerialize();
         $.ajax({
             data: fields,
             dataType: 'html',
             url: $('#configurator').attr('action'),
             success: function(data, textStatus, XMLHttpRequest) {
+                $('input:not(#type0)').remove();
+                $('input:not(#value0)').remove();
                 $('#configurator').before(data);
                 $('#configurator').resetForm();
             }
@@ -389,21 +395,28 @@ $(document).ready(function() {
         id = old_id + 1;
         // If we have a valid value and few enough ids, insert a field
         if($(this).val()) {
+            // jQuery will only serialize enabled objects, so enable, serialize
+            // then disable. Also stab yourself and perhaps find a better way
+            // to solve this without hacking on the library
+            $('[id^=type]').attr('disabled', null);
+            $('[id^=value]').attr('disabled', null);
             fields = $('#configurator').formSerialize();
+            $('[id^=type]').attr('disabled', 'disabled');
+            $('[id^=value]').attr('disabled', 'disabled');
             $.ajax({
                 data: fields,
                 dataType: 'json',
                 url: '/railroad/custom/formstate',
                 success: function(data, textStatus, XMLHttpRequest) {
                     $('#configurator').data('state', data);
-                    // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
-                    $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
-                    $('#type' + old_id).append(new Option(' ', null));
-                    $.each(data['options'], function(index, item) {
-                        $('#type' + id).append(new Option(item, item));
-                    });
-                    $('#type' + old_id).attr('disabled', 'disabled');
-                    $('#value' + old_id).attr('disabled', 'disabled');
+                    if(data['options'].length) {
+                        // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
+                        $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
+                        $('#type' + old_id).append(new Option(' ', null));
+                        $.each(data['options'], function(index, item) {
+                            $('#type' + id).append(new Option(item, item));
+                        });
+                    }
                 }
             });
         }
