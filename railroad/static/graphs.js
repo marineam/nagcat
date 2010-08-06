@@ -356,6 +356,7 @@ $(document).ready(function() {
         $('[id^=value]').attr('disabled', null);
 
         fields = $('#configurator').formSerialize();
+        alert($('#configurator').attr('action') + '?' + fields);
         $.ajax({
             data: fields,
             dataType: 'html',
