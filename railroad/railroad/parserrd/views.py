@@ -40,7 +40,7 @@ def sigfigs(float):
 
 def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
-    cur = str(sigfigs(statistics['cur'] / base)) + unit if statistics['cur'] else 'Null'
+    cur = str(sigfigs(statistics['cur'] / base)) + unit if isinstance(statistics['cur'], int) else 'Null'
     return ' (cur: ' + cur                                           \
         + ', min: ' + str(sigfigs(statistics['min'] / base)) + unit  \
         + ', max: ' + str(sigfigs(statistics['max'] / base)) + unit  \
