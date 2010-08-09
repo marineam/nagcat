@@ -372,8 +372,8 @@ def customgraph(request):
     typeDict = {'group': [], 'host': [], 'service': [], }
 
     for match in format:
-        type = querydict.get(match[0], None)
-        val = querydict.get(match[1], None)
+        type = querydict.get(match[0], '').lower()
+        val = querydict.get(match[1], '')
         if type and val:
             typeDict[type] = val
 
