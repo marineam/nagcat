@@ -390,7 +390,7 @@ $(document).ready(function() {
     function default_state() {
         // If we're on a configurator page, load the default state
         if($('#configurator') != undefined) {
-            $.getJSON('/railroad/custom/formstate', function(data) {
+            $.getJSON('/railroad/configurator/formstate', function(data) {
                 $('#configurator').data('state', data);
             });
         }
@@ -426,7 +426,7 @@ $(document).ready(function() {
             $.ajax({
                 data: fields,
                 dataType: 'json',
-                url: '/railroad/custom/formstate',
+                url: '/railroad/configurator/formstate',
                 success: function(data, textStatus, XMLHttpRequest) {
                     $('#configurator').data('state', data);
                     if(data['options'].length) {
@@ -444,44 +444,6 @@ $(document).ready(function() {
             });
         }
     });
-
-    $('#group').change(function() {
-        $.ajax({
-            url: '/railroad/selectgroup/' + $(this).val(),
-            dataType: 'json',
-            success: function(data) {
-                $('#host').empty();
-                $('#host').append(new Option('All Hosts', null));
-                $.each(data['host_list'], function(index, item) {
-                    $('#host').append(new Option(item, item));
-                });
-                $('#service').empty();
-                $('#service').append(new Option('All Services', null));
-                $.each(data['service_list'], function(index, item) {
-                    $('#service').append(new Option(item, item));
-                });
-            }
-        });
-    });
-
-    $('#host').change(function() {
-        if(!$(this).val()) {
-            $('#group').change();
-        } else {
-            $.ajax({
-                url: '/railroad/selecthost/' + $(this).val(),
-                dataType: 'json',
-                success: function(data) {
-                    $('#service').empty();
-                    $('#service').append(new Option('All Services', null));
-                    $.each(data['service_list'], function(index, item) {
-                        $('#service').append(new Option(item, item));
-                    });
-                }
-            });
-        }
-    });
-
 
     function autoFetchData() {
         $('.graph.ajax').each(function(index, element) {

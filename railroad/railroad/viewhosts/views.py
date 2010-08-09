@@ -420,8 +420,8 @@ def customgraph(request):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
-def custom(request):
-    t = loader.get_template('custom.html')
+def configurator(request):
+    t = loader.get_template('configurator.html')
     stat, obj = parse()
     group_list = grouplist(obj)
     group_list.sort(lambda x,y: cmp(x['alias'], y['alias']))

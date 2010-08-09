@@ -19,23 +19,26 @@ from django.conf.urls.defaults import *
 # admin.autodiscover()
 
 urlpatterns = patterns('',
-    (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/$', 'railroad.parserrd.views.index'),
-    (r'^pagetest/$', 'railroad.pagetest.views.index'),
+    # Index page
     (r'^$', 'railroad.viewhosts.views.index'),
 
+    # parserrd backend
+    (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/$', 'railroad.parserrd.views.index'),
+
+    # Test functions
+    (r'^pagetest/$', 'railroad.pagetest.views.index'),
+    (r'^test$', 'railroad.viewhosts.views.form'),
+
+    # Individual viewers
     (r'^viewhost/(?P<host>\w+)$', 'railroad.viewhosts.views.host'),
     (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$', 'railroad.viewhosts.views.service'),
     (r'^viewgroup/(?P<group>[^/]+)$', 'railroad.viewhosts.views.group'),
     (r'^viewgroup/(?P<group>[^/]+)/(?P<test>.+)/(?P<alias>.+)$', 'railroad.viewhosts.views.groupservice'),
 
-    (r'^custom$', 'railroad.viewhosts.views.custom'),
-    (r'^test$', 'railroad.viewhosts.views.form'),
-    (r'^selectgroup/(?P<group>[^/]+)$', 'railroad.viewhosts.views.selectgroup'),
-    (r'^selecthost/(?P<host>[^/]+)$', 'railroad.viewhosts.views.selecthost'),
-    (r'^selectservice/(?P<service>[^/]+)$', 'railroad.viewhosts.views.selectservice'),
-
-    (r'^custom/graph$', 'railroad.viewhosts.views.customgraph'),
-    (r'^custom/formstate$', 'railroad.viewhosts.views.formstate'),
+    # Configurator and helper functions for AJAX
+    (r'^configurator$', 'railroad.viewhosts.views.configurator'),
+    (r'^configurator/graph$', 'railroad.viewhosts.views.customgraph'),
+    (r'^configurator/formstate$', 'railroad.viewhosts.views.formstate'),
 
     # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
     # to INSTALLED_APPS to enable admin documentation:
