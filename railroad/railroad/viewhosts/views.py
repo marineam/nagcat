@@ -482,21 +482,22 @@ def formstate(request):
     stat,obj = parse()
     state =                                         \
         {                                           \
-         'options': ['Group', 'Host', 'Service'],   \
+         'options': ['group', 'host', 'service'],   \
          'group': grouplist(obj),                   \
          'host': hostlist(stat),                    \
          'service': servicelist(stat),              \
          }
     if (not(querydict)):
+        state['options'] = map(lambda x: x[0].upper() + x[1:], state['options'])
         return HttpResponse(json.dumps(stripstate(state)))
 
     format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
     typeDict = {'group': [], 'host': [], 'service': [], }
 
     for match in format:
-        type = querydict.get(match[0], None)
-        val = querydict.get(match[1], None)
-        if type and val:
+        type = querydict.get(match[0], '').lower()
+        val = querydict.get(match[1], '')
+        if type and val and type in typeDict:
             typeDict[type] = val
 
     group = typeDict['group']
