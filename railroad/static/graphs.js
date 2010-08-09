@@ -356,6 +356,7 @@ $(document).ready(function() {
     $('#configurator').data('types', new Array());
 
     $('#configurator').submit(function() {
+        $(this).append('<div class="throbber"></div>');
         // Enable the fields again so they can be submitted
         $('[id^=type]').attr('disabled', null);
         $('[id^=value]').attr('disabled', null);
@@ -366,14 +367,20 @@ $(document).ready(function() {
             dataType: 'html',
             url: $('#configurator').attr('action'),
             success: function(data, textStatus, XMLHttpRequest) {
-//                $('select[id^=type]').not('#type0').remove();
-//                $('select[id^=value]').not('#value0').remove();
+                // Remove added fields and empty the first value box 
                 $('#options').empty();
                 $('#value0').empty();
+                // Add the new graph and setup the new graphs
                 $('#graphs').append(data);
                 $('.graph:not(.setup)').each(parse_graphs);
+                // Get the default form state for values
                 default_state();
                 $('#configurator').resetForm();
+                $('#configurator').find('.throbber').remove();
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                // TODO: Indicate error somehow, probably
+                $('#configurator').find('.throbber').remove();
             }
         });
         // Prevent normal form submission
@@ -396,12 +403,13 @@ $(document).ready(function() {
         $(value).empty();
         state = $('#configurator').data('state');
         $(value).append(new Option());
-        $.each(state[$(this).attr('value')], function(index, item) {
+        $.each(state[$(this).attr('value').toLowerCase()], function(index, item) {
             $(value).append(new Option(item, item));
         });
     });
 
     $('.value').live('change', function() {
+        $(this).after('<div class="throbber filter" />');
         // Read the current id and fetch a new one that is higher
         old_id = parseInt($(this).attr('name').replace('value', ''));
         id = old_id + 1;
@@ -428,6 +436,10 @@ $(document).ready(function() {
                             $('#type' + id).append(new Option(item, item));
                         });
                     }
+                    $('#configurator').find('.throbber').remove();
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    $('#configurator').find('.throbber').remove();
                 }
             });
         }

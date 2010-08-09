@@ -55,6 +55,7 @@ body {
 /* Content and sidebars */
 #content {
 	margin: 10px;
+	margin-left: 170px;
 	padding-top: 18px;
 }
 .listheader {
@@ -72,7 +73,7 @@ body {
 }
 #sidebar {
 	float: left;
-	min-width: 150px;
+	width: 150px;
 	padding: 18px 7px 10px 5px;
 	margin-right: 10px;
 	background-color: #EEE;
@@ -231,6 +232,15 @@ body {
 	height: 16px;
 	background-image: url('/railroad-static/throbber.gif');
 }
+.filter {
+	display: inline-block;
+}
 pre {
 	font-size: 8pt;
+}
+
+/* Configurator */
+.type select {
+	/* Seems buggy in many browsers, doing in Python for now */
+	text-transform: capitalize;
 }
