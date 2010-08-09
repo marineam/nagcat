@@ -92,8 +92,7 @@ def index(request, host, service, start, end, resolution='150'):
     graph_options = {
         'xaxis': {
             'mode': 'time', 
-            'min': 1000 * int(start), 
-            'max': 1000 * int(end)}, 
+        },
         'yaxis': {}, 
         'legend': {'position': 'nw'}, 
         'selection': {'mode': 'x'},
@@ -185,11 +184,12 @@ def index(request, host, service, start, end, resolution='150'):
     x = start * 1000
 
     transform = [all_labels.index(z) for z in labels]
-    stateIndex = all_labels.index('_state')
+    state_index = all_labels.index('_state')
 
-    datapoints = zip(all_labels, rrdslice[2][0])
+    # Set defaults
+    datapoint = rrdslice[2][0]
     for index in indices:
-        label, data = datapoints[transform[index]]
+        data = datapoint[transform[index]]
 
         flot_data[index][statistics] = {}
         flot_data[index][statistics]['cur'] = 'N/A'
@@ -203,18 +203,16 @@ def index(request, host, service, start, end, resolution='150'):
                 flot_data[index][statistics]['min'] =                 \
                     data * flot_data[index][railroad_conf]['scale']
 
-
-
-    for tuple in rrdslice[2]:
-        datapoints = zip(all_labels, tuple)
-    
-        label, data = datapoints[stateIndex]
+    # Loop over all data and aggregate it in flot's desired format
+    for datapoints in rrdslice[2]:
+        data = datapoints[state_index]
         state_data.append([x, data])
 
         for index in indices:
-            label, data = datapoints[transform[index]]
+            data = datapoints[transform[index]]
 
-            flot_data[index][statistics]['cur'] = data
+            if datapoints[state_index]:
+                flot_data[index][statistics]['cur'] = data
             if data != None:
                 flot_data[index][statistics]['num'] += 1
                 data *= flot_data[index][railroad_conf]['scale']

@@ -388,7 +388,6 @@ def customgraph(request):
             service_list = servicelist_by_host(stat, host)
             service_list.sort(lambda x, y: cmp(x['service_description'], y['service_description']))
             are_graphable(host, service_list)
-            host_detail = hostdetail(stat, host)
         else:
             return HttpResponse('')
     else:
@@ -397,8 +396,7 @@ def customgraph(request):
             service_detail['is_graphable'] = is_graphable(host, service)
             service_list = [service_detail]
         elif group:
-            host_list = hostlist_by_group(stat, obj, group)
-            target = map(lambda x: x['host_name'], host_list)
+            target = hostnames_by_group(stat, obj, group)
             all_services = servicelist(stat)
 
             service_list = [s for s in all_services if s['service_description'] == service and s['host_name'] in target]
@@ -484,7 +482,7 @@ def formstate(request):
     stat,obj = parse()
     state =                                         \
         {                                           \
-         'options': ['group', 'host', 'service'],   \
+         'options': ['Group', 'Host', 'Service'],   \
          'group': grouplist(obj),                   \
          'host': hostlist(stat),                    \
          'service': servicelist(stat),              \
@@ -516,5 +514,7 @@ def formstate(request):
     state['options'] = [option for option in typeDict.keys() if not(typeDict[option])]
     if (host or service) and 'group' in state['options']:
         state['options'].remove('group')
+
+    state['options'] = map(lambda x: x[0].upper() + x[1:], state['options'])
 
     return HttpResponse(json.dumps(stripstate(state)))
