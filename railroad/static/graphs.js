@@ -199,6 +199,27 @@ function updateTimestamp(element) {
     element.html('updated: ' + time.toString());
 }
 
+function default_state() {
+    // If we're on a configurator page, load the default state
+    if($('#configurator') != undefined) {
+        $.getJSON('/railroad/configurator/formstate', function(data) {
+            $('#configurator').data('state', data);
+        });
+    }
+}
+
+function reset_fields() {
+    // Enable all fields
+    $('[id^=type]').attr('disabled', null);
+    $('[id^=value]').attr('disabled', null);
+    // Remove added fields and empty the first value box 
+    $('#options').empty();
+    $('#value0').empty();
+    // Get the default form state for values
+    default_state();
+    $('#configurator').resetForm();
+} 
+
 // Execute setup code when page loads
 $(document).ready(function() {
     // Bind the graph time range selection buttons
@@ -343,18 +364,6 @@ $(document).ready(function() {
 
     $(".graph").each(parse_graphs);
 
-    // Bind ourselves to form submissions
-/*    $('#configurator').ajaxForm({
-        target: '#target',
-        replaceTarget: true,
-        success: function() {
-            $('#configurator').remove();
-            $(
-        },
-    });*/
-
-    $('#configurator').data('types', new Array());
-
     $('#configurator').submit(function() {
         $(this).append('<div class="throbber"></div>');
         // Enable the fields again so they can be submitted
@@ -367,15 +376,10 @@ $(document).ready(function() {
             dataType: 'html',
             url: $('#configurator').attr('action'),
             success: function(data, textStatus, XMLHttpRequest) {
-                // Remove added fields and empty the first value box 
-                $('#options').empty();
-                $('#value0').empty();
+                reset_fields();
                 // Add the new graph and setup the new graphs
                 $('#graphs').append(data);
                 $('.graph:not(.setup)').each(parse_graphs);
-                // Get the default form state for values
-                default_state();
-                $('#configurator').resetForm();
                 $('#configurator').find('.throbber').remove();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
@@ -386,15 +390,12 @@ $(document).ready(function() {
         // Prevent normal form submission
         return false;
     });
-    
-    function default_state() {
-        // If we're on a configurator page, load the default state
-        if($('#configurator') != undefined) {
-            $.getJSON('/railroad/configurator/formstate', function(data) {
-                $('#configurator').data('state', data);
-            });
-        }
-    }
+   
+    $('#configurator').bind('reset', function() {
+        reset_fields();
+        return false;
+    });
+ 
     default_state();
 
     $('.type').live('change', function() {
