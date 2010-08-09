@@ -393,7 +393,7 @@ $(document).ready(function() {
    
     $('#configurator').bind('reset', function() {
         reset_fields();
-        return false;
+        //return false;
     });
  
     default_state();
