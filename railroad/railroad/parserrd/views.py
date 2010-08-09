@@ -40,7 +40,7 @@ def sigfigs(float):
 
 def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
-    cur = str(sigfigs(statistics['cur'] / base)) + unit if isinstance(statistics['cur'], int) else 'Null'
+    cur = str(sigfigs(statistics['cur'] / base)) + unit if statistics['cur'] != None else 'Null'
     return ' (cur: ' + cur                                           \
         + ', min: ' + str(sigfigs(statistics['min'] / base)) + unit  \
         + ', max: ' + str(sigfigs(statistics['max'] / base)) + unit  \
@@ -54,9 +54,6 @@ def index(request, host, service, start, end, resolution='150'):
     railroad_conf = 'railroad_conf'
     statistics = 'statistics'
     trend_attributes = ['color', 'stack', 'scale', 'display']
-
-    DEFAULT_MIN = 99999999999999999999999
-
 
     # calculate custom resolution
     resolution = (int(end) - int(start)) / int(resolution)
@@ -192,11 +189,11 @@ def index(request, host, service, start, end, resolution='150'):
         data = datapoint[transform[index]]
 
         flot_data[index][statistics] = {}
-        flot_data[index][statistics]['cur'] = 'N/A'
+        flot_data[index][statistics]['cur'] = None
         flot_data[index][statistics]['num'] = 0
         flot_data[index][statistics]['sum'] = 0
-        flot_data[index][statistics]['max'] = 0
-        flot_data[index][statistics]['min'] = DEFAULT_MIN
+        flot_data[index][statistics]['max'] = None
+        flot_data[index][statistics]['min'] = None
         flot_data[index][railroad_conf]['scale'] = 1
         if data:
             flot_data[index][statistics]['max'] =                     \
@@ -211,15 +208,15 @@ def index(request, host, service, start, end, resolution='150'):
         for index in indices:
             data = datapoints[transform[index]]
 
-            if datapoints[state_index]:
+            if datapoints[state_index] != None:
                 flot_data[index][statistics]['cur'] = data
             if data != None:
                 flot_data[index][statistics]['num'] += 1
                 data *= flot_data[index][railroad_conf]['scale']
                 flot_data[index][statistics]['sum'] += data
-                if data > flot_data[index][statistics]['max']:
+                if flot_data[index][statistics]['max'] == None or data > flot_data[index][statistics]['max']:
                     flot_data[index][statistics]['max'] = data
-                if data < flot_data[index][statistics]['min']:
+                if flot_data[index][statistics]['min'] == None or data < flot_data[index][statistics]['min']:
                     flot_data[index][statistics]['min'] = data
 
             flot_data[index]['data'].append([x, data])
@@ -251,7 +248,7 @@ def index(request, host, service, start, end, resolution='150'):
 
         bases = ['', 'K', 'M', 'G', 'T']
         for interval in range(len(bases)):
-            if(max / (pow(base, interval)) <= base):
+            if max != None and (max / pow(base, interval)) <= base:
                 break
 
         final_base = pow(base, interval)
@@ -270,14 +267,16 @@ def index(request, host, service, start, end, resolution='150'):
                     + ')'
                 
 
-    graph_options['yaxis']['max'] = max * 1.1 + 1
+    if max != None:
+        graph_options['yaxis']['max'] = max * 1.1 + 1
 
-    if root_trend:
+    if root_trend and max != None:
         axis_max = root_trend.get('axis_max', '')
         if axis_max and graph_options['yaxis']['max'] < axis_max:
             graph_options['yaxis']['max'] = axis_max * 1.1 + 1
     
-    fill = graph_options['yaxis']['max']
+    #why is this here?...
+    #fill = graph_options['yaxis']['max']
 
     if root_trend:
         axis_label = root_trend.get('axis_label', '')
