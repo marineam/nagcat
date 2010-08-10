@@ -17,6 +17,7 @@ import os
 import sys
 import re
 import time
+import pickle
 
 import coil
 import rrdtool
@@ -26,6 +27,7 @@ from django.template import Context, loader
 from nagcat import nagios_objects
 
 from railroad.errors import RailroadError
+from railroad.viewhosts.models import URL
 
 def is_graphable(host, service):
     rra_path = settings.RRA_PATH
@@ -439,7 +441,7 @@ def customgraph(request):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
-def configurator(request):
+def configurator(request, id=None):
     t = loader.get_template('configurator.html')
     stat, obj = parse()
     group_list = grouplist(obj)
@@ -449,7 +451,17 @@ def configurator(request):
     service_list = list(set(    \
         map(lambda x: x['service_description'], servicelist(stat))))
     service_list.sort()
+
+    loaded_graphs = []
+    if id != None:
+        content = pickle.loads(str(URL.objects.get(id=id)))
+        #return HttpResponse(str(content))
+        loaded_graphs = map(lambda (host,service,start,end):  \
+            [hostdetail(stat, host), servicedetail(stat, host, service),    \
+                start, end], content)
+
     context_data = {
+        'loaded_graphs': loaded_graphs,
         'group_list': group_list,
         'host_list': host_list,
         'service_list': service_list,
@@ -458,6 +470,10 @@ def configurator(request):
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))
+
+def saveurl(request, list):
+    #TODO: work on saving urls
+    return None
 
 def stripstate(state):
     state['group'] = map(lambda x: x['alias'], state['group'])

@@ -36,6 +36,7 @@ urlpatterns = patterns('',
     (r'^viewgroup/(?P<group>[^/]+)/(?P<test>.+)/(?P<alias>.+)$', 'railroad.viewhosts.views.groupservice'),
 
     # Configurator and helper functions for AJAX
+    (r'^c/(?P<id>\d+)$', 'railroad.viewhosts.views.configurator'),
     (r'^configurator$', 'railroad.viewhosts.views.configurator'),
     (r'^configurator/graph$', 'railroad.viewhosts.views.customgraph'),
     (r'^configurator/formstate$', 'railroad.viewhosts.views.formstate'),

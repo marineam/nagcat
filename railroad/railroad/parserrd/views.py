@@ -318,6 +318,8 @@ def index(request, host, service, start, end, resolution='150'):
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
     result = {'options': graph_options, 'data': flot_data, 'base': base,    \
-                    'empty': empty_graph, 'current_time': current_time}
+                    'empty': empty_graph, 'current_time': current_time,     \
+                    'content': (host, service, start, end),                 \
+             }
 
     return HttpResponse(json.dumps(result))
