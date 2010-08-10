@@ -40,7 +40,8 @@ def sigfigs(float):
 
 def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
-    cur = str(sigfigs(statistics['cur'] / base)) + unit if statistics['cur'] != None else 'Null'
+    cur = str(sigfigs(statistics['cur'] / base)) + unit \
+            if statistics['cur'] != None else 'Null'
     return ' (cur: ' + cur                                           \
         + ', min: ' + str(sigfigs(statistics['min'] / base)) + unit  \
         + ', max: ' + str(sigfigs(statistics['max'] / base)) + unit  \
@@ -214,9 +215,13 @@ def index(request, host, service, start, end, resolution='150'):
                 flot_data[index][statistics]['num'] += 1
                 data *= flot_data[index][railroad_conf]['scale']
                 flot_data[index][statistics]['sum'] += data
-                if flot_data[index][statistics]['max'] == None or data > flot_data[index][statistics]['max']:
+
+                if flot_data[index][statistics]['max'] == None or   \
+                            data > flot_data[index][statistics]['max']:
                     flot_data[index][statistics]['max'] = data
-                if flot_data[index][statistics]['min'] == None or data < flot_data[index][statistics]['min']:
+
+                if flot_data[index][statistics]['min'] == None or   \
+                            data < flot_data[index][statistics]['min']:
                     flot_data[index][statistics]['min'] = data
 
             flot_data[index]['data'].append([x, data])
@@ -312,6 +317,7 @@ def index(request, host, service, start, end, resolution='150'):
     # still draw (otherwise they don't get axes, ticks, etc)
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
-    result = {'options': graph_options, 'data': flot_data, 'base': base, 'empty': empty_graph, 'current_time': current_time}
+    result = {'options': graph_options, 'data': flot_data, 'base': base,    \
+                    'empty': empty_graph, 'current_time': current_time}
 
     return HttpResponse(json.dumps(result))

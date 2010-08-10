@@ -130,12 +130,14 @@ def hostdetail(stat, host_name):
 
 def servicelist_by_description(stat, service_description):
     all_services = servicelist(stat)
-    return [service for service in all_services if service['service_description'] == service_description]
+    return [service for service in all_services \
+                if service['service_description'] == service_description]
 
 def servicedetail(stat, host, service_alias):
     all_services = servicelist(stat)
     for service in all_services:
-        if service['host_name'] == host and service['service_description'] == service_alias:
+        if service['host_name'] == host and \
+                service['service_description'] == service_alias:
             return service
 
 def hostlist_by_group(stat, obj, group_name):
@@ -150,19 +152,23 @@ def hostnames_by_group(stat, obj, group_name):
 
 def hostlist_by_service(stat, service):
     all_services = servicelist(stat)
-    return [hostdetail(stat, s['host_name']) for s in all_services if s['service_description'] == service]
+    return [hostdetail(stat, s['host_name']) for s in all_services  \
+                                if s['service_description'] == service]
 
 def hostnames_by_service(stat, service):
     all_services = servicelist(stat)
-    return [s['host_name'] for s in all_services if s['service_description'] == service]
+    return [s['host_name'] for s in all_services    \
+                                if s['service_description'] == service]
 
 def servicelist_by_host(stat, host):
     all_services = servicelist(stat)
-    return [service for service in all_services if service['host_name'] == host]
+    return [service for service in all_services \
+                                if service['host_name'] == host]
 
 def servicenames_by_host(stat, host):
     all_services = servicelist(stat)
-    return [service['service_description'] for service in all_services if service['host_name'] == host]
+    return [service['service_description'] for service in all_services  \
+                                if service['host_name'] == host]
 
 def get_time_intervals():
     #            day  , week  , month  , year
@@ -206,7 +212,8 @@ def host(request, host):
     t = loader.get_template('host.html')
     stat, obj = parse()
     services = servicelist_by_host(stat, host)
-    services.sort(lambda x, y: cmp(x['service_description'], y['service_description']))
+    services.sort(lambda x, y:  \
+                     cmp(x['service_description'], y['service_description']))
     are_graphable(host, services)
     host_detail = hostdetail(stat, host)
     ending = int(time.time())
@@ -264,7 +271,8 @@ def group(request, group):
     for service in service_list:
         service_alias = janitor.sub("", service['service_description'])
         service_test = service.get('_TEST', None)
-        service_test = service_test if service_test else service['check_command']
+        service_test = service_test if service_test \
+                                    else service['check_command']
         if service['host_name'] in host_names:
             if not(service_dict.get(service_test, None)):
                 service_dict[service_test] = []
@@ -275,11 +283,13 @@ def group(request, group):
     service_tests = service_dict.keys()
     for service_test in service_tests:
         #prefix = os.path.commonprefix(service_dict[service_test])
-        #suffix = os.path.commonprefix(map(lambda x: x[:len(prefix):-1], service_dict[service_test]))[::-1]
+        #suffix = os.path.commonprefix(map(lambda x: x[:len(prefix):-1],    \
+                                            #service_dict[service_test]))[::-1]
         #d = locals()
         #service = ('%(prefix)s' % d) + ('%(suffix)s' % d)
         for service_alias in service_dict[service_test]:
-            services.append({'service_test': service_test, 'service_alias' : service_alias})
+            services.append({'service_test': service_test,  \
+                                'service_alias' : service_alias})
 
     services.sort(lambda x, y: cmp(x['service_alias'], y['service_alias']))
     host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
@@ -316,14 +326,16 @@ def groupservice(request, group, test, alias):
             try: 
                 host = host_list[target.index(host_name)]
                 if not(host.has_key('services')): host['services'] = []
-                service['is_graphable'] = is_graphable(host_name, service['service_description'])
+                service['is_graphable'] =   \
+                    is_graphable(host_name, service['service_description'])
                 host['services'].append(service)
             except ValueError:
                 continue
                 
     host_list = filter(lambda x: x.has_key('services'), host_list)
     host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-    map(lambda z: z['services'].sort(lambda x, y: cmp(x['service_description'], y['service_description'])), host_list)
+    map(lambda z: z['services'].sort(lambda x, y:   \
+        cmp(x['service_description'], y['service_description'])), host_list)
 
     ending = int(time.time())
     starting = ending - 86400
@@ -347,7 +359,8 @@ def form(request):
     group_list.sort(lambda x,y: cmp(x['alias'], y['alias']))
     host_list = hostlist(stat)
     host_list.sort(lambda x,y: cmp(x['host_name'], y['host_name']))
-    service_list = list(set(map(lambda x: x['service_description'], servicelist(stat))))
+    service_list = list(set(map(lambda x: x['service_description'], \
+                                            servicelist(stat))))
     service_list.sort()
 
     ending = int(time.time())
@@ -386,7 +399,8 @@ def customgraph(request):
     if not(service):
         if host:
             service_list = servicelist_by_host(stat, host)
-            service_list.sort(lambda x, y: cmp(x['service_description'], y['service_description']))
+            service_list.sort(lambda x, y:  \
+                cmp(x['service_description'], y['service_description']))
             are_graphable(host, service_list)
         else:
             return HttpResponse('')
@@ -399,13 +413,18 @@ def customgraph(request):
             target = hostnames_by_group(stat, obj, group)
             all_services = servicelist(stat)
 
-            service_list = [s for s in all_services if s['service_description'] == service and s['host_name'] in target]
+            service_list = [s for s in all_services \
+                if s['service_description'] == service  \
+                and s['host_name'] in target]
             for x in service_list: 
-                x['is_graphable'] = is_graphable(x['host_name'], x['service_description'])
+                x['is_graphable'] = \
+                    is_graphable(x['host_name'], x['service_description'])
 
             #host_list = filter(lambda x: x.has_key('services'), host_list)
             #host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-            #map(lambda z: z['services'].sort(lambda x, y: cmp(x['service_description'], y['service_description'])), host_list)
+            #map(lambda z: z['services'].sort(lambda x, y:  \
+            #cmp(x['service_description'], y['service_description'])),  \
+            #host_list)
 
         
     ending = int(time.time())
@@ -427,7 +446,8 @@ def configurator(request):
     group_list.sort(lambda x,y: cmp(x['alias'], y['alias']))
     host_list = hostlist(stat)
     host_list.sort(lambda x,y: cmp(x['host_name'], y['host_name']))
-    service_list = list(set(map(lambda x: x['service_description'], servicelist(stat))))
+    service_list = list(set(    \
+        map(lambda x: x['service_description'], servicelist(stat))))
     service_list.sort()
     context_data = {
         'group_list': group_list,
@@ -442,7 +462,8 @@ def configurator(request):
 def stripstate(state):
     state['group'] = map(lambda x: x['alias'], state['group'])
     state['host'] = map(lambda x: x['host_name'], state['host'])
-    state['service'] = list(set(map(lambda x: x['service_description'], state['service'])))
+    state['service'] = list(    \
+        set(map(lambda x: x['service_description'], state['service'])))
     state['service'].sort()
     return state
 
@@ -458,7 +479,8 @@ def selectgroup(state, group_name):
     host_list = [host for host in state['host'] if host['host_name'] in target]
     all_services = state['service']
 
-    service_list.extend([service for service in all_services if service['host_name'] in map(lambda x: x['host_name'], host_list)])
+    service_list.extend([service for service in all_services    \
+        if service['host_name'] in map(lambda x: x['host_name'], host_list)])
     state['group'] = []
     state['host'] = host_list
     state['service'] = service_list
@@ -467,13 +489,18 @@ def selecthost(state, host):
     all_services = state['service']
     state['group'] = []
     state['host'] = []
-    state['service'] = [service for service in all_services if service['host_name'] == host]
+    state['service'] = [service for service in all_services \
+        if service['host_name'] == host]
 
 def selectservice(state, service):
     all_services = state['service']
-    host_names = [s['host_name'] for s in all_services if s['service_description'] == service]
-    host_list = [host for host in state['host'] if host['host_name'] in host_names]
-    group_list = [group for group in state['group'] if not(all(map(lambda x: not(x in host_names), group['members'].split(','))))]
+    host_names = [s['host_name'] for s in all_services  \
+        if s['service_description'] == service]
+    host_list = [host for host in state['host'] if  \
+        host['host_name'] in host_names]
+    group_list = [group for group in state['group'] if  \
+        not(all(map(lambda x: not(x in host_names), \
+            group['members'].split(','))))]
     state['group'] = group_list
     state['host'] = host_list
     state['service'] = []
@@ -489,7 +516,8 @@ def formstate(request):
          'service': servicelist(stat),              \
          }
     if (not(querydict)):
-        state['options'] = map(lambda x: x[0].upper() + x[1:], state['options'])
+        state['options'] =  \
+            map(lambda x: x[0].upper() + x[1:], state['options'])
         return HttpResponse(json.dumps(stripstate(state)))
 
     format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
@@ -513,7 +541,8 @@ def formstate(request):
         selectservice(state, service)
 
 
-    state['options'] = [option for option in typeDict.keys() if not(typeDict[option])]
+    state['options'] = [option for option in typeDict.keys()    \
+                                 if not(typeDict[option])]
     if host and 'group' in state['options']:
         state['options'].remove('group')
 
