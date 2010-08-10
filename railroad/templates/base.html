@@ -28,8 +28,8 @@
 <div id="header">
 <ul>
 <li id="title">Railroad</li>
-<li><a href="/railroad/">Home</a></li>
-<li><a href="/railroad/configurator">Configurator</a></li>
+<li><a href="{% url railroad.viewhosts.views.index %}">Home</a></li>
+<li><a href="{% url railroad.viewhosts.views.configurator %}">Configurator</a></li>
 </ul>
 {% if graphs %}
 <span id="graph_options"><input type="checkbox" name="sync" id="sync"><label for="sync">Keep graphs in sync</label></span>
@@ -42,7 +42,7 @@
 <ul>
 {% for elem in sidebar %}
 	</ul>
-		<div class="listheader"><a href="/railroad/viewgroup/{{elem.0}}">{{elem.0}}</a></div>
+		<div class="listheader"><a href="{% url railroad.viewhosts.views.group elem.0 %}">{{elem.0}}</a></div>
 		<ul>
     {% for host in elem.1 %}
         {% ifequal host.current_state 0 %}
@@ -50,7 +50,7 @@
         {% else %}
             <li class="green">
         {% endifequal %}
-            <a href="/railroad/viewhost/{{host.host_name}}">{{host.host_name}}</a>
+            <a href="{% url railroad.viewhosts.views.host host.host_name %}">{{host.host_name}}</a>
             {# maybe for later <ul><li>{{host.plugin_output}}</li></ul> #}
             </li>
     {% endfor %}

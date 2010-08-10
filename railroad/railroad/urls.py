@@ -26,7 +26,7 @@ urlpatterns = patterns('',
     (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/$', 'railroad.parserrd.views.index'),
 
     # Test functions
-    (r'^pagetest/$', 'railroad.pagetest.views.index'),
+#    (r'^pagetest/$', 'railroad.pagetest.views.index'),
     (r'^test$', 'railroad.viewhosts.views.form'),
 
     # Individual viewers

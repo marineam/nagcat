@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<h1><a href="/railroad/viewhost/{{host_name}}">{{host_name}}</a> &gt; {{service_name}}</h1>
+<h1><a href="{% url railroad.viewhosts.views.host  host_name %}">{{host_name}}</a> &gt; {{service_name}}</h1>
 
 <pre style="float: left; min-width: 250px; padding-right: 35px">{{service_output}}</pre>
 

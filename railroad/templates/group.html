@@ -19,7 +19,7 @@
 			<td class="redbg">
 		{% endifequal %}
 	{% endifequal %}
-	<a href="/railroad/viewhost/{{host.host_name}}">{{host.host_name}}</a>
+	<a href="{% url railroad.viewhosts.views.host host.host_name %}">{{host.host_name}}</a>
 	</td>
 	{% if forloop.counter|divisibleby:"5" %}</tr><tr>{% endif %}	
 {% endfor %}
@@ -31,7 +31,7 @@
 <tr>
 {% for service in services %}
 	<td>
-		<a href="/railroad/viewgroup/{{group_name}}/{{service.service_test}}/{{service.service_alias}}">{{service.service_alias}}</a>
+		<a href="{% url railroad.viewhosts.views.groupservice group_name service.service_test service.service_alias %}">{{service.service_alias}}</a>
 	</td>
 	{% if forloop.counter|divisibleby:"2" %}</tr><tr>{% endif %}	
 {% endfor %}

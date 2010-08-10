@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<h1><a href="/railroad/viewgroup/{{group_name}}">{{group_name}}</a> &gt; {{service_alias}}</h1>
+<h1><a href="{% url railroad.viewhosts.views.group group_name %}">{{group_name}}</a> &gt; {{service_alias}}</h1>
 
 <div class="services">
 <table>
@@ -19,7 +19,7 @@
                 <td class="redbg">
             {% endifequal %}
         {% endifequal %}
-        <h2><a href="/railroad/viewhost/{{host.host_name}}">{{host.host_name}}</a></h2>
+        <h2><a href="{% url railroad.viewhosts.views.host host.host_name %}">{{host.host_name}}</a></h2>
         </td>
         {% for service in host.services %}
             <tr>
@@ -33,7 +33,7 @@
                         <td class="redbg">
                     {% endifequal %}
                 {% endifequal %}
-                <h2><a href="/railroad/viewhost/{{host.host_name}}/{{service.service_description}}">{{service.service_description}}</a></h2>
+                <h2><a href="{% url railroad.viewhosts.views.service host.host_name service.service_description %}">{{service.service_description}}</a></h2>
                 {{service.plugin_output}}
                 </td>
                 {% ifequal service.is_graphable true %}

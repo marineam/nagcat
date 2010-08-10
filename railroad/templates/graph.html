@@ -9,8 +9,8 @@
             <td class="redbg">
         {% endifequal %}
     {% endifequal %}
-    <h2><a href="{{service.host_name}}">{{service.host_name}}</a></h2>
-    <h2><a href="{{service.host_name}}/{{service.service_description}}">{{service.service_description}}</a></h2>
+    <h2><a href="{% url railroad.viewhosts.views.host service.host_name %}">{{service.host_name}}</a></h2>
+    <h2><a href="{% url railroad.viewhosts.views.service service.host_name service.service_description %}">{{service.service_description}}</a></h2>
     {{service.plugin_output}}
     </td>
 
