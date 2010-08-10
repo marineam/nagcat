@@ -18,6 +18,7 @@
 // TODO: A global variable? I hate you.
 base = 0;
 
+// Choose a base for graph axis
 function chooseBase(max) {
     // Memoizes results!
     if (this.chooseBase.result != undefined &&
@@ -198,14 +199,8 @@ function createGraph(element, path, callback, zoom) {
     $(element).data('busy', null);
     }
 }
-   
-// Update an AJAX timestamp
-function updateTimestamp(element) {
-    // TODO: Format time cleaner?
-    time = new Date();
-    element.html('updated: ' + time.toString());
-}
 
+// Grabs the default state for the configurator
 function default_state() {
     // If we're on a configurator page, load the default state
     if($('#configurator') != undefined) {
@@ -214,20 +209,6 @@ function default_state() {
         });
     }
 }
-
-function reset_fields() {
-    // Enable all fields
-    $('[id^=type]').attr('disabled', null);
-    $('[id^=value]').attr('disabled', null);
-    // Disable Add button
-    $('#submit').attr('disabled', 'disabled');
-    // Remove added fields and empty the first value box 
-    $('#options').empty();
-    $('#value0').empty();
-    // Get the default form state for values
-    default_state();
-    $('#configurator').resetForm();
-} 
 
 // Execute setup code when page loads
 $(document).ready(function() {
@@ -377,8 +358,10 @@ $(document).ready(function() {
 
     }
 
+    // Initialize the data for any graphs already on the page
     $(".graph").each(parse_graphs);
 
+    // Handle configurator form submissions
     $('#configurator').submit(function() {
         $(this).append('<div class="throbber"></div>');
         // Enable the fields again so they can be submitted
@@ -391,7 +374,8 @@ $(document).ready(function() {
             dataType: 'html',
             url: $('#configurator').attr('action'),
             success: function(data, textStatus, XMLHttpRequest) {
-                reset_fields();
+                //reset_fields();
+                $('#configurator').trigger('reset');
                 // Add the new graph and setup the new graphs
                 $('#graphs').append(data);
                 $('.graph:not(.setup)').each(parse_graphs);
@@ -406,13 +390,25 @@ $(document).ready(function() {
         return false;
     });
    
+    // Properly clear the form when someone attempts to reset it
     $('#configurator').bind('reset', function() {
-        reset_fields();
-        //return false;
+        // Enable all fields
+        $('[id^=type]').attr('disabled', null);
+        $('[id^=value]').attr('disabled', null);
+        // Disable Add button
+        $('#submit').attr('disabled', 'disabled');
+        // Remove added fields and empty the first value box 
+        $('#options').empty();
+        $('#value0').empty();
+        // Get the default form state for values
+        default_state();
     });
  
+    // Load the default state for configurator
     default_state();
 
+    // Automatically fill in the configurator value options when the type is
+    // changed
     $('.type').live('change', function() {
         id = parseInt($(this).attr('name').replace('type', ''));
         value = $('#value' + id);
@@ -425,6 +421,7 @@ $(document).ready(function() {
         });
     });
 
+    // Load the new configurator state when the value is changed
     $('.value').live('change', function() {
         $(this).after('<div class="throbber filter" />');
         // Read the current id and fetch a new one that is higher
@@ -489,6 +486,7 @@ $(document).ready(function() {
         }
     });
 
+    // Automatically update any graphs which are set to ajax load
     function autoFetchData() {
         $('.graph.ajax').each(function(index, element) {
             serviceData = $(element).data();
@@ -506,6 +504,8 @@ $(document).ready(function() {
         });
         setTimeout(autoFetchData, 60 * 1000);
     }
+
+    // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 60 * 1000);
 
 });
