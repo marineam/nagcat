@@ -473,7 +473,8 @@ def selectservice(state, service):
     all_services = state['service']
     host_names = [s['host_name'] for s in all_services if s['service_description'] == service]
     host_list = [host for host in state['host'] if host['host_name'] in host_names]
-    state['group'] = []
+    group_list = [group for group in state['group'] if not(all(map(lambda x: not(x in host_names), group['members'].split(','))))]
+    state['group'] = group_list
     state['host'] = host_list
     state['service'] = []
 
@@ -513,9 +514,15 @@ def formstate(request):
 
 
     state['options'] = [option for option in typeDict.keys() if not(typeDict[option])]
-    if (host or service) and 'group' in state['options']:
+    if host and 'group' in state['options']:
         state['options'].remove('group')
 
     state['options'] = map(lambda x: x[0].upper() + x[1:], state['options'])
+    
+    state['ready'] = False
+    if host:
+        state['ready'] = True
+    elif service and group:
+        state['ready'] = True
 
     return HttpResponse(json.dumps(stripstate(state)))
