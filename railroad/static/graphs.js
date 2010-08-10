@@ -134,12 +134,15 @@ function createGraph(element, path, callback, zoom) {
             url: '/railroad/parserrd/' + path,
             dataType: 'json',
             success: function(data) {
-                // If we are zooming and there's no data, just bail with an error
+                // If we are zooming and there's no data, just bail with an
+                // error
                 if(zoom && data.empty) {
                     plot = $(element).data('plot');
                     plot.clearSelection();
-                    $(element).append('<div class="error">no data to zoom</div>');
-                    // Nice fadeOut won't let us remove the element, so use a callback
+                    $(element).append('<div class="error">no data to ' +
+                                      'zoom</div>');
+                    // Nice fadeOut won't let us remove the element, so use a
+                    // callback
                     $(element).find('.error')
                               .delay(500)
                               .fadeOut(500,
@@ -148,7 +151,10 @@ function createGraph(element, path, callback, zoom) {
                                        });
                 } else {
                     data = formatGraph(element, data);
-                    $(element).data('plot', $.plot($(element), data.data, data.options));
+                    $(element).data('plot',
+                                    $.plot($(element),
+                                    data.data,
+                                    data.options));
                     if(data.options.yaxis.label) {
                         $(element).before('<div class="ylabel"><span>' +
                                           data.options.yaxis.label +
@@ -177,7 +183,8 @@ function createGraph(element, path, callback, zoom) {
                 $(element).find('.throbber').remove();
                 $(element).append('<div class="error">error</div>');
                 if(zoom) {
-                    // Nice fadeOut won't let us remove the element, so use a callback
+                    // Nice fadeOut won't let us remove the element, so use a
+                    // callback
                     $(element).find('.error')
                               .delay(500)
                               .fadeOut(500,
@@ -282,7 +289,8 @@ $(document).ready(function() {
                             $(graph).closest('.graph_container')
                                     .find('.options .selected')
                                     .removeClass('selected');
-                            // This is pretty horrible, perhaps there is a better way
+                            // This is pretty horrible, perhaps there is a
+                            // better way
                             if(clicked.hasClass('reset')) {
                                 buttonClass = '.reset';
                             } else if(clicked.hasClass('day')) {
@@ -296,7 +304,9 @@ $(document).ready(function() {
                             } else if(clicked.hasClass('zoom')) {
                                 buttonClass = '.zoom';
                             }
-                            $(graph).closest('.graph_container').find(buttonClass).addClass('selected');
+                            $(graph).closest('.graph_container')
+                                    .find(buttonClass)
+                                    .addClass('selected');
                         });      
         });
     });
@@ -324,7 +334,8 @@ $(document).ready(function() {
             // If we are supposed to sync the graphs, loop over all graphs
             if($('#sync').attr('checked')) {
                 graphs = $('.graph');
-                // Allow us to zoom even when it makes no sense if we are synced
+                // Allow us to zoom even when it makes no sense if we are
+                // synced
                 zoom = false;
             // Otherwise only loop over the graph associated with this button
             } else {
@@ -346,10 +357,12 @@ $(document).ready(function() {
                             path,
                             function() {
                                 $(element).removeClass('ajax');
-                                zoomButton = $(element).closest('.graph_container')
-                                                       .find('.zoom');
-                                selected = $(element).closest('.graph_container')
-                                                     .find('.selected');
+                                zoomButton = $(element)
+                                                .closest('.graph_container')
+                                                .find('.zoom');
+                                selected = $(element)
+                                                .closest('.graph_container')
+                                                .find('.selected');
                                 selected.removeClass('selected');
                                 zoomButton.css('visibility', 'visible');
                                 zoomButton.addClass('selected');
@@ -406,7 +419,8 @@ $(document).ready(function() {
         $(value).empty();
         state = $('#configurator').data('state');
         $(value).append(new Option());
-        $.each(state[$(this).attr('value').toLowerCase()], function(index, item) {
+        value_name = $(this).attr('value').toLowerCase();
+        $.each(state[value_name], function(index, item) {
             $(value).append(new Option(item, item));
         });
     });
@@ -418,9 +432,9 @@ $(document).ready(function() {
         id = old_id + 1;
         // If we have a valid value and few enough ids, insert a field
         if($(this).val()) {
-            // jQuery will only serialize enabled objects, so enable, serialize
-            // then disable. Also stab yourself and perhaps find a better way
-            // to solve this without hacking on the library
+            // jQuery will only serialize enabled objects, so enable,
+            // serialize then disable. Also stab yourself and perhaps find a
+            // better way to solve this without hacking on the library
             $('[id^=type]').attr('disabled', null);
             $('[id^=value]').attr('disabled', null);
             fields = $('#configurator').formSerialize();
@@ -433,8 +447,32 @@ $(document).ready(function() {
                 success: function(data, textStatus, XMLHttpRequest) {
                     $('#configurator').data('state', data);
                     if(data['options'].length) {
-                        // This is dumber than the dumbest dumb, but jQuery sucks at inserting 
-                        $('#options').append('<select name="type' + id + '" class="type" id="type' + id + '"><option></option></select> <select name="value' + id + '" class="value" id="value' + id + '"></select><br />');
+                        // Clone the two boxes, change their id/names and
+                        // empty the new clones. Not perfectly clean but
+                        // preferable to inserting raw html, and allows us to
+                        // easily copy all properties of the original html
+                        // template.
+                        $('#type0').clone()
+                                   .attr('id', 'type' + id)
+                                   .attr('name', 'type' + id)
+                                   .empty()
+                                   .append(new Option())
+                                   .attr('disabled', null)
+                                   .appendTo('#options');
+
+                        // Have to add a space between them
+                        $('#options').append(' ');
+
+                        $('#value0').clone()
+                                    .attr('id', 'value' + id)
+                                    .attr('name', 'value' + id)
+                                    .empty()
+                                    .attr('disabled', null)
+                                    .appendTo('#options');
+                       
+                        // And a return after them
+                        $('#options').append('<br />');
+
                         $.each(data['options'], function(index, item) {
                             $('#type' + id).append(new Option(item, item));
                         });
