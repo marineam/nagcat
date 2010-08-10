@@ -212,6 +212,8 @@ function reset_fields() {
     // Enable all fields
     $('[id^=type]').attr('disabled', null);
     $('[id^=value]').attr('disabled', null);
+    // Disable Add button
+    $('#submit').attr('disabled', 'disabled');
     // Remove added fields and empty the first value box 
     $('#options').empty();
     $('#value0').empty();
@@ -436,6 +438,9 @@ $(document).ready(function() {
                         $.each(data['options'], function(index, item) {
                             $('#type' + id).append(new Option(item, item));
                         });
+                        if(data['ready']) {
+                            $('#submit').attr('disabled', null);
+                        }
                     }
                     $('#configurator').find('.throbber').remove();
                 },
