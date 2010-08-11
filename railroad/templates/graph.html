@@ -2,6 +2,8 @@
     <tr>
     <td>
         <div class="delete">X</div>
+        {# TODO: Kind of odd place for this? #}
+        <a href="{{service.host_name}}/{{service.service_description}}"></a>
     </td>
     {% ifequal service.current_state '0' %}
         <td class="greenbg">

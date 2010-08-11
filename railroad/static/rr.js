@@ -156,6 +156,10 @@ function createGraph(element, path, callback, zoom) {
                                     $.plot($(element),
                                     data.data,
                                     data.options));
+                    $(element).data('start',
+                                    data.start);
+                    $(element).data('end',
+                                    data.end);
                     if(data.options.yaxis.label) {
                         $(element).before('<div class="ylabel"><span>' +
                                           data.options.yaxis.label +
@@ -402,6 +406,8 @@ $(document).ready(function() {
         $('#value0').empty();
         // Get the default form state for values
         default_state();
+        // Event will now fall through to normal reset handler and clear
+        // all fields
     });
  
     // Load the default state for configurator
@@ -473,9 +479,9 @@ $(document).ready(function() {
                         $.each(data['options'], function(index, item) {
                             $('#type' + id).append(new Option(item, item));
                         });
-                        if(data['ready']) {
-                            $('#submit').attr('disabled', null);
-                        }
+                    }
+                    if(data['ready']) {
+                        $('#submit').attr('disabled', null);
                     }
                     $('#configurator').find('.throbber').remove();
                 },
@@ -489,6 +495,27 @@ $(document).ready(function() {
     // Handle removing rows
     $('.delete').live('click', function() {
         $(this).closest('tr').remove();
+    });
+
+    // Handle configurator link generation
+    $('.link').click(function() {
+        data = new Array();
+        $('tr').each(function(index, element) {
+            temp = $(element).find('.graph_data').attr('href').split('/');
+            host = temp[0];
+            service = temp[1];
+            start = $(element).find('.graph_container').data('start');
+            end = $(element).find('.graph_container').data('end');
+            data[index] = [host, service, start, end];
+        });
+        $.ajax({
+            data: data,
+            dataType: 'json',
+            type: 'POST',
+            success: function(data) {
+                alert(data);
+            }
+        });
     });
 
     // Automatically update any graphs which are set to ajax load

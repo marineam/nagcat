@@ -5,9 +5,21 @@
 {% block content %}
 
 <h2>Configurator</h2>
+
+{% include "form.html" %}
+
+<a href="#" class="link">Get link</a>
+
 <div class="services">
+<table id="graphs">
 {% for graph in loaded_graphs %}
+{# TODO: Look at using graph.html template instead to prevent code duplication #}
     <tr>
+    <td>
+        <div class="delete">X</div>
+        {# TODO: Kind of odd place for this? #}
+        <a href="{{graph.0.host_name}}/{{graph.1.service_description}}" class="graph_data"></a>
+    </td>
     {% ifequal graph.1.current_state '0' %}
         <td class="greenbg">
     {% else %}
@@ -50,7 +62,7 @@
     
     </tr>
 {% endfor %}
+</table>
 </div>
-{% include "form.html" %}
 
 {% endblock %}
