@@ -455,7 +455,7 @@ def configurator(request, id=None):
     loaded_graphs = []
     if id != None:
         content = pickle.loads(str(URL.objects.get(id=id)))
-        loaded_graphs = map(lambda host,service,start,end:  \
+        loaded_graphs = map(lambda (host,service,start,end):  \
             [hostdetail(stat, host), servicedetail(stat, host, service),    \
                 start, end], content)
 
@@ -474,8 +474,15 @@ def generatelink(request):
     querydict = request.POST 
     if not(querydict):
         querydict = request.GET
+
+    raw = querydict.get('services', '')
+    #return HttpResponse(raw)
     list = json.loads(querydict.get('services', ''))
-    link = URL(content=pickle.dumps(list))
+    #return HttpResponse(str(list))
+    typez = type(list)
+    import types
+    content = pickle.dumps(list)
+    link = URL(content=content)
     link.save()
     return HttpResponse(json.dumps(link.id))
 
