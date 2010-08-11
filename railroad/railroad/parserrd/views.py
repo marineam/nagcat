@@ -1,4 +1,4 @@
-# Copyright 2010 ITA Software, Inc.
+# Copyright 2010 ITASoftware, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ def index(request, host, service, start, end, resolution='150'):
     
 
     # Parse the data
-    start, end, res = rrdslice[0]
+    actual_start, actual_end, res = rrdslice[0]
 
     # Multiply by 1000 to convert to JS timestamp (millisecond resolution)
     res *= 1000
@@ -179,7 +179,7 @@ def index(request, host, service, start, end, resolution='150'):
                 flot_data[index-1]['stack'] = True
 
     # See above
-    x = start * 1000
+    x = actual_start * 1000
 
     transform = [all_labels.index(z) for z in labels]
     state_index = all_labels.index('_state')

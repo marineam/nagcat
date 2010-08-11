@@ -481,6 +481,8 @@ def configurator(request, id=None):
     return HttpResponse(t.render(c))
 
 def generatelink(request):
+    #lisz = [URL.objects.get(id=x) for x in [1,2]]
+    #return [lisz[0].content, lisz[1].content,]
     if request.method == "POST":
         querydict = request.POST 
     else:
@@ -498,12 +500,17 @@ def generatelink(request):
 
     graph_list.sort(digitcmp)
     content = pickle.dumps([graph[1] for graph in graph_list])
-    link = URL(content=content)
-    link.save()
 
     hostname = 'http' + ('s' if request.is_secure() else '') + '://' +    \
                 request.META['SERVER_NAME']
-    return HttpResponse(json.dumps(hostname + '/railroad/c/' + str(link.id)))
+
+    try:
+        id = URL.objects.get(content=content).id
+    except Exception:
+        link = URL(content=content)
+        link.save()
+        id = link.id
+    return HttpResponse(json.dumps(hostname + '/railroad/c/' + str(id)))
 
 def stripstate(state):
     state['group'] = map(lambda x: x['alias'], state['group'])
