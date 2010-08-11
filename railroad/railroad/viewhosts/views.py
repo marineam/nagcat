@@ -472,6 +472,8 @@ def configurator(request, id=None):
 
 def generatelink(request):
     querydict = request.POST 
+    if not(querydict):
+        querydict = request.GET
     list = json.loads(querydict.get('services', ''))
     link = URL(content=pickle.dumps(list))
     link.save()
