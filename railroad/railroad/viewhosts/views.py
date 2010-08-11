@@ -485,12 +485,22 @@ def generatelink(request):
         querydict = request.POST 
     else:
         querydict = request.GET
-    list = [item[1] for item in querydict.iterlists()]
 
-    content = pickle.dumps(list)
+    digits = re.compile('(\d+)')
+    graph_list = [graph for graph in querydict.iterlists()]
+
+    def digitcmp(x,y): 
+        xmatch = digits.search(x[0])
+        ymatch = digits.search(y[0])
+        xrow = int(xmatch.group(0)) if xmatch else 1337
+        yrow = int(ymatch.group(0)) if ymatch else 1337
+        return cmp(xrow, yrow)
+
+    graph_list.sort(digitcmp)
+    content = pickle.dumps([graph[1] for graph in graph_list])
     link = URL(content=content)
     link.save()
-    
+
     hostname = 'http' + ('s' if request.is_secure() else '') + '://' +    \
                 request.META['SERVER_NAME']
     return HttpResponse(json.dumps(hostname + '/railroad/c/' + str(link.id)))
