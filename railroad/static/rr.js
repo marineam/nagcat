@@ -486,6 +486,11 @@ $(document).ready(function() {
         }
     });
 
+    // Handle removing rows
+    $('.delete').live('click', function() {
+        $(this).closest('tr').remove();
+    });
+
     // Automatically update any graphs which are set to ajax load
     function autoFetchData() {
         $('.graph.ajax').each(function(index, element) {

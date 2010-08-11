@@ -1,5 +1,8 @@
 {% for service in service_list %}
     <tr>
+    <td>
+        <div class="delete">X</div>
+    </td>
     {% ifequal service.current_state '0' %}
         <td class="greenbg">
     {% else %}

@@ -244,3 +244,8 @@ pre {
 	/* Seems buggy in many browsers, doing in Python for now */
 	text-transform: capitalize;
 }
+.delete {
+	font-weight: bold;
+	color: red;
+	cursor: pointer;
+}
