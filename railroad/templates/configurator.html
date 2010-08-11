@@ -30,6 +30,7 @@
             <td class="redbg">
         {% endifequal %}
     {% endifequal %}
+    <h2><a href="{% url railroad.viewhosts.views.host graph.0.host_name %}">{{graph.0.host_name}}</a></h2>
     <h2><a href="{% url railroad.viewhosts.views.service graph.0.host_name graph.1.service_description %}">{{graph.1.service_description}}</a></h2>
     {{graph.1.plugin_output}}
     </td>

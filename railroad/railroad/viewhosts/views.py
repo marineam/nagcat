@@ -455,9 +455,18 @@ def configurator(request, id=None):
     loaded_graphs = []
     if id != None:
         content = pickle.loads(str(URL.objects.get(id=id)))
-        loaded_graphs = map(lambda (host,service,start,end):  \
-            [hostdetail(stat, host), servicedetail(stat, host, service),    \
-                start, end], content)
+        for array in content:
+            if len(array) == 4:
+                host, service, start, end = array
+                service_detail = servicedetail(stat, host, service)
+                service_detail['is_graphable'] = True
+                loaded_graphs.append([hostdetail(stat, host),   \
+                    service_detail, start, end])
+            elif len(array) == 2:
+                host, service = array
+                service_detail = servicedetail(stat, host, service)
+                service_detail['is_graphable'] = False
+                loaded_graphs.append([hostdetail(stat, host), service_detail])
 
     context_data = {
         'loaded_graphs': loaded_graphs,
@@ -465,6 +474,7 @@ def configurator(request, id=None):
         'host_list': host_list,
         'service_list': service_list,
         'graphs': True,
+        'true': True,
     }
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
@@ -475,9 +485,7 @@ def generatelink(request):
         querydict = request.POST 
     else:
         querydict = request.GET
-    list = []
-    for item in querydict.iterlists():
-        list.append(item[1])
+    list = [item[1] for item in querydict.iterlists()]
 
     content = pickle.dumps(list)
     link = URL(content=content)
