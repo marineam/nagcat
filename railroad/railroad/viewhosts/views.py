@@ -471,16 +471,14 @@ def configurator(request, id=None):
     return HttpResponse(t.render(c))
 
 def generatelink(request):
-    querydict = request.POST 
-    if not(querydict):
+    if request.method == "POST":
+        querydict = request.POST 
+    else:
         querydict = request.GET
+    list = []
+    for item in querydict.iterlists():
+        list.append(item[1])
 
-    raw = querydict.get('services', '')
-    #return HttpResponse(raw)
-    list = json.loads(querydict.get('services', ''))
-    #return HttpResponse(str(list))
-    typez = type(list)
-    import types
     content = pickle.dumps(list)
     link = URL(content=content)
     link.save()

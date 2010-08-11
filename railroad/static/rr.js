@@ -511,14 +511,15 @@ $(document).ready(function() {
         data = {services: services};
         $.ajax({
             data: data,
-            dataType: 'json',
+/*            dataType: 'json',*/
             type: 'POST',
             url: '/railroad/configurator/generatelink',
             success: function(data) {
                 alert(data);
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
-                alert(errorThrown);
+                alert('error:' + XMLHttpRequest.status);
+                $('#configurator').html(XMLHttpRequest.responseText);
             }
         });
     });
