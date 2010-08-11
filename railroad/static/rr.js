@@ -513,6 +513,7 @@ $(document).ready(function() {
             data: data,
             dataType: 'json',
             type: 'POST',
+            url: '/railroad/configurator/generatelink',
             success: function(data) {
                 alert(data);
             }
