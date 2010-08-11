@@ -483,9 +483,9 @@ def generatelink(request):
     link = URL(content=content)
     link.save()
     
-    hostname = 'http' + 's' if request.is_secure() else '' + '://' +    \
+    hostname = 'http' + ('s' if request.is_secure() else '') + '://' +    \
                 request.META['SERVER_NAME']
-    return HttpResponse(json.dumps(hostname + '/railroad/c/' + link.id))
+    return HttpResponse(json.dumps(hostname + '/railroad/c/' + str(link.id)))
 
 def stripstate(state):
     state['group'] = map(lambda x: x['alias'], state['group'])
