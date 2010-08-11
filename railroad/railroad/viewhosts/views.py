@@ -22,7 +22,7 @@ import pickle
 import coil
 import rrdtool
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpRequest
 from django.template import Context, loader
 from nagcat import nagios_objects
 
@@ -482,7 +482,10 @@ def generatelink(request):
     content = pickle.dumps(list)
     link = URL(content=content)
     link.save()
-    return HttpResponse(json.dumps(link.id))
+    
+    hostname = 'http' + 's' if request.is_secure() else '' + '://' +    \
+                request.META['SERVER_NAME']
+    return HttpResponse(json.dumps(hostname + '/railroad/c/' + link.id))
 
 def stripstate(state):
     state['group'] = map(lambda x: x['alias'], state['group'])
