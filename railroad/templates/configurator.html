@@ -14,11 +14,11 @@
 <table id="graphs">
 {% for graph in loaded_graphs %}
 {# TODO: Look at using graph.html template instead to prevent code duplication #}
-    <tr>
+    <tr class="service_row">
     <td>
         <div class="delete">X</div>
         {# TODO: Kind of odd place for this? #}
-        <a href="{{graph.0.host_name}}/{{graph.1.service_description}}" class="graph_data"></a>
+        <a href="{{graph.0.host_name}}/{{graph.1.service_description}}" class="service_data"></a>
     </td>
     {% ifequal graph.1.current_state '0' %}
         <td class="greenbg">

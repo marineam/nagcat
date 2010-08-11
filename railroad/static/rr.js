@@ -499,15 +499,16 @@ $(document).ready(function() {
 
     // Handle configurator link generation
     $('.link').click(function() {
-        data = new Array();
-        $('tr').each(function(index, element) {
-            temp = $(element).find('.graph_data').attr('href').split('/');
+        services = new Array();
+        $('.service_row').each(function(index, element) {
+            temp = $(element).find('.service_data').attr('href').split('/');
             host = temp[0];
             service = temp[1];
             start = $(element).find('.graph_container').data('start');
             end = $(element).find('.graph_container').data('end');
-            data[index] = [host, service, start, end];
+            services[index] = [host, service, start, end];
         });
+        data = {services: services};
         $.ajax({
             data: data,
             dataType: 'json',
