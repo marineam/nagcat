@@ -511,17 +511,29 @@ $(document).ready(function() {
         data = {services: services};
         $.ajax({
             data: data,
-/*            dataType: 'json',*/
+            dataType: 'json',
             type: 'POST',
             url: '/railroad/configurator/generatelink',
             success: function(data) {
-                alert(data);
+                $('#link').html('<input type="text" name="link" readonly value="' + data + '" />');
+                $('#link input').focus()
+                                .select();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
-                alert('error:' + XMLHttpRequest.status);
-                $('#configurator').html(XMLHttpRequest.responseText);
+                // TODO: Handle error?
             }
         });
+    });
+
+    // Automatically focus the link when someone clicks
+    $('#link input').live('click', function() {
+        $(this).focus()
+               .select();
+    });
+
+    // Automatically delete the link if we defocus
+    $('#link input').live('blur', function() {
+        $('#link').empty();
     });
 
     // Automatically update any graphs which are set to ajax load

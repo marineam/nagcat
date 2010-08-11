@@ -9,6 +9,7 @@
 {% include "form.html" %}
 
 <a href="#" class="link">Get link</a>
+<div id="link"></div>
 
 <div class="services">
 <table id="graphs">
@@ -39,12 +40,12 @@
                 <div class="options">
                     <ul>
                         {# TODO: Find a better way to set selected to match which graph we want? #}
-                        <li class="reset selected">live (day)</li>
+                        <li class="reset">live (day)</li>
                         <li class="day">day</li>
                         <li class="week">week</li>
                         <li class="month">month</li>
                         <li class="year">year</li>
-                        <li class="zoom" style="visibility: hidden">zoomed</li>
+                        <li class="zoom selected">zoomed</li>
                     </ul>
                 </div>
                 <div class="ajax_info">
