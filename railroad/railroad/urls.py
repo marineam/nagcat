@@ -40,6 +40,7 @@ urlpatterns = patterns('',
     (r'^configurator$', 'railroad.viewhosts.views.configurator'),
     (r'^configurator/graph$', 'railroad.viewhosts.views.customgraph'),
     (r'^configurator/formstate$', 'railroad.viewhosts.views.formstate'),
+    (r'^configurator/generatelink$', 'railroad.viewhosts.views.generatelink'),
 
     # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
     # to INSTALLED_APPS to enable admin documentation:
