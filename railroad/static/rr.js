@@ -504,8 +504,8 @@ $(document).ready(function() {
             temp = $(element).find('.service_data').attr('href').split('/');
             host = temp[0];
             service = temp[1];
-            start = $(element).find('.graph_container').data('start');
-            end = $(element).find('.graph_container').data('end');
+            start = $(element).find('.graph').data('start');
+            end = $(element).find('.graph').data('end');
             services[index] = [host, service, start, end];
         });
         data = {services: services};
@@ -516,6 +516,9 @@ $(document).ready(function() {
             url: '/railroad/configurator/generatelink',
             success: function(data) {
                 alert(data);
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                alert(errorThrown);
             }
         });
     });
