@@ -419,7 +419,13 @@ $(document).ready(function() {
         id = parseInt($(this).attr('name').replace('type', ''));
         value = $('#value' + id);
         $(value).empty();
-        state = $('#configurator').data('state');
+        // Spin until we get a valid state, this prevents values from
+        // breaking if the user tries to change the type before state
+        // loads in
+        state = null;
+        while(state == null) {
+            state = $('#configurator').data('state');
+        }
         $(value).append(new Option());
         value_name = $(this).attr('value').toLowerCase();
         $.each(state[value_name], function(index, item) {
