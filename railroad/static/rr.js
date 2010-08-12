@@ -307,6 +307,8 @@ $(document).ready(function() {
         splitPath = path.split('/');
         $(element).data('host', splitPath[0]);
         $(element).data('service', splitPath[1]);
+        $(element).data('start', splitPath[2]);
+        $(element).data('end', splitPath[3]);
         $(element).data('res', splitPath[4]);
 
         createGraph(element, path);
