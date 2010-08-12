@@ -425,10 +425,11 @@ $(document).ready(function() {
         $(value).empty();
         // Spin until we get a valid state, this prevents values from
         // breaking if the user tries to change the type before state
-        // loads in. Locks up Firefox so hopefully this never happens
-        state = null;
-        while(state == null) {
-            state = $('#configurator').data('state');
+        // loads in. setTimeout spin lets us pause a bit to save Firefox from
+        // having a heart attack.
+        state = $('#configurator').data('state');
+        if(state == null) {
+            setTimeout(300, $(this).change());
         }
         $(value).append(new Option());
         value_name = $(this).attr('value').toLowerCase();
