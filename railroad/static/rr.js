@@ -211,11 +211,16 @@ function default_state() {
         $.getJSON('/railroad/configurator/formstate', function(data) {
             $('#configurator').data('state', data);
         });
+        $('#configurator').show();
     }
 }
 
 // Execute setup code when page loads
 $(document).ready(function() {
+    // Kick off grabbing the default state so hopefully it gets there before
+    // the user iteracts
+    default_state();
+
     // Bind the graph time range selection buttons
     $('.options ul li').live('click', function() {
         clicked = $(this);
@@ -412,9 +417,6 @@ $(document).ready(function() {
         // all fields
     });
  
-    // Load the default state for configurator
-    default_state();
-
     // Automatically fill in the configurator value options when the type is
     // changed
     $('.type').live('change', function() {
@@ -423,7 +425,7 @@ $(document).ready(function() {
         $(value).empty();
         // Spin until we get a valid state, this prevents values from
         // breaking if the user tries to change the type before state
-        // loads in
+        // loads in. Locks up Firefox so hopefully this never happens
         state = null;
         while(state == null) {
             state = $('#configurator').data('state');
