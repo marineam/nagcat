@@ -10,7 +10,7 @@
 
 <div class="services">
 <table>
-{% ifequal graphable true %}
+{% if graphable %}
 	{% for time_interval in time_intervals %}
 		<tr>
 			<td width="100"><h2>{{time_interval.0|title}}</h2>
@@ -28,7 +28,7 @@
 			</td>
 		</tr>
 	{% endfor %}
-{% endifequal %}
+{% endif %}
 </table>
 </div>
 {% endblock %}

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Configurator{% endblock %}
+{% block title %}{{htmltitle}}{% endblock %}
 
 {% block content %}
 
-<h2>Configurator</h2>
+<h2>{{pagetitle}}</h2>
 
 {% include "form.html" %}
 
@@ -13,57 +13,7 @@
 
 <div class="services">
 <table id="graphs">
-{% for graph in loaded_graphs %}
-{# TODO: Look at using graph.html template instead to prevent code duplication #}
-    <tr class="service_row">
-    <td>
-        <div class="delete">X</div>
-        {# TODO: Kind of odd place for this? #}
-        <a href="{{graph.0.host_name}}/{{graph.1.service_description}}" class="service_data"></a>
-    </td>
-    {% ifequal graph.1.current_state '0' %}
-        <td class="greenbg">
-    {% else %}
-        {% ifequal graph.1.current_state '1' %}
-            <td class="yellowbg">
-        {% else %}
-            <td class="redbg">
-        {% endifequal %}
-    {% endifequal %}
-    <h2><a href="{% url railroad.viewhosts.views.host graph.0.host_name %}">{{graph.0.host_name}}</a></h2>
-    <h2><a href="{% url railroad.viewhosts.views.service graph.0.host_name graph.1.service_description %}">{{graph.1.service_description}}</a></h2>
-    {{graph.1.plugin_output}}
-    </td>
-
-    {% ifequal graph.1.is_graphable true %}
-        <td>
-            <div class="graph_container">
-                <div class="options">
-                    <ul>
-                        {# TODO: Find a better way to set selected to match which graph we want? #}
-                        <li class="reset">live (day)</li>
-                        <li class="day">day</li>
-                        <li class="week">week</li>
-                        <li class="month">month</li>
-                        <li class="year">year</li>
-                        <li class="zoom selected">zoomed</li>
-                    </ul>
-                </div>
-                <div class="ajax_info">
-                    <div class="update"></div>
-                </div>
-                {# TODO: This has to be one line, as we grab the inner HTML to figure out what to graph, need a solution eventually #}
-                <div id="{{graph.1.service_description|slugify}}" 
-                     class="graph"><a href="{{graph.0.host_name}}/{{graph.1.service_description}}/{{graph.2}}/{{graph.3}}/100"></a>
-                </div>
-                <div class="legend">
-                </div>
-            </div>
-        </td>
-    {% endifequal %}
-    
-    </tr>
-{% endfor %}
+{% include "graph.html" %}
 </table>
 </div>
 

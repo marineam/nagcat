@@ -29,10 +29,13 @@ from nagcat import nagios_objects
 from railroad.errors import RailroadError
 from railroad.viewhosts.models import URL
 
+DAY = 86400
+
 def is_graphable(host, service):
     rra_path = settings.RRA_PATH
-    coilfile = rra_path + host + '/' + service + '.coil'
-    rrd = rra_path + host + '/' + service + '.rrd'
+    coilfile = '%s%s/%s.coil' % (rra_path, host, service)
+    rrd = '%s%s/%s.rrd' % (rra_path, host, service)
+
     if os.path.exists(coilfile) and os.path.exists(rrd):
         coilstring = open(coilfile).read()
         coilstruct = coil.parse(coilstring)
@@ -61,10 +64,9 @@ def is_graphable(host, service):
 def are_graphable(host, service_list):
     rra_path = settings.RRA_PATH
     for service in service_list:
-        coilfile = rra_path + host + '/'    \
-            + service['service_description'] + '.coil'
-        rrd = rra_path + host + '/'         \
-            + service['service_description'] + '.rrd'
+        coilfile = '%s%s/%s.coil' % \
+            (rra_path, host, service['service_description'])
+        rrd = '%s%s/%s.rrd' % (rra_path, host, service['service_description'])
         if os.path.exists(coilfile) and os.path.exists(rrd):
             coilstring = open(coilfile).read()
             coilstruct = coil.parse(coilstring)
@@ -94,8 +96,8 @@ def are_graphable(host, service_list):
 
 def parse():
     data_path = settings.DATA_PATH
-    stat_path = data_path + 'status.dat'
-    obj_path = data_path + 'objects.cache'
+    stat_path = '%sstatus.dat' % data_path
+    obj_path = '%sobjects.cache' % data_path 
     stat = nagios_objects.ObjectParser(stat_path, ('service', 'host'))
     obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
     return stat, obj
@@ -176,8 +178,8 @@ def get_time_intervals():
     #            day  , week  , month  , year
     intervals = [86400, 604800, 2592000, 31104000]
     times = ['day', 'week', 'month', 'year']
-    ending = int(time.time())
-    return zip(times, [[ending-interval, ending] for interval in intervals])
+    end = int(time.time())
+    return zip(times, [[end-interval, end] for interval in intervals])
 
 # TODO: This should probably just be a class that wraps Context, as we
 # will have to include this on each and every page
@@ -211,27 +213,21 @@ def index(request):
     return HttpResponse(t.render(c))
 
 def host(request, host):
-    t = loader.get_template('host.html')
+    loaded_graphs = []
     stat, obj = parse()
-    services = servicelist_by_host(stat, host)
-    services.sort(lambda x, y:  \
-                     cmp(x['service_description'], y['service_description']))
-    are_graphable(host, services)
-    host_detail = hostdetail(stat, host)
-    ending = int(time.time())
-    starting = ending - 86400
-    context_data = {
-        'host_name': host,
-        'host': host_detail,
-        'services': services,
-        'true' : True,
-        'time_interval': [starting, ending],
-        'graphs': True,
-    }
-    
-    context_data = add_hostlist(stat, obj, context_data)
-    c = Context(context_data)
-    return HttpResponse(t.render(c))
+    if host != None:
+        end = int(time.time())
+        start = end - DAY
+        loaded_graphs = servicelist_by_host(stat, host)
+        loaded_graphs.sort(lambda x,y: cmp(x['service_description'],    \
+                                         y['service_description']))
+        for graph in loaded_graphs:
+            graph['is_graphable'] = is_graphable(host, graph['service_description'])
+            graph['start'] = start
+            graph['end'] = end
+            graph['period'] = 'ajax'
+         
+    return configurator(stat, obj, 'Host Detail: %s' % host, host, loaded_graphs)
 
 def service(request, host, service):
     t = loader.get_template('service.html')
@@ -240,8 +236,7 @@ def service(request, host, service):
 
     str = service_detail.get('plugin_output', '')
     if str:
-        str += '\n'
-        str += service_detail.get('long_plugin_output', '')
+        str = '%s\n%s' % (str, service_detail.get('long_plugin_output', ''))
     
     time_intervals = get_time_intervals()
     context_data = {
@@ -249,7 +244,6 @@ def service(request, host, service):
         'service_name': service,
         'service_output': str,
         'graphable': is_graphable(host, service),
-        'true': True,
         'time_intervals': time_intervals
     }
 
@@ -284,11 +278,6 @@ def group(request, group):
     services = []
     service_tests = service_dict.keys()
     for service_test in service_tests:
-        #prefix = os.path.commonprefix(service_dict[service_test])
-        #suffix = os.path.commonprefix(map(lambda x: x[:len(prefix):-1],    \
-                                            #service_dict[service_test]))[::-1]
-        #d = locals()
-        #service = ('%(prefix)s' % d) + ('%(suffix)s' % d)
         for service_alias in service_dict[service_test]:
             services.append({'service_test': service_test,  \
                                 'service_alias' : service_alias})
@@ -296,13 +285,13 @@ def group(request, group):
     services.sort(lambda x, y: cmp(x['service_alias'], y['service_alias']))
     host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
 
-    ending = int(time.time())
-    starting = ending - 86400
+    end = int(time.time())
+    start = end - DAY 
     context_data = {
         'group_name': group,
         'hosts': host_list,
         'services': services,
-        'time_interval': [starting, ending]
+        'time_interval': [start, end]
     }
     
     context_data = add_hostlist(stat, obj, context_data)
@@ -310,49 +299,47 @@ def group(request, group):
     return HttpResponse(t.render(c))
 
 def groupservice(request, group, test, alias):
-    t = loader.get_template('groupservice.html')
+    loaded_graphs = []
     stat, obj = parse()
-    host_list = hostlist_by_group(stat, obj, group)
-    target = map(lambda x: x['host_name'], host_list)
-    all_services = servicelist(stat)
+    if group != None and test != None and alias != None:
+        end = int(time.time())
+        start = end - DAY 
+        host_list = hostlist_by_group(stat, obj, group)
+        target = map(lambda x: x['host_name'], host_list)
 
-    janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
-    for service in all_services:
-        service_test = service.get('_TEST', None) if        \
-                       service.get('_TEST', None) else      \
-                       service.get('check_command', None)
-        service_alias = janitor.sub("", service['service_description'])
+        service_list = servicelist(stat)
 
-        if service_test == test and service_alias == alias:
-            host_name = service['host_name']
-            try: 
-                host = host_list[target.index(host_name)]
-                if not(host.has_key('services')): host['services'] = []
-                service['is_graphable'] =   \
-                    is_graphable(host_name, service['service_description'])
-                host['services'].append(service)
-            except ValueError:
-                continue
-                
-    host_list = filter(lambda x: x.has_key('services'), host_list)
-    host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-    map(lambda z: z['services'].sort(lambda x, y:   \
-        cmp(x['service_description'], y['service_description'])), host_list)
+        janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
+        for service in service_list:
+            service_test = service.get('_TEST', None) if        \
+                           service.get('_TEST', None) else      \
+                           service.get('check_command', None)
+            service_alias = janitor.sub("", service['service_description'])
 
-    ending = int(time.time())
-    starting = ending - 86400
-    context_data = {
-        'group_name': group,
-        'service_alias': alias,
-        'host_list': host_list,
-        'time_interval': [starting, ending],
-        'true': True,
-        'graphs': True,
-    }
-    
-    context_data = add_hostlist(stat, obj, context_data)
-    c = Context(context_data)
-    return HttpResponse(t.render(c))
+            if service_test == test and service_alias == alias:
+                host_name = service['host_name']
+                try: 
+                    host = host_list[target.index(host_name)]
+                    if not(host.has_key('services')): host['services'] = []
+                    service['is_graphable'] =   \
+                        is_graphable(host_name, service['service_description'])
+                    if (service['is_graphable']):
+                        service['start'] = start
+                        service['end'] = end
+                        service['period'] = 'ajax'
+                    host['services'].append(service)
+                except ValueError:
+                    continue
+                    
+        host_list = filter(lambda x: x.has_key('services'), host_list)
+        host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
+        map(lambda z: z['services'].sort(lambda x, y:   \
+            cmp(x['service_description'], y['service_description'])), host_list)
+
+        for host in host_list:
+            loaded_graphs.extend(host['services'])
+    return configurator(stat, obj, 'Group-Service Detail: %s > %s' %    \
+            (group, alias), '%s > %s' % (group, alias), loaded_graphs)
 
 def form(request):
     t = loader.get_template('form.html')
@@ -365,13 +352,13 @@ def form(request):
                                             servicelist(stat))))
     service_list.sort()
 
-    ending = int(time.time())
-    starting = ending - 86400
+    end = int(time.time())
+    start = end - DAY
     context_data = {
         'group_list': group_list,
         'host_list': host_list,
         'service_list': service_list,
-        'time_interval': [starting, ending]
+        'time_interval': [start, end]
     }
     c = Context(context_data)
     return HttpResponse(t.render(c))
@@ -397,19 +384,28 @@ def customgraph(request):
     service = typeDict['service']
 
     service_list = []
+    end = int(time.time())
+    start = end - DAY
 
     if not(service):
         if host:
             service_list = servicelist_by_host(stat, host)
             service_list.sort(lambda x, y:  \
                 cmp(x['service_description'], y['service_description']))
-            are_graphable(host, service_list)
+            for x in service_list:
+                x['is_graphable'] = is_graphable(host, x)
+                x['start'] = start
+                x['end'] = end
+                x['period'] = 'ajax'
         else:
             return HttpResponse('')
     else:
         if host:
             service_detail = servicedetail(stat, host, service)
             service_detail['is_graphable'] = is_graphable(host, service)
+            service_detail['start'] = start
+            service_detail['end'] = end
+            service_detail['period'] = 'ajax'
             service_list = [service_detail]
         elif group:
             target = hostnames_by_group(stat, obj, group)
@@ -417,42 +413,24 @@ def customgraph(request):
 
             service_list = [s for s in all_services \
                 if s['service_description'] == service  \
-                and s['host_name'] in target]
+                    and s['host_name'] in target]
             for x in service_list: 
                 x['is_graphable'] = \
                     is_graphable(x['host_name'], x['service_description'])
-
-            #host_list = filter(lambda x: x.has_key('services'), host_list)
-            #host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-            #map(lambda z: z['services'].sort(lambda x, y:  \
-            #cmp(x['service_description'], y['service_description'])),  \
-            #host_list)
-
-        
-    ending = int(time.time())
-    starting = ending - 86400
+                service['start'] = start
+                service['end'] = end
+                service['period'] = 'ajax'
 
     context_data = {
-        'host_name': host,
-        'service_list': service_list,
-        'time_interval': [starting, ending], 
-        'true': True,
+        'loaded_graphs': service_list,
     }
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
-def configurator(request, id=None):
-    t = loader.get_template('configurator.html')
+def directurl(request, id):
     stat, obj = parse()
-    group_list = grouplist(obj)
-    group_list.sort(lambda x,y: cmp(x['alias'], y['alias']))
-    host_list = hostlist(stat)
-    host_list.sort(lambda x,y: cmp(x['host_name'], y['host_name']))
-    service_list = list(set(    \
-        map(lambda x: x['service_description'], servicelist(stat))))
-    service_list.sort()
-
     loaded_graphs = []
+
     if id != None:
         content = pickle.loads(str(URL.objects.get(id=id)))
         for array in content:
@@ -460,29 +438,36 @@ def configurator(request, id=None):
                 host, service, start, end = array
                 service_detail = servicedetail(stat, host, service)
                 service_detail['is_graphable'] = True
-                loaded_graphs.append([hostdetail(stat, host),   \
-                    service_detail, start, end])
+                service_detail['start'] = start
+                service_detail['end'] = end
+                service_detail['period'] = 'zoomed'
+                loaded_graphs.append(service_detail)
             elif len(array) == 2:
                 host, service = array
                 service_detail = servicedetail(stat, host, service)
                 service_detail['is_graphable'] = False
-                loaded_graphs.append([hostdetail(stat, host), service_detail])
+                loaded_graphs.append(service_detail)
+    
+    return configurator(stat, obj, 'Saved URL #%s' % id,  \
+            'Saved URL #%s' % id,loaded_graphs)
 
+def directconfigurator(request):
+    stat, obj = parse()
+    return configurator(stat, obj)
+
+def configurator(stat, obj, htmltitle='Configurator', pagetitle='Configurator', loaded_graphs=[]):
+    t = loader.get_template('configurator.html')
     context_data = {
         'loaded_graphs': loaded_graphs,
-        'group_list': group_list,
-        'host_list': host_list,
-        'service_list': service_list,
+        'htmltitle': htmltitle,
+        'pagetitle': pagetitle,
         'graphs': True,
-        'true': True,
     }
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
 def generatelink(request):
-    #lisz = [URL.objects.get(id=x) for x in [1,2]]
-    #return [lisz[0].content, lisz[1].content,]
     if request.method == "POST":
         querydict = request.POST 
     else:
@@ -570,7 +555,7 @@ def formstate(request):
          }
     if (not(querydict)):
         state['options'] =  \
-            map(lambda x: x[0].upper() + x[1:], state['options'])
+            map(lambda x: '%s%s' % (x[0].upper(), x[1:]), state['options'])
         return HttpResponse(json.dumps(stripstate(state)))
 
     format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
@@ -599,7 +584,8 @@ def formstate(request):
     if host and 'group' in state['options']:
         state['options'].remove('group')
 
-    state['options'] = map(lambda x: x[0].upper() + x[1:], state['options'])
+    state['options'] = map(lambda x: '%s%s' % (x[0].upper(), x[1:]),    \
+                            state['options'])
     
     state['ready'] = False
     if host:

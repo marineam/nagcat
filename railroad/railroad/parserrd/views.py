@@ -40,18 +40,17 @@ def sigfigs(float):
 
 def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
-    cur = str(sigfigs(statistics['cur'] / base)) + unit \
+    cur = str(sigfigs(statistics['cur'] / base))    \
             if statistics['cur'] != None else 'Null'
-    return ' (cur: ' + cur                                           \
-        + ', min: ' + str(sigfigs(statistics['min'] / base)) + unit  \
-        + ', max: ' + str(sigfigs(statistics['max'] / base)) + unit  \
-        + ', avg: ' + str(sigfigs(statistics['avg'] / base)) + unit  \
-        + ')'
-
+    return ' (cur: %s%s, min: %s%s, max: %s%s, avg: %s%s)' %        \
+        (cur, unit, str(sigfigs(statistics['min'] / base)), unit,   \
+        str(sigfigs(statistics['max'] / base)), unit,               \
+        str(sigfigs(statistics['avg'] / base)), unit)
+        
 def index(request, host, service, start, end, resolution='150'):
     rra_path = settings.RRA_PATH
-    rrd = rra_path + host + '/' + service + '.rrd'
-    coilfile = rra_path + host + '/' + service + '.coil'
+    rrd = '%s%s/%s.rrd' % (rra_path, host, service)
+    coilfile = '%s%s/%s.coil' % (rra_path, host, service)
     railroad_conf = 'railroad_conf'
     statistics = 'statistics'
     trend_attributes = ['color', 'stack', 'scale', 'display']
@@ -264,12 +263,8 @@ def index(request, host, service, start, end, resolution='150'):
                 flot_data[index]['label'] +=    \
                         labelize(flot_data, index, final_base, unit)
             else:
-                flot_data[index]['label'] = flot_data[index]['label']       \
-                    + ' (cur: ' + 'N/A' \
-                    + ', min: ' + 'N/A' \
-                    + ', max: ' + 'N/A' \
-                    + ', avg: ' + 'N/A' \
-                    + ')'
+                flot_data[index]['label'] +=    \
+                    ' (cur: N/A, min: N/A, max: N/A, avg: N/A)'
                 
 
     if max != None:
@@ -280,9 +275,6 @@ def index(request, host, service, start, end, resolution='150'):
         if axis_max and graph_options['yaxis']['max'] < axis_max:
             graph_options['yaxis']['max'] = axis_max * 1.1 + 1
     
-    #why is this here?...
-    #fill = graph_options['yaxis']['max']
-
     if root_trend:
         axis_label = root_trend.get('axis_label', '')
         if axis_label:
