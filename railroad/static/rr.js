@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+/******* GLOBALS ********/
+
 // Base for data manipulation
-// TODO: A global variable? I hate you.
+// TODO: Find a way to remove global variable?
 base = 0;
+
+/******* FLOT HELPER FUNCTIONS *******/
 
 // Choose a base for graph axis
 function chooseBase(max) {
@@ -50,7 +54,7 @@ function tickGenerator(range) {
     var delta = ((range.max - range.min) / final_base) / noTicks,
         size, generator, unit, formatter, i, magn, norm;
 
-    // pretty rounding of base-10 numbers
+    // Pretty rounding of base-10 numbers
     var dec = -Math.floor(Math.log(delta) / Math.LN10);
 
     magn = Math.pow(10, -dec);
@@ -109,6 +113,8 @@ function tickFormatter(val, axis) {
 function labelFormatter(label, series) {
     return label.replace(/_/g, ' ');
 }
+
+/******* GRAPH GENERATION/MANIPULTION *******/
 
 // Takes the raw data and sets up required Flot formatting options
 function formatGraph(element, data) {
@@ -205,7 +211,7 @@ function createGraph(element, path, callback, zoom) {
 }
 
 // Grabs the default state for the configurator
-function default_state() {
+function defaultState() {
     // If we're on a configurator page, load the default state
     if($('#configurator') != undefined) {
         $.getJSON('/railroad/configurator/formstate', function(data) {
@@ -215,11 +221,102 @@ function default_state() {
     }
 }
 
+// Parse and setup graphs on the page
+function parseGraphs(index, element) {
+
+    // Don't set up graphs already set up
+    $(element).addClass('setup');
+
+    // Store the graph data for usage later
+    path = $(element).find('a').attr('href');
+    splitPath = path.split('/');
+    $(element).data('host', splitPath[0]);
+    $(element).data('service', splitPath[1]);
+    $(element).data('start', splitPath[2]);
+    $(element).data('end', splitPath[3]);
+    $(element).data('res', splitPath[4]);
+
+    createGraph(element, path);
+
+    // Allow for zooming
+    $(element).bind('plotselected', function (event, ranges) {
+        // The graph isn't busy anymore, allow updates
+        $(element).data('busy', null); 
+
+        // If we are supposed to sync the graphs, loop over all graphs
+        if($('#sync').attr('checked')) {
+            graphs = $('.graph');
+            // Allow us to zoom even when it makes no sense if we are
+            // synced
+            zoom = false;
+        // Otherwise only loop over the graph associated with this button
+        } else {
+            graphs = $(element);
+            zoom = true;
+        }
+
+        graphs.each(function(index, element) {
+
+            serviceData = $(element).data();
+
+            path = [serviceData.host,
+                    serviceData.service,
+                    parseInt(ranges.xaxis.from / 1000),
+                    parseInt(ranges.xaxis.to / 1000),
+                    serviceData.res].join('/');
+
+            createGraph(element,
+                        path,
+                        function() {
+                            $(element).removeClass('ajax');
+                            zoomButton = $(element)
+                                            .closest('.graph_container')
+                                            .find('.zoom');
+                            selected = $(element)
+                                            .closest('.graph_container')
+                                            .find('.selected');
+                            selected.removeClass('selected');
+                            zoomButton.css('visibility', 'visible');
+                            zoomButton.addClass('selected');
+                        },
+                        zoom);
+        });
+    });
+    $(element).bind('plotselecting', function() {
+        // If we are selecting, mark the graph as busy so no AJAX fires
+        $(element).data('busy', true);
+    });
+
+}
+
+// Function to automatically update any graphs which are set to ajax load
+function autoFetchData() {
+    $('.graph.ajax').each(function(index, element) {
+        serviceData = $(element).data();
+        time = new Date();
+        end = parseInt(time.getTime() / 1000);
+        start = parseInt(end - 60 * 60 * 24);
+
+        path = [serviceData.host,
+                serviceData.service,
+                start,
+                end,
+                serviceData.res].join('/');
+
+        createGraph(element, path);
+    });
+    setTimeout(autoFetchData, 60 * 1000);
+}
+
+/******* DOM HOOK SETUP *******/
+
 // Execute setup code when page loads
 $(document).ready(function() {
     // Kick off grabbing the default state so hopefully it gets there before
     // the user iteracts
-    default_state();
+    defaultState();
+
+    /**** GRAPH SETUP ****/
 
     // Bind the graph time range selection buttons
     $('.options ul li').live('click', function() {
@@ -301,76 +398,10 @@ $(document).ready(function() {
         });
     });
 
-    // Loop over the things to be graphed and produce graphs for each
-    function parse_graphs(index, element) {
-
-        // Don't set up graphs already set up
-        $(element).addClass('setup');
-
-        // Store the graph data for usage later
-        path = $(element).find('a').attr('href');
-        splitPath = path.split('/');
-        $(element).data('host', splitPath[0]);
-        $(element).data('service', splitPath[1]);
-        $(element).data('start', splitPath[2]);
-        $(element).data('end', splitPath[3]);
-        $(element).data('res', splitPath[4]);
-
-        createGraph(element, path);
-
-        // Allow for zooming
-        $(element).bind('plotselected', function (event, ranges) {
-            // The graph isn't busy anymore, allow updates
-            $(element).data('busy', null); 
-
-            // If we are supposed to sync the graphs, loop over all graphs
-            if($('#sync').attr('checked')) {
-                graphs = $('.graph');
-                // Allow us to zoom even when it makes no sense if we are
-                // synced
-                zoom = false;
-            // Otherwise only loop over the graph associated with this button
-            } else {
-                graphs = $(element);
-                zoom = true;
-            }
-
-            graphs.each(function(index, element) {
-
-                serviceData = $(element).data();
-
-                path = [serviceData.host,
-                        serviceData.service,
-                        parseInt(ranges.xaxis.from / 1000),
-                        parseInt(ranges.xaxis.to / 1000),
-                        serviceData.res].join('/');
-
-                createGraph(element,
-                            path,
-                            function() {
-                                $(element).removeClass('ajax');
-                                zoomButton = $(element)
-                                                .closest('.graph_container')
-                                                .find('.zoom');
-                                selected = $(element)
-                                                .closest('.graph_container')
-                                                .find('.selected');
-                                selected.removeClass('selected');
-                                zoomButton.css('visibility', 'visible');
-                                zoomButton.addClass('selected');
-                            },
-                            zoom);
-            });
-        });
-        $(element).bind('plotselecting', function() {
-            // If we are selecting, mark the graph as busy so no AJAX fires
-            $(element).data('busy', true);
-        });
-
-    }
-
     // Initialize the data for any graphs already on the page
-    $(".graph").each(parse_graphs);
+    $(".graph").each(parseGraphs);
+
+    /**** CONFIGURATOR SETUP ****/
 
     // Handle configurator form submissions
     $('#configurator').submit(function() {
@@ -389,7 +420,7 @@ $(document).ready(function() {
                 $('#configurator').trigger('reset');
                 // Add the new graph and setup the new graphs
                 $('#graphs').append(data);
-                $('.graph:not(.setup)').each(parse_graphs);
+                $('.graph:not(.setup)').each(parseGraphs);
                 $('#configurator').find('.throbber').remove();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
@@ -412,7 +443,7 @@ $(document).ready(function() {
         $('#options').empty();
         $('#value0').empty();
         // Get the default form state for values
-        default_state();
+        defaultState();
         // Event will now fall through to normal reset handler and clear
         // all fields
     });
@@ -447,8 +478,8 @@ $(document).ready(function() {
         // If we have a valid value and few enough ids, insert a field
         if($(this).val()) {
             // jQuery will only serialize enabled objects, so enable,
-            // serialize then disable. Also stab yourself and perhaps find a
-            // better way to solve this without hacking on the library
+            // serialize then disable. TODO: find a better way to solve this
+            // without hacking on the library.
             $('[id^=type]').attr('disabled', null);
             $('[id^=value]').attr('disabled', null);
             fields = $('#configurator').formSerialize();
@@ -526,7 +557,8 @@ $(document).ready(function() {
             type: 'POST',
             url: '/railroad/configurator/generatelink',
             success: function(data) {
-                $('#link').html('<input type="text" name="link" readonly value="' + data + '" />');
+                $('#link').html('<input type="text" name="link"' +
+                                ' readonly value="' + data + '" />');
                 $('#link input').focus()
                                 .select();
             },
@@ -547,24 +579,7 @@ $(document).ready(function() {
         $('#link').empty();
     });
 
-    // Automatically update any graphs which are set to ajax load
-    function autoFetchData() {
-        $('.graph.ajax').each(function(index, element) {
-            serviceData = $(element).data();
-            time = new Date();
-            end = parseInt(time.getTime() / 1000);
-            start = parseInt(end - 60 * 60 * 24);
-
-            path = [serviceData.host,
-                    serviceData.service,
-                    start,
-                    end,
-                    serviceData.res].join('/');
-
-            createGraph(element, path);
-        });
-        setTimeout(autoFetchData, 60 * 1000);
-    }
+    /**** MISC ***/
 
     // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 60 * 1000);
