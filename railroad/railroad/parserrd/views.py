@@ -25,6 +25,7 @@ from django.http import HttpResponse
 from railroad.errors import RailroadError
 
 def sigfigs(float):
+    """Round float using desired sigfigs"""
     desired_sigfigs = 3
     powers = range(desired_sigfigs)
     power = 0
@@ -39,6 +40,7 @@ def sigfigs(float):
         return round(float, desired_sigfigs - power)
 
 def labelize(data, index, base, unit):
+    """Return a label containing statistics"""
     statistics = data[index]['statistics']
     cur = str(sigfigs(statistics['cur'] / base))    \
             if statistics['cur'] != None else 'Null'
@@ -48,6 +50,7 @@ def labelize(data, index, base, unit):
         str(sigfigs(statistics['avg'] / base)), unit)
         
 def index(request, host, service, start, end, resolution='150'):
+    """Reads the rrd and returns the data in flot-friendly format"""
     rra_path = settings.RRA_PATH
     rrd = '%s%s/%s.rrd' % (rra_path, host, service)
     coilfile = '%s%s/%s.coil' % (rra_path, host, service)
@@ -86,6 +89,7 @@ def index(request, host, service, start, end, resolution='150'):
     if not(query):
         raise RailroadError("OMG PONIES! query doesn't exist in coil file")
 
+    # Graph options for FLOT
     graph_options = {
         'xaxis': {
             'mode': 'time', 
@@ -97,6 +101,7 @@ def index(request, host, service, start, end, resolution='150'):
         'grid': {}
     }
 
+    # Handle unconventional trend definitions
     root_trend = coilstruct.get('trend', {})
     all_labels = rrdslice[1]
     labels = []
@@ -250,6 +255,7 @@ def index(request, host, service, start, end, resolution='150'):
                 if flot_data[index][statistics]['max'] > max:
                     max = flot_data[index][statistics]['max']
 
+        # Compute appropriate unit from base
         bases = ['', 'K', 'M', 'G', 'T']
         for interval in range(len(bases)):
             if max != None and (max / pow(base, interval)) <= base:
@@ -283,6 +289,7 @@ def index(request, host, service, start, end, resolution='150'):
     for index in indices:
         del(flot_data[index][railroad_conf])
 
+    # Set background of graph based on state
     colors = ['#BBFFBB', '#FFFFBB', '#FFBBBB', '#C0C0C0']
     markings = []
     state = state_data[0][1]
@@ -305,6 +312,7 @@ def index(request, host, service, start, end, resolution='150'):
     empty_graph = empty_graph and (not(len(markings)))
 
     graph_options['grid']['markings'] = markings
+
     # Pass state, BUT DONT DRAW!! this is so that graphs with ONLY state
     # still draw (otherwise they don't get axes, ticks, etc)
     flot_data.append({'data': state_data, 'lines': {'show': False}})

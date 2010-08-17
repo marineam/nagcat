@@ -32,6 +32,7 @@ from railroad.viewhosts.models import URL
 DAY = 86400
 
 def is_graphable(host, service):
+    """Checks if service of host is graphable (has state or trend)"""
     rra_path = settings.RRA_PATH
     coilfile = '%s%s/%s.coil' % (rra_path, host, service)
     rrd = '%s%s/%s.rrd' % (rra_path, host, service)
@@ -62,6 +63,7 @@ def is_graphable(host, service):
 
 
 def are_graphable(host, service_list):
+    """Flags services of host that are graphable (has state or trend)"""
     rra_path = settings.RRA_PATH
     for service in service_list:
         coilfile = '%s%s/%s.coil' % \
@@ -95,6 +97,7 @@ def are_graphable(host, service_list):
             service['is_graphable'] = False
 
 def parse():
+    """Uses nagcat's nagios object parser to get host,service,group details"""
     data_path = settings.DATA_PATH
     stat_path = '%sstatus.dat' % data_path
     obj_path = '%sobjects.cache' % data_path 
@@ -103,41 +106,51 @@ def parse():
     return stat, obj
 
 def grouplist(obj):
+    """Returns a list of groups"""
     return obj['hostgroup']
 
 def hostlist(stat):
+    """Returns a list of hosts"""
     return stat['host']
 
 def servicelist(stat):
+    """Returns a list of services"""
     return stat['service']
 
 def groupnames(obj):
+    """Returns a list of groups names"""
     return map(lambda x: x['alias'], obj['hostgroup'])
 
 def hostnames(stat):
+    """Returns a list of host names"""
     return map(lambda x: x['host_name'], stat['host'])
 
 def servicenames(stat):
+    """Returns a list of service names"""
     return map(lambda x: x['service_description'], stat['service'])
 
 def groupdetail(obj, group_name):
+    """Returns the group object with the specified name"""
     group_list = grouplist(obj)
     for group in group_list:
         if group['alias'] == group_name:
             return group
 
 def hostdetail(stat, host_name):
+    """Returns the host object with the specified name"""
     host_list = hostlist(stat)
     for host in host_list:
         if host['host_name'] == host_name:
             return host
 
 def servicelist_by_description(stat, service_description):
+    """Returns a list of service objects with the specified name"""
     all_services = servicelist(stat)
     return [service for service in all_services \
                 if service['service_description'] == service_description]
 
 def servicedetail(stat, host, service_alias):
+    """Returns the service object with the specified name and host"""
     all_services = servicelist(stat)
     for service in all_services:
         if service['host_name'] == host and \
@@ -145,36 +158,43 @@ def servicedetail(stat, host, service_alias):
             return service
 
 def hostlist_by_group(stat, obj, group_name):
+    """Returns a list of hosts with the specified group"""
     group = groupdetail(obj, group_name)
     all_hosts = hostlist(stat)
     target = group['members'].split(',')
     return [host for host in all_hosts if host['host_name'] in target]
 
 def hostnames_by_group(stat, obj, group_name):
+    """Returns a list of host names with the specified group"""
     group = groupdetail(obj, group_name)
     return group['members'].split(',')
 
 def hostlist_by_service(stat, service):
+    """Returns a list of hosts possessing the specified service"""
     all_services = servicelist(stat)
     return [hostdetail(stat, s['host_name']) for s in all_services  \
                                 if s['service_description'] == service]
 
 def hostnames_by_service(stat, service):
+    """Returns a list of hosts (names) possessing the specified service"""
     all_services = servicelist(stat)
     return [s['host_name'] for s in all_services    \
                                 if s['service_description'] == service]
 
 def servicelist_by_host(stat, host):
+    """Returns a list of services possessed by the specified host"""
     all_services = servicelist(stat)
     return [service for service in all_services \
                                 if service['host_name'] == host]
 
 def servicenames_by_host(stat, host):
+    """Returns a list of services (names) possessed by the specified host"""
     all_services = servicelist(stat)
     return [service['service_description'] for service in all_services  \
                                 if service['host_name'] == host]
 
 def get_time_intervals():
+    """Returns a list of (start,end) intervals for day, week, month, year"""
     #            day  , week  , month  , year
     intervals = [86400, 604800, 2592000, 31104000]
     times = ['day', 'week', 'month', 'year']
@@ -184,6 +204,7 @@ def get_time_intervals():
 # TODO: This should probably just be a class that wraps Context, as we
 # will have to include this on each and every page
 def add_hostlist(stat, obj, c):
+    """Returns the given context with the sidebar filled in"""
     groups = grouplist(obj)
     groups.sort(lambda x, y: cmp(x['alias'], y['alias']))
     hosts = hostlist(stat)
@@ -205,6 +226,7 @@ def add_hostlist(stat, obj, c):
     return c
 
 def index(request):
+    """Returns the index page"""
     t = loader.get_template('index.html')
     stat, obj = parse()
     context_data = {}
@@ -213,6 +235,7 @@ def index(request):
     return HttpResponse(t.render(c))
 
 def host(request, host):
+    """Returns a page showing all services of the specified host"""
     loaded_graphs = []
     stat, obj = parse()
     if host != None:
@@ -222,14 +245,17 @@ def host(request, host):
         loaded_graphs.sort(lambda x,y: cmp(x['service_description'],    \
                                          y['service_description']))
         for graph in loaded_graphs:
-            graph['is_graphable'] = is_graphable(host, graph['service_description'])
+            graph['is_graphable'] = \
+                is_graphable(host, graph['service_description'])
             graph['start'] = start
             graph['end'] = end
             graph['period'] = 'ajax'
          
-    return configurator(stat, obj, 'Host Detail: %s' % host, host, loaded_graphs)
+    return configurator(stat, obj,  \
+        'Host Detail: %s' % host, host, loaded_graphs)
 
 def service(request, host, service):
+    """Returns a page showing service details of specified service of host"""
     t = loader.get_template('service.html')
     stat, obj = parse()
     service_detail = servicedetail(stat, host, service)
@@ -252,6 +278,7 @@ def service(request, host, service):
     return HttpResponse(t.render(c))
 
 def group(request, group):
+    """Returns a page showing all hosts/services of the specified group"""
     t = loader.get_template('group.html')
     stat, obj = parse()
     service_dict = {}
@@ -260,8 +287,8 @@ def group(request, group):
     host_names = map(lambda x: x['host_name'], host_list)
     service_list = servicelist(stat)
 
-    # Handles removing unique digits, dashes, commas, and version numbers
-    # Duplicated in groupservice
+    # Remove unique digits, dashes, commas, and version numbers to consolidate
+    # service descriptions.  Duplicated in groupservice function
     janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
 
     for service in service_list:
@@ -299,6 +326,7 @@ def group(request, group):
     return HttpResponse(t.render(c))
 
 def groupservice(request, group, test, alias):
+    """Returns a page showing all instances of specified service of group"""
     loaded_graphs = []
     stat, obj = parse()
     if group != None and test != None and alias != None:
@@ -309,6 +337,7 @@ def groupservice(request, group, test, alias):
 
         service_list = servicelist(stat)
 
+        # Filter service_list by test and alias (strip numbers/hyphens)
         janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
         for service in service_list:
             service_test = service.get('_TEST', None) if        \
@@ -334,7 +363,8 @@ def groupservice(request, group, test, alias):
         host_list = filter(lambda x: x.has_key('services'), host_list)
         host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
         map(lambda z: z['services'].sort(lambda x, y:   \
-            cmp(x['service_description'], y['service_description'])), host_list)
+            cmp(x['service_description'], y['service_description'])),   \
+                host_list)
 
         for host in host_list:
             loaded_graphs.extend(host['services'])
@@ -342,6 +372,7 @@ def groupservice(request, group, test, alias):
             (group, alias), '%s > %s' % (group, alias), loaded_graphs)
 
 def form(request):
+    """Returns a form for choosing group/host/service"""
     t = loader.get_template('form.html')
     stat, obj = parse()
     group_list = grouplist(obj)
@@ -364,6 +395,13 @@ def form(request):
     return HttpResponse(t.render(c))
 
 def customgraph(request):
+    """Returns graph(s) per request
+
+    Graphs can be specified by:
+    Host - all services possessed by host
+    Host & Service - service of host
+    Group & Service - all instances of service in group
+    """
     querydict = request.GET
 
     stat,obj = parse()
@@ -428,6 +466,7 @@ def customgraph(request):
     return HttpResponse(t.render(c))
 
 def directurl(request, id):
+    """Returns a saved page by id"""
     stat, obj = parse()
     loaded_graphs = []
 
@@ -452,10 +491,16 @@ def directurl(request, id):
             'Saved URL #%s' % id,loaded_graphs)
 
 def directconfigurator(request):
+    """Returns a blank configurator page"""
     stat, obj = parse()
     return configurator(stat, obj)
 
-def configurator(stat, obj, htmltitle='Configurator', pagetitle='Configurator', loaded_graphs=[]):
+def configurator(stat, obj, htmltitle='Configurator',   \
+                     pagetitle='Configurator', loaded_graphs=[]):
+    """Returns a configurator page
+    Loads specified graphs, sets specified htmltitle and pagetitle, and
+    displays the configurator form
+    """
     t = loader.get_template('configurator.html')
     context_data = {
         'loaded_graphs': loaded_graphs,
@@ -468,6 +513,7 @@ def configurator(stat, obj, htmltitle='Configurator', pagetitle='Configurator', 
     return HttpResponse(t.render(c))
 
 def generatelink(request):
+    """Add the current page configuration to db and return its row id"""
     if request.method == "POST":
         querydict = request.POST 
     else:
@@ -479,6 +525,7 @@ def generatelink(request):
     def digitcmp(x,y): 
         xmatch = digits.search(x[0])
         ymatch = digits.search(y[0])
+        # xmatch and ymatch SHOULD be valid, but just in case
         xrow = int(xmatch.group(0)) if xmatch else 1337
         yrow = int(ymatch.group(0)) if ymatch else 1337
         return cmp(xrow, yrow)
@@ -498,6 +545,7 @@ def generatelink(request):
     return HttpResponse(json.dumps(hostname + '/railroad/c/' + str(id)))
 
 def stripstate(state):
+    """Strips names out of groups/hosts/services in state"""
     state['group'] = map(lambda x: x['alias'], state['group'])
     state['host'] = map(lambda x: x['host_name'], state['host'])
     state['service'] = list(    \
@@ -506,6 +554,9 @@ def stripstate(state):
     return state
 
 def selectgroup(state, group_name):
+    """Update state per group selection (filter hosts by group membership and
+    filter services by hosts in group)
+    """
     service_list = []
 
     group_list = state['group']
@@ -524,6 +575,7 @@ def selectgroup(state, group_name):
     state['service'] = service_list
 
 def selecthost(state, host):
+    """Update state per host selection (filter services by host)"""
     all_services = state['service']
     state['group'] = []
     state['host'] = []
@@ -531,6 +583,9 @@ def selecthost(state, host):
         if service['host_name'] == host]
 
 def selectservice(state, service):
+    """Update state per service selection (filter hosts and groups by
+    possession of service)
+    """
     all_services = state['service']
     host_names = [s['host_name'] for s in all_services  \
         if s['service_description'] == service]
@@ -544,6 +599,7 @@ def selectservice(state, service):
     state['service'] = []
 
 def formstate(request):
+    """Return the new state of the configurator form"""
     querydict = request.GET
     stat,obj = parse()
     state =                                         \
