@@ -263,12 +263,20 @@ def service(request, host, service):
     str = service_detail.get('plugin_output', '')
     if str:
         str = '%s\n%s' % (str, service_detail.get('long_plugin_output', ''))
+
+    rra_path = settings.RRA_PATH
+    coilfile = '%s%s/%s.coil' % (rra_path, host, service)
+
+    coilstring = ''
+    if os.path.exists(coilfile):
+        coilstring = open(coilfile).read()
     
     time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
         'service_name': service,
         'service_output': str,
+        'coil' : coilstring,
         'graphable': is_graphable(host, service),
         'time_intervals': time_intervals
     }
