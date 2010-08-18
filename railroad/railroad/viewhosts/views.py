@@ -463,9 +463,9 @@ def customgraph(request):
             for x in service_list: 
                 x['is_graphable'] = \
                     is_graphable(x['host_name'], x['service_description'])
-                service['start'] = start
-                service['end'] = end
-                service['period'] = 'ajax'
+                x['start'] = start
+                x['end'] = end
+                x['period'] = 'ajax'
 
     context_data = {
         'loaded_graphs': service_list,
