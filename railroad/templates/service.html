@@ -6,7 +6,9 @@
 
 <h1><a href="{% url railroad.viewhosts.views.host  host_name %}">{{host_name}}</a> &gt; {{service_name}}</h1>
 
-<pre style="float: left; min-width: 250px; padding-right: 35px"><h1>Output</h1>{{service_output}}<br><br><h1>Coil File:</h1>{{coil}}</pre>
+<div style="float: left; min-width: 250px; padding-right: 35px">
+<h1>Output</h1><pre>{% filter wordwrap:120 %}{{service_output}}{% endfilter %}</pre><h1>Coil File</h1><pre>{% filter wordwrap:120 %}{{coil}}{% endfilter %}</pre>
+</div>
 
 <div class="services">
 <table>
