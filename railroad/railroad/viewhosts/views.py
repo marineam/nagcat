@@ -18,6 +18,7 @@ import sys
 import re
 import time
 import pickle
+import urllib
 
 import coil
 import rrdtool
@@ -99,10 +100,20 @@ def are_graphable(host, service_list):
 def parse():
     """Uses nagcat's nagios object parser to get host,service,group details"""
     data_path = settings.DATA_PATH
-    stat_path = '%sstatus.dat' % data_path
-    obj_path = '%sobjects.cache' % data_path 
-    stat = nagios_objects.ObjectParser(stat_path, ('service', 'host'))
-    obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
+    try:
+        staturl = urllib.urlopen('http://localhost:13337/status')
+        stat = pickle.loads(staturl.read())
+    except Exception:
+        stat_path = '%sstatus.dat' % data_path
+        stat = nagios_objects.ObjectParser(stat_path, ('service', 'host'))
+
+    try:
+        objurl = urllib.urlopen('http://localhost:13337/objects')
+        stat = pickle.loads(objurl.read())
+    except Exception:
+        obj_path = '%sobjects.cache' % data_path 
+        obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
+
     return stat, obj
 
 def grouplist(obj):
