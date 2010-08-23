@@ -88,11 +88,10 @@ class ObjectParser(object):
                     object_type = None
                 else:
                     split = line.split(splitter, 1)
-                    key = split[0]
-
-                    if len(split) == 2:
-                        value = split[1].lstrip()
-                    else:
+                    try:
+                        key, value = split
+                    except ValueError:
+                        key = split[0]
                         value = ""
 
                     if object_select and key in object_select:
@@ -108,7 +107,8 @@ class ObjectParser(object):
                                 object_type = None
                                 continue
 
-                    value = self.UNESCAPE.sub(unescape, value)
+                    if key == "long_plugin_output":
+                        value = self.UNESCAPE.sub(unescape, value)
                     object[key] = value
         finally:
             input.close()
