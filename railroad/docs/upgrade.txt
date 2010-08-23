@@ -1,0 +1,46 @@
+    ____________________________
+        
+        Railroad :: Upgrades
+    ____________________________
+
+This document covers two elements: upgrading your Railroad install, and
+upgrading libraries which Railroad requires.
+
+Upgrading Railroad:
+
+    Railroad is largely a drop in upgrade, copy the new files over and restart
+    Apache to cause it to reload the Railroad files. However if there is a DB
+    schema change you must also update the DB schema accordingly. To do this
+    use manage.py, located at /railroad/manage.py. Type the following command:
+
+         $ manage.py syncdb
+
+    This will sync the database schema and allow Railroad to continue
+    operation.
+
+Upgrading Railroad libraries:
+
+    Railroad contains a number of libraries which normally are not upgraded by
+    OS distribution package management. The following software is included
+    with Railroad and can be upgraded if you require bug fixes or new
+    features:
+
+	/static/flot/jquery.flot.*
+            Flot graphing library with the following plugins: selection, stack
+            http://code.google.com/p/flot/
+
+        /static/flot/excanvas.min.js
+            explorercanvas
+            http://code.google.com/p/explorercanvas/
+
+        /static/jquery.min.js
+            jQuery library
+            http://jquery.com
+
+        /static/jquery.form.js
+            jQuery Form Plugin
+            http://jquery.malsup.com/form/
+
+    Other software libraries (Django, python-json, etc) are sourced via your
+    system paths and can be upgraded using your distribution's package
+    manager.

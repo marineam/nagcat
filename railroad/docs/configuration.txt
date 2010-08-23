@@ -1,0 +1,24 @@
+﻿    _________________________________
+        
+        Railroad :: Configuration
+    _________________________________
+
+This file gives an overview of the purpose of the various required
+configuration files. Sample configuration files are provided in the sample
+directory.
+
+django.wsgi:
+
+    This file defines the parameters for launching our Django application via
+    wsgi.
+
+railroad.conf:
+
+    This file defines the Django service for Apache and configures it with
+    mod_wsgi. This file is not required if you use a different HTTP server,
+    however you will need to create a corresponding configuraiton for that
+    software.
+
+settings.py:
+
+    This file defines the Django settings for the project.

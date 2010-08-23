@@ -1,0 +1,55 @@
+    _____________________________
+        
+        Railroad :: Internals
+    _____________________________
+
+Railroad is primarily a Django project, and as such follows a similar
+structure. Pages are displayed using html templates, with data fed via Python
+views and models. Similar to an MVC model, this is documented further by
+Django here: http://bit.ly/KG1vY
+
+Further, the interaction between the Python server side code and Javascript
+client side code follows a client-server model, with the Python serving only
+data, and the Javascript handling all manipulation of this data required for
+output formatting.
+
+File layout:
+
+    /                           - root directory for Railroad
+    /sample                     - sample configurations
+    /static                     - static data served by HTTP (JS, CSS)
+    /templates                  - templates in Django format
+    /railroad                   - Django modules
+    /railroad/middleware        - Django middleware
+
+The Django modules are organized as follows:
+
+    parserrd:
+        This module does handles parsing of RRD data and returns
+        Flot-formatted JSON. Also reads coil graph configuration to
+        configure graph metrics.
+
+    viewhosts:
+        Does all display of pages via configurator system.
+        -Fetches availible graphs from Nagios configuration
+        -Grabs coil configurations for systems
+        -Puts these graphs into configurator which loads them into the
+         template for display
+
+The Django middleware is organized as follows:
+
+    ProfilerMiddleware:
+        Handles the output and display of profiles in both cProfile and
+        cachegrind formats.
+
+    KCacheGrind:
+        Converts cProfile data into cachegrind format.
+
+The Javascript is organized as follows:
+
+    rr.js
+        All of the Railroad Javascript is located within this file, handles
+        all AJAX and runtime client side page modifications.
+
+For information on libraries used within and included with Railroad, look at
+upgrade.txt.

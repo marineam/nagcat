@@ -20,6 +20,11 @@ RRA_PATH = '/var/lib/nagcat/rra/'
 
 ### Django settings for railroad project. ###
 
+# Under normal operation you should only have to modify the DATABASE_NAME
+# for the correct path you are using in your installation. Consult the Django
+# configuration documentation for any other settings:
+# http://docs.djangoproject.com/en/1.1/ref/settings/#ref-settings
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 

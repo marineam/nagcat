@@ -15,8 +15,12 @@
 import os
 import sys
 
+# Describes the location of our Django configuration file. Unless you move the
+# settings file this default should be fine
 os.environ['DJANGO_SETTINGS_MODULE'] = 'railroad.settings'
 
+# These should correspond to the paths of your railroad and nagcat
+# installation
 sys.path.append('/var/lib/nagcat/railroad')
 sys.path.append('/var/lib/nagcat/python')
 
