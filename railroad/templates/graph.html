@@ -1,5 +1,4 @@
 {% for graph in loaded_graphs %}
-{# TODO: Look at using graph.html template instead to prevent code duplication #}
     <tr class="service_row">
     <td>
         <div class="delete">X</div>
@@ -45,7 +44,6 @@
                 <div class="ajax_info">
                     <div class="update"></div>
                 </div>
-                {# TODO: This has to be one line, as we grab the inner HTML to figure out what to graph, need a solution eventually #}
                 {% ifequal graph.period 'ajax'%}
                     <div id="{{graph.service_description|slugify}}" class="graph ajax">
                 {% else %}
