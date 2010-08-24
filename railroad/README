@@ -19,23 +19,33 @@ Dependencies
     * django            >= 1.1
     * mod_wsgi
     * python-json
+    * Nagcat
 
 Installation
     
-    To install railroad, follow the steps below:
+    To install Railroad on Apache, follow the steps below:
 
-    0. Make sure all of the dependencies are installed. They *will* break things.
-       If you realize you didn't install something after following these
-       instructions, make sure you restart apache when finished.
+    0. Make sure all of the dependencies are installed. They *will* silently
+       break things. If you realize you didn't install something after
+       following these instructions, make sure you install it and restart
+       Apache.
 
     1. Copy the source files to the directory of your choice (normally done as
        part of the Nagcat installation).
 
-    2. Edit the configuration files. Samples are present in the samples directory.
+    2. Edit the configuration files. Samples are present in the samples
+       directory:
 
-    3. Copy your settings.py to <railroad path>/railroad/settings.py
+       * Edit the Apache mod_wsgi configuration files 
+         <install path>/sample/django.wsgi and
+         <install path>/sample/railroad.conf, set the correct paths.
 
-    *** Skip steps 4-7 if you are not using Apache ***
+       * Edit the Django configuration file <install path>/sample/settings.py
+         to reflect the correct paths for templates, data (status.dat and
+         objects.cache), and rra. You may optionally change the timezone,
+         language, and other Django settings as you prefer.
+
+    3. Copy your settings.py to <install path>/railroad/settings.py
 
     4. Navigate to your Apache configuration directory. In Fedora, this is
        /etc/httpd/conf.d
@@ -45,16 +55,19 @@ Installation
        * If you are doing development on the project, we suggest soft linking
          the railroad.conf file:
 
-         ln -s <install path>/railroad.conf railroad.conf
+         ln -s <install path>/sample/railroad.conf railroad.conf
 
        * If this is a long term install, we'd suggest cp'ing it:
 
-         cp <install path>/railroad.conf railroad.conf
+         cp <install path>/sample/railroad.conf railroad.conf
 
     6. Make sure you either have the following line in your apache config, or
        in a file in your conf.d (ie, wsgi.conf):
 
            LoadModule wsgi_module modules/mod_wsgi.so
+
+       This is often added by your distribution's package manager, but it's a
+       good idea to double check.
 
        Also make sure the Apache configuration you loaded has the correct path
        to django.wsgi.
@@ -63,11 +76,12 @@ Installation
 
     8. Open your favorite web browser and navigate to (assuming localhost):
        
-       http://localhost/railroad/pagetest/
+       http://localhost/railroad/
 
-    9. Congratulations! You've installed railroad. If it seems broken, make sure
-       you installed all dependencies. If you still have problems, contact the
-       developers/maintainers included at the bottom of this document.
+    9. Congratulations! You've installed Railroad. If it seems broken, make
+       sure you installed all dependencies. If you still have problems,
+       contact the developers/maintainers included at the bottom of this
+       document.
 
 Developers/Maintainers
 
