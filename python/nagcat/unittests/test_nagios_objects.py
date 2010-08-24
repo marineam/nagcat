@@ -13,9 +13,23 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import nagios_objects
+from nagcat import nagios_objects, _object_parser_py
 
-class ObjectsTestcase(unittest.TestCase):
+try:
+    from nagcat import _object_parser_c
+except ImportError:
+    _object_parser_c = None
+
+
+class ModuleTestcase(unittest.TestCase):
+
+    def testObjectParser(self):
+        expect = [_object_parser_py.ObjectParser]
+        if _object_parser_c:
+            expect.append(_object_parser_c.ObjectParser)
+        self.assertIn(nagios_objects.ObjectParser, expect)
+
+class ObjectsPyTestCase(unittest.TestCase):
 
     objects = {
             'host': [
@@ -31,6 +45,8 @@ class ObjectsTestcase(unittest.TestCase):
                 },
             ],
         }
+
+    parser = _object_parser_py.ObjectParser
 
     def mkfile(self):
         file_path = self.mktemp()
@@ -45,11 +61,11 @@ class ObjectsTestcase(unittest.TestCase):
         return file_path
 
     def testSimple(self):
-        parser = nagios_objects.ObjectParser(self.mkfile())
+        parser = self.parser(self.mkfile())
         parsed = dict((k,parser[k]) for k in parser.types())
         self.assertEquals(parsed, self.objects)
 
-class StatusTestcase(unittest.TestCase):
+class StatusPyTestCase(unittest.TestCase):
 
     objects = {
             'host': [
@@ -66,6 +82,8 @@ class StatusTestcase(unittest.TestCase):
             ],
         }
 
+    parser = _object_parser_py.ObjectParser
+
     def mkfile(self):
         file_path = self.mktemp()
         file_obj = open(file_path, 'w')
@@ -79,7 +97,18 @@ class StatusTestcase(unittest.TestCase):
         return file_path
 
     def testSimple(self):
-        parser = nagios_objects.ObjectParser(self.mkfile())
+        parser = self.parser(self.mkfile())
         parsed = dict((k,parser[k]) for k in parser.types())
         self.assertEquals(parsed, self.objects)
 
+class ObjectsCTestCase(ObjectsPyTestCase):
+    if _object_parser_c:
+        parser = _object_parser_c.ObjectParser
+    else:
+        skip = "C module missing"
+
+class StatusCTestCase(StatusPyTestCase):
+    if _object_parser_c:
+        parser = _object_parser_c.ObjectParser
+    else:
+        skip = "C module missing"
