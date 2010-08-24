@@ -1,0 +1,29 @@
+    __________________________
+        
+        Railroad :: Future
+    __________________________
+
+This is a list of possible future features in Railroad. Less of a TODO, this
+file largely functions as a brainstorm and wishlist for future possibilities.
+
+* Implement Nagios CGI functionality
+
+    * Schedule downtime
+    * Status overview/"Tactical overview"
+
+* More powerful configurator options
+
+    * Configurable time-interval option
+
+* Improved graphing interface
+
+    * Zoom out on graphs
+    * Undo changes to view
+
+* Bulk updates
+
+    * Allow for a single AJAX call when keeping graphs in sync
+
+* Configurator output improvements
+
+    * Enable grouping options to group graphs by various metrics
