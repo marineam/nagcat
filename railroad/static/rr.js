@@ -451,6 +451,8 @@ $(document).ready(function() {
     // Automatically fill in the configurator value options when the type is
     // changed
     $('.type').live('change', function() {
+        // If we are looping because we don't yet have a state, remove the throbber
+        $('#configurator').find('.throbber').remove();
         id = parseInt($(this).attr('name').replace('type', ''));
         value = $('#value' + id);
         $(value).empty();
@@ -460,7 +462,9 @@ $(document).ready(function() {
         // having a heart attack.
         state = $('#configurator').data('state');
         if(state == null) {
-            setTimeout(300, $(this).change());
+            setTimeout(100, $(this).change());
+            $(this).after('<div class="throbber filter" />');
+            return;
         }
         $(value).append(new Option());
         value_name = $(this).attr('value').toLowerCase();
