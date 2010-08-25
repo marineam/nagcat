@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from twisted.trial import unittest
 from nagcat import nagios_objects, _object_parser_py
 
@@ -31,41 +32,8 @@ class ModuleTestcase(unittest.TestCase):
 
 class ObjectsPyTestCase(unittest.TestCase):
 
-    objects = {
-            'host': [
-                {
-                    'host_name': 'host1',
-                    'alias': 'Host 1',
-                },
-            ],
-            'service': [
-                {
-                    'service_description': "Service 1",
-                    'host_name': 'host1',
-                },
-            ],
-        }
-
     parser = _object_parser_py.ObjectParser
-
-    def mkfile(self):
-        file_path = self.mktemp()
-        file_obj = open(file_path, 'w')
-        for obj_type, seq in self.objects.iteritems():
-            file_obj.write("define %s {\n" % obj_type)
-            for obj in seq:
-                for attr, value in obj.iteritems():
-                    file_obj.write("    %s %s\n" % (attr, value))
-            file_obj.write("    }\n")
-        file_obj.close()
-        return file_path
-
-    def testSimple(self):
-        parser = self.parser(self.mkfile())
-        parsed = dict((k,parser[k]) for k in parser.types())
-        self.assertEquals(parsed, self.objects)
-
-class StatusPyTestCase(unittest.TestCase):
+    status = False
 
     objects = {
             'host': [
@@ -82,24 +50,58 @@ class StatusPyTestCase(unittest.TestCase):
             ],
         }
 
-    parser = _object_parser_py.ObjectParser
 
-    def mkfile(self):
+    def escape(self, string):
+        def cb(match):
+            esc = match.group(1)
+            if esc == '\\':
+                return '\\\\'
+            elif esc == '\n':
+                return '\\n'
+            elif esc == '|':
+                return '\\_'
+            else:
+                assert 0
+        return re.sub(r'(\\|\n|\|)', cb, string)
+
+    def mkfile(self, objects):
         file_path = self.mktemp()
         file_obj = open(file_path, 'w')
-        for obj_type, seq in self.objects.iteritems():
-            file_obj.write("%sstatus {\n" % obj_type)
+        for obj_type, seq in objects.iteritems():
+            if self.status:
+                file_obj.write("%sstatus {\n" % obj_type)
+            else:
+               file_obj.write("define %s {\n" % obj_type)
             for obj in seq:
                 for attr, value in obj.iteritems():
-                    file_obj.write("    %s=%s\n" % (attr, value))
+                    value = self.escape(value)
+                    if self.status:
+                        file_obj.write("    %s=%s\n" % (attr, value))
+                    else:
+                        file_obj.write("    %s %s\n" % (attr, value))
             file_obj.write("    }\n")
         file_obj.close()
         return file_path
 
+    def todict(self, parser):
+        return dict((k,parser[k]) for k in parser.types())
+
     def testSimple(self):
-        parser = self.parser(self.mkfile())
-        parsed = dict((k,parser[k]) for k in parser.types())
+        parser = self.parser(self.mkfile(self.objects))
+        parsed = self.todict(parser)
         self.assertEquals(parsed, self.objects)
+
+    def testEscape(self):
+        objects = {'host': [{'long_plugin_output': "this\n|\\thing"}],
+                   'service': [{'_documentation': "other\n|\\thing"}]}
+        parser = self.parser(self.mkfile(objects))
+        parsed = self.todict(parser)
+        self.assertEquals(parsed, objects)
+
+
+class StatusPyTestCase(ObjectsPyTestCase):
+
+    status = True
 
 class ObjectsCTestCase(ObjectsPyTestCase):
     if _object_parser_c:

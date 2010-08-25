@@ -107,7 +107,7 @@ class ObjectParser(object):
                                 object_type = None
                                 continue
 
-                    if key == "long_plugin_output":
+                    if '\\' in value:
                         value = self.UNESCAPE.sub(unescape, value)
                     object[key] = value
         finally:

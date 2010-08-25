@@ -19,13 +19,21 @@
 
 from nagcat import errors
 
+# libc memory functions
+cdef extern from "stdlib.h":
+    ctypedef unsigned long size_t
+    void free(void *ptr)
+    void *malloc(size_t size)
+
 # libc string functions for parsing
 cdef extern from "string.h":
     char *strsep(char **stringp, char *delim)
-    long strspn(char *s, char *accept)
-    long strcspn(char *s, char *reject)
-    long strlen(char *s)
+    char *strchr(char *s, int c)
+    size_t strspn(char *s, char *accept)
+    size_t strcspn(char *s, char *reject)
+    size_t strlen(char *s)
     int strcmp(char *s1, char *s2)
+
 
 cdef inline void _ignore(char **ptr):
     """eat whitespace and comments"""
@@ -45,20 +53,60 @@ cdef inline void _ignore(char **ptr):
         else:
             return
 
-cdef inline char* _strend(char *haystack, char *needle):
+cdef char* _strend(char *haystack, char *needle):
     """Similar to strstr but checks if haystack ends with needle.
     (It doesn't actually search for any needle like strstr does though)
 
     The return value is the address of needle within haystack or NULL.
     """
-    cdef char* addr = haystack + strlen(haystack) - strlen(needle)
+    cdef size_t hlen = strlen(haystack)
+    cdef size_t nlen = strlen(needle)
+    cdef char* addr = haystack + hlen - nlen
 
-    if addr < haystack:
+    if hlen < nlen:
         return NULL
     elif strcmp(addr, needle) == 0:
         return addr
     else:
         return NULL
+
+cdef str _unescape(char *orig):
+    """Unescape backslashed chars:
+
+        '\\\\' '\\n' '\\_'
+
+    Note that '\\_' == '|' because | is special in Nagios
+    """
+    cdef char *buf = <char*>malloc(strlen(orig)+1)
+    cdef char *ptr = buf
+    cdef str ret
+
+    while orig[0]:
+        if orig[0] == '\\':
+            if orig[1] == 'n':
+                ptr[0] = '\n'
+            elif orig[1] == '\\':
+                ptr[0] = '\\'
+            elif orig[1] == '_':
+                ptr[0] = '|'
+            elif orig[1] == '\0':
+                ptr[0] = '\0'
+                break
+            else:
+                ptr[0] = orig[0]
+                ptr[1] = orig[1]
+                ptr += 1
+            orig += 2
+            ptr += 1
+        else:
+            ptr[0] = orig[0]
+            orig += 1
+            ptr += 1
+
+    ret = buf # Convert to a Python string
+    free(buf)
+    return ret
+
 
 class ParseError(errors.InitError):
     """Error while parsing a nagios object file"""
@@ -143,7 +191,10 @@ cdef class ObjectParser:
                 raise ParseError("Unexpected end of input.")
 
             # successfully got data!
-            objdata[name] = tok
+            if strchr(tok, '\\'):
+                objdata[name] = _unescape(tok)
+            else:
+                objdata[name] = tok
 
         if objtype in self._objects:
             self._objects[objtype].append(objdata)
