@@ -31,10 +31,14 @@
 <li><a href="{% url railroad.viewhosts.views.index %}">Home</a></li>
 <li><a href="{% url railroad.viewhosts.views.directconfigurator %}">Configurator</a></li>
 </ul>
+<span id="graph_options">
+<a href="#" class="link">Get link</a>
 {% if graphs %}
-<span id="graph_options"><input type="checkbox" name="sync" id="sync"><label for="sync">Keep graphs in sync</label></span>
+| <input type="checkbox" name="sync" id="sync"><label for="sync">Keep graphs in sync</label>
 {% endif %}
+</span>
 </div>
+<div id="link"></div>
 {% block sidebar %}
 <div id="sidebar">
 {# TODO: Kill the extra ul, it makes no sense #}

@@ -50,6 +50,13 @@ body {
 #header #graph_options {
 	float: right;
 	padding-right: 5px;
+	padding-top: 2px;
+}
+#link {
+	right: 0.4em;
+	top: 1.8em;
+	position: fixed;
+	z-index: 5;
 }
 
 /* Content and sidebars */
@@ -242,3 +249,4 @@ pre {
 	color: red;
 	cursor: pointer;
 }
+
