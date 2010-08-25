@@ -459,7 +459,8 @@ def customgraph(request):
             service_list.sort(lambda x, y:  \
                 cmp(x['service_description'], y['service_description']))
             for x in service_list:
-                x['is_graphable'] = is_graphable(host, x)
+                x['is_graphable'] = \
+                    is_graphable(host, x['service_description'])
                 x['start'] = start
                 x['end'] = end
                 x['period'] = 'ajax'
