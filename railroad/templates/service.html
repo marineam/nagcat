@@ -2,12 +2,31 @@
 
 {% block title %}Service detail: {{host_name}} &gt; {{service_name}}{% endblock %}
 
+{% block header %}
+<a href="{% url railroad.viewhosts.views.host  host_name %}">
+{% ifequal host_state '0' %}
+	<span class="greenbg">
+{% else %}
+	<span class="redbg">
+{% endifequal %}
+{{host_name}}</span></a> &gt; 
+{% ifequal service_state '0' %}
+	<span class="greenbg">
+{% else %}
+	{% ifequal service_state '1' %}
+		<span class="yellowbg">
+	{% else %}
+		<span class="redbg">
+	{% endifequal %}
+{% endifequal %}
+{{service_name}}</span>
+{% endblock %}
+
 {% block content %}
 
-<h1><a href="{% url railroad.viewhosts.views.host  host_name %}">{{host_name}}</a> &gt; {{service_name}}</h1>
-
 <div style="float: left; min-width: 250px; padding-right: 35px">
-<h1>Output</h1><pre>{% filter wordwrap:120 %}{{service_output}}{% endfilter %}</pre><h1>Coil File</h1><pre>{% filter wordwrap:120 %}{{coil}}{% endfilter %}</pre>
+<h1>Output</h1><pre>{% filter wordwrap:80 %}{{plugin_output}}
+{{service_output}}{% endfilter %}</pre><h1>Coil File</h1><pre>{% filter wordwrap:80 %}{{coil}}{% endfilter %}</pre>
 </div>
 
 <div class="services">

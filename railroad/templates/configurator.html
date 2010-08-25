@@ -2,9 +2,19 @@
 
 {% block title %}{{htmltitle}}{% endblock %}
 
-{% block content %}
+{% block header %}
+{% ifequal page_state '0' %}
+	<span class="greenbg">
+{% else %}
+    {% ifequal page_state '1' %}
+    	<span class="redbg">
+    {% else %}
+        <span>
+    {% endifequal %}
+{% endifequal %}
+{{pagetitle}}</span>{% endblock %}
 
-<h2>{{pagetitle}}</h2>
+{% block content %}
 
 {% include "form.html" %}
 

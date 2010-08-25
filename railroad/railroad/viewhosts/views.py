@@ -262,18 +262,24 @@ def host(request, host):
             graph['end'] = end
             graph['period'] = 'ajax'
          
+    host_detail = hostdetail(stat, host)
+    page_state = host_detail.get('current_state', '')
+
     return configurator(stat, obj,  \
-        'Host Detail: %s' % host, host, loaded_graphs)
+        'Host Detail: %s' % host, host, loaded_graphs, page_state)
 
 def service(request, host, service):
     """Returns a page showing service details of specified service of host"""
     t = loader.get_template('service.html')
     stat, obj = parse()
     service_detail = servicedetail(stat, host, service)
+    host_detail = hostdetail(stat, host)
 
-    str = service_detail.get('plugin_output', '')
-    if str:
-        str = '%s\n%s' % (str, service_detail.get('long_plugin_output', ''))
+    plugin_output = service_detail.get('plugin_output', '')
+    if plugin_output:
+        long_output = service_detail.get('long_plugin_output', '')
+
+    service_state = service_detail.get('current_state', '')
 
     rra_path = settings.RRA_PATH
     coilfile = '%s%s/%s.coil' % (rra_path, host, service)
@@ -285,8 +291,11 @@ def service(request, host, service):
     time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
+        'host_state': host_detail.get('current_state', ''),
         'service_name': service,
-        'service_output': str,
+        'service_output': long_output,
+        'plugin_output': plugin_output,
+        'service_state': service_state,
         'coil' : coilstring,
         'graphable': is_graphable(host, service),
         'time_intervals': time_intervals
@@ -506,16 +515,17 @@ def directurl(request, id):
                 service_detail['is_graphable'] = False
                 loaded_graphs.append(service_detail)
     
-    return configurator(stat, obj, 'Saved URL #%s' % id,  \
-            'Saved URL #%s' % id,loaded_graphs)
+    return configurator(stat, obj, 'Saved Page',  \
+            'Saved Page', loaded_graphs)
 
 def directconfigurator(request):
     """Returns a blank configurator page"""
     stat, obj = parse()
     return configurator(stat, obj)
 
-def configurator(stat, obj, htmltitle='Configurator',   \
-                     pagetitle='Configurator', loaded_graphs=[]):
+def configurator(stat, obj, htmltitle='Configurator',            \
+                     pagetitle='Configurator', loaded_graphs=[], \
+                     page_state=''):
     """Returns a configurator page
     Loads specified graphs, sets specified htmltitle and pagetitle, and
     displays the configurator form
@@ -525,6 +535,7 @@ def configurator(stat, obj, htmltitle='Configurator',   \
         'loaded_graphs': loaded_graphs,
         'htmltitle': htmltitle,
         'pagetitle': pagetitle,
+        'page_state': page_state,
         'graphs': True,
     }
     context_data = add_hostlist(stat, obj, context_data)
