@@ -120,12 +120,13 @@ cdef class ObjectParser:
 
     # Cython >= 0.12 uses the 3.x style bytes type for its
     # raw byte string instead of the 2.x style str type.
-    cdef dict _objects
+    cdef dict _objects, _object_select
     cdef bytes  _buffer
     cdef char *_pos
 
     def __init__(self, object_file, object_types=(), object_select=()):
         self._objects = {}
+        self._object_select = dict(object_select)
 
         try:
             fd = open(object_file)
@@ -138,6 +139,23 @@ cdef class ObjectParser:
         self._parse()
         self._pos = NULL
         self._buffer = None
+
+        # filter data after the fact, dunno if filtering during is
+        # faster or slower yet, in python it seemed slower.
+        if object_types or object_select:
+            for objtype in self._objects:
+                if object_types and objtype not in object_types:
+                    del self._objects[objtype]
+                else:
+                    self._objects[objtype] = filter(
+                            self._select_filter,
+                            self._objects[objtype])
+
+    def _select_filter(self, obj):
+        for key, value in self._object_select.iteritems():
+            if key in obj and obj[key] != value:
+                return False
+        return True
 
     cdef int _parse(self) except -1:
         while self._pos:

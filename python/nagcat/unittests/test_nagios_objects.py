@@ -41,11 +41,19 @@ class ObjectsPyTestCase(unittest.TestCase):
                     'host_name': 'host1',
                     'alias': 'Host 1',
                 },
+                {
+                    'host_name': 'host2',
+                    'alias': 'Host 2',
+                },
             ],
             'service': [
                 {
                     'service_description': "Service 1",
                     'host_name': 'host1',
+                },
+                {
+                    'service_description': "Service 2",
+                    'host_name': 'host2',
                 },
             ],
         }
@@ -68,18 +76,18 @@ class ObjectsPyTestCase(unittest.TestCase):
         file_path = self.mktemp()
         file_obj = open(file_path, 'w')
         for obj_type, seq in objects.iteritems():
-            if self.status:
-                file_obj.write("%sstatus {\n" % obj_type)
-            else:
-               file_obj.write("define %s {\n" % obj_type)
             for obj in seq:
+                if self.status:
+                    file_obj.write("%sstatus {\n" % obj_type)
+                else:
+                   file_obj.write("define %s {\n" % obj_type)
                 for attr, value in obj.iteritems():
                     value = self.escape(value)
                     if self.status:
                         file_obj.write("    %s=%s\n" % (attr, value))
                     else:
                         file_obj.write("    %s %s\n" % (attr, value))
-            file_obj.write("    }\n")
+                file_obj.write("    }\n")
         file_obj.close()
         return file_path
 
@@ -97,6 +105,21 @@ class ObjectsPyTestCase(unittest.TestCase):
         parser = self.parser(self.mkfile(objects))
         parsed = self.todict(parser)
         self.assertEquals(parsed, objects)
+
+    def testFilterTypes(self):
+        parser = self.parser(self.mkfile(self.objects),
+                object_types=('host',))
+        parsed = self.todict(parser)
+        expect = {'host': self.objects['host']}
+        self.assertEquals(parsed, expect)
+
+    def testFilterValues(self):
+        parser = self.parser(self.mkfile(self.objects),
+                object_select={'host_name': "host1"})
+        parsed = self.todict(parser)
+        expect = {'host': self.objects['host'][:1],
+                'service': self.objects['service'][:1]}
+        self.assertEquals(parsed, expect)
 
 
 class StatusPyTestCase(ObjectsPyTestCase):
