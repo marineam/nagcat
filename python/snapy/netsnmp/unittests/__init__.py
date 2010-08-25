@@ -16,8 +16,9 @@ import socket
 import signal
 import warnings
 
+import twisted
 from twisted.internet import defer, error, process, protocol, reactor
-from twisted.python import log
+from twisted.python import log, versions
 from twisted.trial import unittest
 
 def pick_a_port():
@@ -126,8 +127,9 @@ class Server(process.Process):
 class TestCase(unittest.TestCase):
 
     def setUp(self):
-        # Twisted falsely raises it's zombie warning during tests
-        warnings.simplefilter("ignore", error.PotentialZombieWarning)
+        # Twisted < 10.0.0 falsely raises it's zombie warning during tests
+        if twisted.version < versions.Version("twisted", 10, 0, 0):
+            warnings.simplefilter("ignore", error.PotentialZombieWarning)
 
         self.server = Server()
         d = self.server.address()
