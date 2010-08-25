@@ -1,4 +1,4 @@
-PREFIX  = /ita/installs/polthon
+PREFIX  = /usr
 PYTHON 	= $(PREFIX)/bin/python
 CY_SRC	= python/nagcat/_object_parser_c.pyx
 CY_TMP	= $(CY_SRC:.pyx=.c)
