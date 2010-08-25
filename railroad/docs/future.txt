@@ -27,3 +27,7 @@ file largely functions as a brainstorm and wishlist for future possibilities.
 * Configurator output improvements
 
     * Enable grouping options to group graphs by various metrics
+
+* Track alerts
+
+    * Generate top alerts page

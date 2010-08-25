@@ -431,6 +431,10 @@ $(document).ready(function() {
         // Prevent normal form submission
         return false;
     });
+
+    // Firefox refresh is dumb and will leave the same selection, breaking
+    // things. Reset our selection
+    $('#type0').attr('value', '');
    
     // Properly clear the form when someone attempts to reset it
     $('#configurator').bind('reset', function() {
@@ -562,7 +566,7 @@ $(document).ready(function() {
             url: '/railroad/configurator/generatelink',
             success: function(data) {
                 $('#link').html('<input type="text" name="link"' +
-                                ' readonly value="' + data + '" />');
+                                ' readonly value="' + data + '" size="25" />');
                 $('#link input').focus()
                                 .select();
             },

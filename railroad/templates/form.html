@@ -1,4 +1,12 @@
 <h3>Filters:</h3>
+<!-- <div style="float: right">
+<form name="sort" action="{#{% url railroad.viewhosts.views.sort %}#}" method="get" id="configurator">
+<select name="sortBy" id="sortBy">
+<option></option>
+</select>
+<input type="submit" value="Sort" id="sort" />
+</form>
+</div> -->
 <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
 <select name="type0" class="type" id="type0">
 <option></option>
@@ -14,4 +22,7 @@
 <input type="submit" value="Add" id="submit" disabled />
 <input type="reset" value="Clear" />
 </form>
+<br />
+<a href="#" class="link">Get link</a>
+<div id="link"></div>
 <br />
