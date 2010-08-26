@@ -32,9 +32,10 @@
 <li><a href="{% url railroad.viewhosts.views.directconfigurator %}">Configurator</a></li>
 </ul>
 <span id="graph_options">
-<a href="#" class="link">Get link</a>
+<a href="#" id="live" title="generate a link to this page which stays live">live link</a> | 
+<a href="#" id="static" title="generate a link to this page which zooms to the currently selected time periods">static link</a>
 {% if graphs %}
-| <input type="checkbox" name="sync" id="sync"><label for="sync">Keep graphs in sync</label>
+| <input type="checkbox" name="sync" id="sync"><label for="sync" title="keep all the graphs on this page on the same time period">keep graphs in sync</label>
 {% endif %}
 </span>
 </div>

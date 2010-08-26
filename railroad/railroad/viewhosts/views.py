@@ -499,6 +499,9 @@ def directurl(request, id):
     stat, obj = parse()
     loaded_graphs = []
 
+    out_end = int(time.time())
+    out_start = out_end - DAY 
+
     if id != None:
         content = pickle.loads(str(URL.objects.get(id=id)))
         for array in content:
@@ -506,9 +509,14 @@ def directurl(request, id):
                 host, service, start, end = array
                 service_detail = servicedetail(stat, host, service)
                 service_detail['is_graphable'] = True
-                service_detail['start'] = start
-                service_detail['end'] = end
-                service_detail['period'] = 'zoomed'
+                if start == '-1' and end == '-1':
+                    service_detail['start'] = out_start
+                    service_detail['end'] = out_end
+                    service_detail['period'] = 'ajax'
+                else:
+                    service_detail['start'] = start
+                    service_detail['end'] = end
+                    service_detail['period'] = 'zoomed'
                 loaded_graphs.append(service_detail)
             elif len(array) == 2:
                 host, service = array

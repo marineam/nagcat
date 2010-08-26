@@ -240,8 +240,6 @@ function parseGraphs(index, element) {
 
     // Allow for zooming
     $(element).bind('plotselected', function (event, ranges) {
-        $('#configurator').data('changed', true);
-
         // The graph isn't busy anymore, allow updates
         $(element).data('busy', null); 
 
@@ -322,7 +320,6 @@ $(document).ready(function() {
 
     // Bind the graph time range selection buttons
     $('.options ul li').live('click', function() {
-        $('#configurator').data('changed', true);
         clicked = $(this);
         // If we are supposed to sync the graphs, loop over all graphs
         if($('#sync').attr('checked')) {
@@ -470,7 +467,7 @@ $(document).ready(function() {
         // having a heart attack.
         state = $('#configurator').data('state');
         if(state == null) {
-            setTimeout(100, $(this).change());
+            setTimeout(100, $(this).trigger('change'));
             $(this).after('<div class="throbber filter" />');
             return;
         }
@@ -553,7 +550,7 @@ $(document).ready(function() {
     });
 
     // Handle configurator link generation
-    $('.link').click(function() {
+    $('#static').click(function() {
         function paint_link(data) {
             $('#link').html('Link: <input type="text" name="link"' +
                             ' readonly value="' + data + '" size="25" />');
@@ -561,9 +558,8 @@ $(document).ready(function() {
                             .select();
         }
 
-        // If anything on the page has changed, give them a link to that exact
-        // zoom, configuration, etc
-        if($('#configurator').data('changed')) {
+        // If there are any service rows, we have a custom link to generate
+        if($('.service_row').size()) {
             services = new Array();
             $('.service_row').each(function(index, element) {
                 temp = $(element).find('.service_data').attr('href').split('/');
@@ -586,11 +582,52 @@ $(document).ready(function() {
                     // TODO: Handle error?
                 }
             });
+        // If not, give a link to the page
+        } else {
+             paint_link(window.location);
+        } 
+    });
+
+    // Handle configurator link generation
+    $('#live').click(function() {
+        function paint_link(data) {
+            $('#link').html('Link: <input type="text" name="link"' +
+                            ' readonly value="' + data + '" size="25" />');
+            $('#link input').focus()
+                            .select();
+        }
+
+        // If anything on the page has changed, give them a link to that exact
+        // zoom, configuration, etc
+        if($('#configurator').data('changed')) {
+            services = new Array();
+            $('.service_row').each(function(index, element) {
+                temp = $(element).find('.service_data').attr('href').split('/');
+                host = temp[0];
+                service = temp[1];
+                start = -1;
+                end = -1;
+                services[index] = [host, service, start, end];
+            });
+            data = {services: services};
+            $.ajax({
+                data: data,
+                dataType: 'json',
+                type: 'POST',
+                url: '/railroad/configurator/generatelink',
+                success: function(data) {
+                    paint_link(data);
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    // TODO: Handle error?
+                }
+            });
         // If not, give them a generic link to this page
         } else {
             paint_link(window.location);
         }
     });
+
 
     // Automatically focus the link when someone clicks
     $('#link input').live('click', function() {
