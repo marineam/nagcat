@@ -25,6 +25,7 @@ import rrdtool
 from django.conf import settings
 from django.http import HttpResponse, HttpRequest
 from django.template import Context, loader
+from django.http import Http404
 from nagcat import nagios_objects
 
 from railroad.errors import RailroadError
@@ -245,6 +246,15 @@ def index(request):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
+def error404(request):
+    """Returns the 404 page"""
+    t = loader.get_template('404.html')
+    stat, obj = parse()
+    context_data = {}
+    context_data = add_hostlist(stat, obj, context_data)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
+
 def host(request, host):
     """Returns a page showing all services of the specified host"""
     loaded_graphs = []
@@ -261,8 +271,10 @@ def host(request, host):
             graph['start'] = start
             graph['end'] = end
             graph['period'] = 'ajax'
-         
+ 
     host_detail = hostdetail(stat, host)
+    if(host_detail == None):
+        raise Http404
     page_state = host_detail.get('current_state', '')
 
     return configurator(stat, obj,  \
@@ -274,6 +286,9 @@ def service(request, host, service):
     stat, obj = parse()
     service_detail = servicedetail(stat, host, service)
     host_detail = hostdetail(stat, host)
+
+    if service_detail == None or host_detail == None:
+        raise Http404
 
     plugin_output = service_detail.get('plugin_output', '')
     if plugin_output:
@@ -310,8 +325,11 @@ def group(request, group):
     t = loader.get_template('group.html')
     stat, obj = parse()
     service_dict = {}
-        
-    host_list = hostlist_by_group(stat, obj, group)
+
+    try:        
+        host_list = hostlist_by_group(stat, obj, group)
+    except Exception:
+        raise Http404
     host_names = map(lambda x: x['host_name'], host_list)
     service_list = servicelist(stat)
 
@@ -503,7 +521,10 @@ def directurl(request, id):
     out_start = out_end - DAY 
 
     if id != None:
-        content = pickle.loads(str(URL.objects.get(id=id)))
+        try:
+            content = pickle.loads(str(URL.objects.get(id=id)))
+        except Exception:
+            raise Http404
         for array in content:
             if len(array) == 4:
                 host, service, start, end = array

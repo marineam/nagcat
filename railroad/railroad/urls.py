@@ -14,6 +14,9 @@
 
 from django.conf.urls.defaults import *
 
+# Set our custom 404 handler to make sure the sidebar works
+handler404 = 'railroad.viewhosts.views.error404'
+
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
 # admin.autodiscover()
