@@ -605,8 +605,17 @@ $(document).ready(function() {
                 temp = $(element).find('.service_data').attr('href').split('/');
                 host = temp[0];
                 service = temp[1];
-                start = -1;
-                end = -1;
+                if($(element).find('.graph').data('start')) {
+                    start = -1;
+                } else {
+                    start = null;
+                }
+                if($(element).find('.graph').data('end')) {
+                    end = -1;
+                } else {
+                    end = null;
+                }
+
                 services[index] = [host, service, start, end];
             });
             data = {services: services};
