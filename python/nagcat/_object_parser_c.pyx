@@ -126,6 +126,8 @@ cdef class ObjectParser:
 
     def __init__(self, object_file, object_types=(), object_select=()):
         self._objects = {}
+        for obj in object_types:
+            self._objects[obj] = []
         self._object_select = dict(object_select)
 
         try:
