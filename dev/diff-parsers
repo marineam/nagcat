@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+
+# Copyright 2010 ITA Software, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Start up nagcat
+# If the package cannot be found automatically assume the source directory
+# structure and look for it in ../python/ (ie if this is a svn checkout)
+
+import os
+import sys
+import tempfile
+import subprocess
+
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append("%s/python" % root)
+
+from nagcat._object_parser_py import ObjectParser as ObjectParserPy
+from nagcat._object_parser_c import ObjectParser as ObjectParserC
+
+assert len(sys.argv) == 2
+
+PY = ObjectParserPy(sys.argv[1])
+C = ObjectParserC(sys.argv[1])
+PY_data = {}
+C_data = {}
+for k in PY.types():
+    PY_data[k] = PY[k]
+for k in C.types():
+    C_data[k] = C[k]
+
+def write(data):
+    fd, path = tempfile.mkstemp()
+    fd = os.fdopen(fd, 'w')
+    for k in sorted(data):
+        fd.write("%s:\n" % k)
+        for o in data[k]:
+            for a in sorted(o):
+                fd.write("    %s: %r\n" % (a, o[a]))
+            fd.write("    ----\n")
+    fd.close()
+    return path
+
+if PY_data != C_data or 1:
+    PY_path = write(PY_data)
+    C_path = write(C_data)
+    subprocess.check_call(['diff', '-u', PY_path, C_path])
+else:
+    print "OK!"

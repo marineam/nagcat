@@ -90,7 +90,6 @@ cdef str _unescape(char *orig):
             elif orig[1] == '_':
                 ptr[0] = '|'
             elif orig[1] == '\0':
-                ptr[0] = '\0'
                 break
             else:
                 ptr[0] = orig[0]
@@ -103,6 +102,7 @@ cdef str _unescape(char *orig):
             orig += 1
             ptr += 1
 
+    ptr[0] = '\0'
     ret = buf # Convert to a Python string
     free(buf)
     return ret
