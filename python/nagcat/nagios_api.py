@@ -683,7 +683,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         lex.wordchars = (
             "abcdfeghijklmnopqrstuvwxyz"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "0123456789_.-:[]?*+^$" )
+            "0123456789_.-:[]?*+^$," )
         valid = lex.wordchars + "()"
 
         while True:
