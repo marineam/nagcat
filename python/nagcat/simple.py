@@ -14,8 +14,6 @@
 
 """Nagcat single-test scheduler"""
 
-from twisted.internet import defer
-
 from nagcat import errors, log
 from nagcat import scheduler
 

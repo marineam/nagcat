@@ -17,7 +17,6 @@
 import time
 
 from zope.interface import classProvides
-from twisted.internet import defer
 from nagcat import errors, query, util
 
 try:
@@ -63,7 +62,7 @@ class LastUpdateQuery(query.Query):
 
     @errors.callback
     def _errors(self, failure):
-        if isinstance(falure.value, twirrdy.RRDToolError):
+        if isinstance(failure.value, twirrdy.RRDToolError):
             raise errors.TestCritical(str(failure.value))
         else:
             return failure

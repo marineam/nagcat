@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import errors, simple, test
+from nagcat import simple, test
 from coil.struct import Struct
 
 class TestTestCase(unittest.TestCase):

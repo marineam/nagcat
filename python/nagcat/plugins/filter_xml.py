@@ -14,7 +14,6 @@
 
 """XML Filters"""
 
-import os
 from cStringIO import StringIO
 
 # Gracefully disable xml/xpath support if not found

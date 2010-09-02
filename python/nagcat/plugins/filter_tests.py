@@ -126,7 +126,7 @@ class CriticalFilter(filters._Filter):
                 if eval("a %s b" % self.test_op, eval_dict):
                     raise self.error("Test failed: %s %s"
                             % (self.test_op, self.test_val))
-        except Exception, ex:
+        except Exception:
             result = errors.Failure(result=true_result)
 
         return result

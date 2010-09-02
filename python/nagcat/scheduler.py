@@ -114,7 +114,7 @@ class Scheduler(object):
 
         self.query = query.QueryManager(self)
 
-        tests = self.build_tests(config, **kwargs)
+        self.build_tests(config, **kwargs)
 
     def build_tests(self, config, **kwargs):
         raise Exception("unimplemented")

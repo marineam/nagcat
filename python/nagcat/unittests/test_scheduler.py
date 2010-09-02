@@ -15,7 +15,7 @@
 from twisted.trial import unittest
 #from nagcat.unittests import dummy_server
 from coil.struct import Struct
-from nagcat import simple, runnable, scheduler
+from nagcat import simple, runnable
 
 
 class SchedulerTestCase(unittest.TestCase):

@@ -18,7 +18,6 @@ import re
 
 from zope.interface import classProvides
 from twisted.internet import threads, reactor
-from twisted.python import failure
 from coil.struct import Struct
 
 
