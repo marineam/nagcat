@@ -627,7 +627,16 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         if ':' not in identifier:
             raise xmlrpc.Fault(1, "Invalid identifier: %r" % identifier)
 
-        group_type, group_name = identifier.split(':', 1)
+        group_type, group_spec = identifier.split(':', 1)
+        group_set = set()
+
+        for group_name in group_spec.split(','):
+            group_set.update(
+                    self._groupGetMiniSet(group_type, group_name))
+
+        return group_set
+
+    def _groupGetMiniSet(self, group_type, group_name):
         group_set = set()
 
         if re.search(r'[\[\]?*+^$]', group_name):
