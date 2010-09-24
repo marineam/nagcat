@@ -38,6 +38,10 @@ class SubprocessProtocol(protocol.ProcessProtocol):
     def outReceived(self, data):
         self.result += data
 
+    def errReceived(self, data):
+        key = "Process stderr"
+        self.factory.saved[key] = self.factory.saved.get(key, "") + data
+
     def timeout(self):
         self.timedout = True
         self.transport.loseConnection()
@@ -70,10 +74,11 @@ class SubprocessProtocol(protocol.ProcessProtocol):
 class SubprocessFactory(process.Process):
     """Execute a subprocess"""
 
-    def __init__(self, conf):
-        self.conf = conf
+    def __init__(self, query):
+        self.conf = query.conf
+        self.saved = query.saved
         self.deferred = defer.Deferred()
-        self._startProcess(("/bin/sh", "-c", conf['command']))
+        self._startProcess(("/bin/sh", "-c", self.conf['command']))
 
     def _startProcess(self, command):
         command = [str(x) for x in command]
@@ -130,5 +135,5 @@ class SubprocessQuery(query.Query):
         self.conf['environment'] = env
 
     def _start(self):
-        proc = SubprocessFactory(self.conf)
+        proc = SubprocessFactory(self)
         return proc.deferred

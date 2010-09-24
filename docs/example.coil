@@ -110,6 +110,13 @@ system_time: {
     investigation: "Check that ntpd is running properly"
 }
 
+subprocess: {
+    query: {
+        type: "subprocess"
+        command: "echo stdout; echo stderr >&2"
+    }
+}
+
 uptime: {
     query: {
         type: "subprocess"

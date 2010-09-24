@@ -20,8 +20,15 @@ from nagcat import errors
 class SubprocessQueryTestCase(QueryTestCase):
 
     def testBasic(self):
-        d = self.startQuery(type='subprocess', command='echo hello')
+        q,d = self.startQuery2(type='subprocess', command='echo hello')
         d.addCallback(self.assertEquals, "hello\n")
+        d.addCallback(lambda x: self.assert_('Process stderr' not in q.saved))
+        return d
+
+    def testStderr(self):
+        q,d = self.startQuery2(type='subprocess', command='echo stderr >&2')
+        d.addCallback(self.assertEquals, "")
+        d.addCallback(lambda x: self.assertEquals(q.saved['Process stderr'], "stderr\n"))
         return d
 
     def testTrue(self):

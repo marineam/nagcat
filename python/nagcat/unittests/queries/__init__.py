@@ -22,6 +22,10 @@ class QueryTestCase(unittest.TestCase):
         self.nagcat = simple.NagcatDummy()
 
     def startQuery(self, config=None, **kwargs):
+        q,d = self.startQuery2(config=config, **kwargs)
+        return d
+
+    def startQuery2(self, config=None, **kwargs):
         if config:
             config = config.copy()
             config.update(kwargs)
@@ -31,4 +35,4 @@ class QueryTestCase(unittest.TestCase):
         q = self.nagcat.new_query(Struct(config))
         d = q.start()
         d.addCallback(lambda x: q.result)
-        return d
+        return q,d
