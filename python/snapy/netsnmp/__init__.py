@@ -62,12 +62,17 @@ class Session(object):
         Other useful things include:
         @param retries: number of retries before giving up
         @param timeout: seconds time between retries
+
+        Not part of snmp_session:
+        @param _use_bulk: Use GETBULK when using version 2c.
         """
 
         self.sessp = None   # single session api pointer
         self.session = None # session struct
         self.session_template = types.netsnmp_session()
         self._requests = {}
+
+        self._use_bulk = kwargs.pop('_use_bulk', True)
 
         # Initialize session to default values
         lib.snmp_sess_init(byref(self.session_template))
@@ -77,6 +82,7 @@ class Session(object):
             raise SnmpError("Keyword version is required")
         elif kwargs['version'] == '1':
             kwargs['version'] = const.SNMP_VERSION_1
+            self._use_bulk = False
         elif kwargs['version'] == '2c':
             kwargs['version'] = const.SNMP_VERSION_2c
         else:
@@ -346,7 +352,7 @@ class Session(object):
                 stop()
                 return
 
-            if self.session.contents.version == const.SNMP_VERSION_1:
+            if not self._use_bulk:
                 self._send_request(const.SNMP_MSG_GETNEXT, [oid], walk_cb)
             else:
                 # Fetch 50 results at a time, is this a good value?

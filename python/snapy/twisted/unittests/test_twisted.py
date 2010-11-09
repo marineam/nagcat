@@ -18,12 +18,14 @@ from snapy.twisted import Session
 class TestSessionV1(TestCase):
 
     version = "1"
+    bulk = False
 
     def setUpSession(self, address):
         self.session = Session(
                 version=self.version,
                 community="public",
-                peername=address)
+                peername=address,
+                _use_bulk=self.bulk)
         self.session.open()
 
     def tearDownSession(self):
@@ -33,6 +35,7 @@ class TestSessionV1(TestCase):
         oid = OID(".1.3.6.1.4.2.1.1")
         def cb(result):
             self.assertEquals(result, [(oid, 1)])
+            return self.finishGet()
 
         d = self.session.get([oid])
         d.addCallback(cb)
@@ -44,6 +47,7 @@ class TestSessionV1(TestCase):
 
         def cb(result):
             self.assertEquals(result, expect)
+            return self.finishWalk()
 
         d = self.session.walk([root])
         d.addCallback(cb)
@@ -53,3 +57,6 @@ class TestSessionV2c(TestSessionV1):
 
     version = "2c"
 
+class TestSessionV2cBulk(TestSessionV2c):
+
+    bulk = True

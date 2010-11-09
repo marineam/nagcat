@@ -38,10 +38,12 @@ class LoggingProtocol(protocol.ProcessProtocol):
         self.factory = factory
 
     def outReceived(self, data):
+        self.factory.stdout += data
         for line in data.splitlines():
             log.msg("snmpd: %s" % line)
 
     def errReceived(self, data):
+        self.factory.stderr += data
         for line in data.splitlines():
             if line.startswith("NET-SNMP"):
                 self.factory.started()
@@ -70,10 +72,13 @@ class Server(process.Process):
         self._timeout = None
         self.conf = "%s/snmpd.conf" % os.path.dirname(__file__)
         self.socket = "udp:127.0.0.1:%d" % pick_a_port()
+        self.stdout = ""
+        self.stderr = ""
 
         proto = LoggingProtocol(self)
         env = {"PATH": "/bin:/sbin:/usr/bin:/usr/sbin"}
-        cmd = ("snmpd", "-f", "-LE6", "-C", "-c", self.conf,
+        cmd = ("snmpd", "-f", "-C", "-c", self.conf,
+                "-LE7", "-Ddumpv_recv", "-Ddumph_recv",
                 "-I", ','.join(self.modules),
                 "--noPersistentLoad=1", "--noPersistentSave=1",
                 self.socket)
@@ -131,21 +136,65 @@ class TestCase(unittest.TestCase):
         if twisted.version < versions.Version("twisted", 10, 0, 0):
             warnings.simplefilter("ignore", error.PotentialZombieWarning)
 
+        self._running = False
+        def set_running(result):
+            self._running = True
+
         self.server = Server()
         d = self.server.address()
         d.addCallbacks(self.setUpSession, lambda x: None)
+        d.addCallback(lambda x: self._set_running(True))
         d.addErrback(lambda x: self.server.stop())
         return d
+
+    def _set_running(self, value):
+        # since we can't do this in lambda
+        self._running = value
 
     def setUpSession(self, address):
         pass
 
     def tearDown(self):
+        if not self._running:
+            return
         try:
             self.tearDownSession()
         finally:
             d = self.server.stop()
+            d.addCallback(lambda x: self._set_running(False))
         return d
 
     def tearDownSession(self):
         pass
+
+    def assertVersion(self, version):
+        self.assertIn("\ndumph_recv: SNMPv%s message\n" % version,
+                self.server.stderr)
+
+    def assertCommand(self, command):
+        self.assertIn("\ndumpv_recv:     Command %s\n" % command,
+                self.server.stderr)
+
+    def finish(self, commands=()):
+        def checks(result):
+            self.assertVersion(self.version)
+            for command in commands:
+                self.assertCommand(command)
+        d = self.tearDown()
+        d.addCallback(checks)
+        return d
+
+    def finishGet(self):
+        return self.finish(["GET"])
+
+    def finishWalk(self):
+        if self.bulk:
+            return self.finish(["GET","GETBULK"])
+        else:
+            return self.finish(["GET","GETNEXT"])
+
+    def finishStrictWalk(self):
+        if self.bulk:
+            return self.finish(["GETBULK"])
+        else:
+            return self.finish(["GETNEXT"])

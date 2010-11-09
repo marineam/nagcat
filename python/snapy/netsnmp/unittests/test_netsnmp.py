@@ -26,6 +26,7 @@ def set_result(value, result):
 class TestSessionV1(TestCase):
 
     version = "1"
+    bulk = False
     basics = [
             (OID(".1.3.6.1.4.2.1.1"),  1),
             (OID(".1.3.6.1.4.2.1.2"), -1),
@@ -37,7 +38,8 @@ class TestSessionV1(TestCase):
         self.session = Session(
                 version=self.version,
                 community="public",
-                peername=address)
+                peername=address,
+                _use_bulk=self.bulk)
         self.session.open()
 
     def tearDownSession(self):
@@ -46,12 +48,14 @@ class TestSessionV1(TestCase):
     def test_sget(self):
         result = self.session.sget([x for x,v in self.basics])
         self.assertEquals(result, self.basics)
+        return self.finishGet()
 
     def test_get_small(self):
         result = Result()
         self.session.get([x for x,v in self.basics], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, self.basics)
+        return self.finishGet()
 
     def test_get_big(self):
         oids = []
@@ -67,11 +71,14 @@ class TestSessionV1(TestCase):
             assert oid in result
             assert result[oid] == "data data data data"
 
+        return self.finishGet()
+
     def test_walk_tree(self):
         result = Result()
         self.session.walk([".1.3.6.1.4.2.1"], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, self.basics)
+        return self.finishWalk()
 
     def test_walk_leaf(self):
         oid = OID(".1.3.6.1.4.2.1.1")
@@ -79,6 +86,7 @@ class TestSessionV1(TestCase):
         self.session.walk([oid], set_result, result)
         self.session.wait()
         self.assertEquals(result.value, [(oid, 1)])
+        return self.finishGet()
 
     def test_walk_strict(self):
         oid = OID(".1.3.6.1.4.2.1.1")
@@ -86,12 +94,14 @@ class TestSessionV1(TestCase):
         self.session.walk([oid], set_result, result, strict=True)
         self.session.wait()
         self.assertEquals(result.value, [])
+        return self.finishStrictWalk()
 
     def test_sysDescr(self):
         result = self.session.sget([OID("SNMPv2-MIB::sysDescr.0")])
         self.assert_(result)
         self.assertIsInstance(result[0][1], str)
         self.assert_(len(result[0][1]) > 0)
+        return self.finishGet()
 
 
 class TestSessionV2c(TestSessionV1):
@@ -110,6 +120,11 @@ class TestSessionV2c(TestSessionV1):
         self.assert_(result)
         value = result[0][1].split(':', 1)[0]
         self.assertEquals(value, now)
+        return self.finishGet()
+
+class TestSessionV2cBulk(TestSessionV2c):
+
+    bulk = True
 
 class TestTimeoutsV1(unittest.TestCase):
 
