@@ -13,15 +13,19 @@
 # limitations under the License.
 
 from nagcat.unittests.queries import QueryTestCase
-from nagcat import errors
+from nagcat import errors, plugin, query
 from snapy.netsnmp.unittests import TestCase as SnmpTestCase
 
 
 class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
 
     version = "1"
+    bulk = False
 
     def setUp(self):
+        snmp = plugin.search(query.IQuery, "snmp")
+        snmp.use_bulk(self.bulk)
+
         QueryTestCase.setUp(self)
         return SnmpTestCase.setUp(self)
 
@@ -38,12 +42,14 @@ class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
     def testBasicGood(self):
         d = self.startQuery(self.conf, oid=".1.3.6.1.4.2.1.1")
         d.addCallback(self.assertEquals, "1")
+        d.addCallback(lambda x: self.finishGet())
         return d
 
     def testBasicBad(self):
         def check(result):
             self.assertIsInstance(result, errors.Failure)
             self.assertIsInstance(result.value, errors.TestCritical)
+            return self.finishGet()
 
         d = self.startQuery(self.conf, oid=".1.3.6.1.4.2.1")
         d.addBoth(check)
@@ -55,9 +61,14 @@ class SnmpQueryTestCaseV1(SnmpTestCase, QueryTestCase):
                 oid_key=".1.3.6.1.4.2.2",
                 key="two")
         d.addCallback(self.assertEquals, "2")
+        d.addCallback(lambda x: self.finishStrictWalk())
         return d
 
 
 class SnmpQueryTestCaseV2c(SnmpQueryTestCaseV1):
 
     version = "2c"
+
+class SnmpQueryTestCaseV2cBulk(SnmpQueryTestCaseV2c):
+
+    bulk = True

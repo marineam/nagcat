@@ -21,7 +21,7 @@ from optparse import OptionParser
 from twisted.internet import reactor
 import coil
 
-from nagcat import errors, log, nagios, simple, util
+from nagcat import errors, log, nagios, plugin, query, simple, util
 
 def parse_options():
     """Parse program options in sys.argv"""
@@ -67,6 +67,8 @@ def parse_options():
             help="only load nagios tests with a specific tag")
     parser.add_option("-C", "--core-dumps",
             help="set cwd to the given directory and enable core dumps")
+    parser.add_option("--disable-snmp-bulk", action="store_true",
+            help="disable the use of SNMPv2's GETBULK command")
     parser.add_option("", "--profile-init", dest="profile_init",
             action="store_true", default=False,
             help="run profiler during startup")
@@ -125,6 +127,15 @@ def start(nagcat):
     d = nagcat.start()
     d.addBoth(stop)
 
+def init_plugins(options):
+    """Pass any parameters to plugins."""
+    # Yes, this could be done in a more generic way with plugins providing
+    # a specific interface that provides both the plugin's options and
+    # a function to process those options. For now this is sufficient.
+
+    snmp = plugin.search(query.IQuery, "snmp")
+    snmp.use_bulk(not options.disable_snmp_bulk)
+
 def init(options):
     """Prepare to start up NagCat"""
 
@@ -139,6 +150,8 @@ def init(options):
 
     log.init(options.logfile, options.loglevel)
     config = coil.parse_file(options.config, expand=False)
+
+    init_plugins(options)
 
     try:
         if options.test:

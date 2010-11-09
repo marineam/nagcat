@@ -59,6 +59,13 @@ class SNMPCommon(query.Query):
 
         return oid
 
+    _use_bulk = True
+
+    @staticmethod
+    def use_bulk(value):
+        """This attribute is global across all SNMP classes"""
+        SNMPCommon._use_bulk = bool(value)
+
 class SNMPQuery(SNMPCommon):
     """Fetch a single value via SNMP"""
 
@@ -244,7 +251,8 @@ class SNMPCombined(SNMPCommon):
                     community=self.conf['community'],
                     # Retry after 1 second for 'timeout' retries
                     timeout=1, retrys=int(self.conf['timeout']),
-                    peername=self.conf['addr'])
+                    peername=self.conf['addr'],
+                    _use_bulk=self._use_bulk)
         except netsnmp.SnmpError, ex:
             raise errors.InitError("Snmp Error: %s" % ex)
 
