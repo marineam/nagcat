@@ -15,9 +15,11 @@
 """Oracle Queries"""
 
 import re
+import threading
 
 from zope.interface import classProvides
 from twisted.internet import threads, reactor
+from twisted.python import threadpool
 from coil.struct import Struct
 
 
@@ -32,6 +34,19 @@ except ImportError:
     cx_Oracle = None
 
 from nagcat import errors, query
+
+
+class _OracleThreadPool(threadpool.ThreadPool):
+
+    @staticmethod
+    def threadFactory(*argv, **kwargs):
+        thread = threading.Thread(*argv, **kwargs)
+        thread.daemon = True
+        return thread
+
+    def stop(self):
+        """Don't bother joining, threads may be hung."""
+        self.joined = True
 
 
 class _DBColumn:
@@ -86,6 +101,8 @@ class OracleBase(query.Query):
     Subclasses must provide _start_oracle()
     """
 
+    threadpool = None
+
     def __init__(self, nagcat, conf):
         if not etree or not cx_Oracle:
             raise errors.InitError(
@@ -98,11 +115,16 @@ class OracleBase(query.Query):
                 raise errors.ConfigError('%s is required but missing' % param)
             self.conf[param] = conf[param]
 
+        if not OracleBase.threadpool:
+            OracleBase.threadpool = _OracleThreadPool(0, 10, 'oracle')
+            reactor.callWhenRunning(OracleBase.threadpool.start)
+
     def _start_oracle(self):
         raise Exception("unimplemented")
 
     def _start(self):
-        deferred = threads.deferToThread(
+        deferred = threads.deferToThreadPool(
+                reactor, self.threadpool,
                 cx_Oracle.connect,
                     user=self.conf['user'],
                     password=self.conf['password'],
@@ -228,7 +250,8 @@ class OracleSQL(OracleBase):
         self.conf['parameters'] = parameters
 
     def _start_oracle(self):
-        deferred = threads.deferToThread(self.cursor.execute,
+        deferred = threads.deferToThreadPool(reactor,
+                self.threadpool, self.cursor.execute,
                 self.conf['sql'], self.conf['parameters'])
         deferred.addCallback(self._success)
         return deferred
@@ -314,7 +337,8 @@ class OraclePLSQL(OracleBase):
         return params
 
     def _start_oracle(self):
-        deferred = threads.deferToThread(self.cursor.callproc,
+        deferred = threads.deferToThreadPool(reactor,
+                self.threadpool, self.cursor.callproc,
                 self.conf['procedure'], self._build_params())
         deferred.addCallback(self._success)
         return deferred
