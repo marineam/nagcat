@@ -29,6 +29,13 @@ from nagcat import errors, graph, log, plugin
 RETRY_INTERVAL = 20
 RETRY_LIMIT = 6
 
+# Which template to use for each notification type
+NOTIFICATION_TEMPLATES = {
+    'alert': ('PROBLEM', 'RECOVERY'),
+    'comment': ('ACKNOWLEDGEMENT', 'DOWNTIME', 'CUSTOM'),
+    'flapping': ('FLAPPING',),
+}
+
 DEFAULT_CONFIG = '''
 urls: {
     nagios: None
@@ -66,6 +73,20 @@ host: {
 
         Date: {LONGDATETIME}
         """
+
+        flapping: """***** Nagios *****
+
+        Type: {NOTIFICATIONTYPE}
+
+        No notifications are sent while the host state is flapping.
+
+        Host: {HOSTALIAS}
+        Address: {HOSTADDRESS}
+        State: {HOSTSTATE}
+        Info: {HOSTOUTPUT}
+
+        Date: {LONGDATETIME}
+        """
     }
 
     short: {
@@ -77,6 +98,10 @@ host: {
         comment: """Host {HOSTALIAS}
         Author: {NOTIFICATIONAUTHOR}
         Comment: {NOTIFICATIONCOMMENT}
+        Date: {SHORTDATETIME}
+        """
+
+        flapping: """Host {HOSTALIAS}
         Date: {SHORTDATETIME}
         """
     }
@@ -95,7 +120,6 @@ service: {
         Address: {HOSTADDRESS}
         State: {SERVICESTATE}
         Info: {SERVICEOUTPUT}
-        {LONGSERVICEOUTPUT}
 
         Date: {LONGDATETIME}
         """
@@ -111,7 +135,21 @@ service: {
         Address: {HOSTADDRESS}
         State: {SERVICESTATE}
         Info: {SERVICEOUTPUT}
-        {LONGSERVICEOUTPUT}
+
+        Date: {LONGDATETIME}
+        """
+
+        flapping: """***** Nagios *****
+
+        Type: {NOTIFICATIONTYPE}
+
+        No notifications are sent while the service state is flapping.
+
+        Service: {SERVICEDESC}
+        Host: {HOSTALIAS}
+        Address: {HOSTADDRESS}
+        State: {SERVICESTATE}
+        Info: {SERVICEOUTPUT}
 
         Date: {LONGDATETIME}
         """
@@ -130,11 +168,19 @@ service: {
         Comment: {NOTIFICATIONCOMMENT}
         Date: {SHORTDATETIME}
         """
+
+        flapping: """Service: {SERVICEDESC}
+        Host: {HOSTALIAS}
+        Date: {SHORTDATETIME}
+        """
     }
 }
 '''
 
-class MissingMacro(Exception):
+class NotificationError(Exception):
+    """Generic known-error"""
+
+class MissingMacro(NotificationError):
     """A Nagios macro expected in the template is missing"""
 
     def __init__(self, name):
@@ -203,11 +249,13 @@ class Notification(object):
         return self._format(self.config[self.type]['subject'])
 
     def body(self):
-        if (self.macros.get('NOTIFICATIONAUTHOR', None) or
-                self.macros.get('NOTIFICATIONCOMMENT', None)):
-            return self._format(self.config[self.type][self.format]['comment'])
-        else:
-            return self._format(self.config[self.type][self.format]['alert'])
+        for template, notification in NOTIFICATION_TEMPLATES.iteritems():
+            if self.macros['NOTIFICATIONTYPE'].startswith(notification):
+                return self._format(
+                        self.config[self.type][self.format][template])
+
+        raise NotificationError("Unknown notification type: %s" %
+                                self.macros['NOTIFICATIONTYPE'])
 
     def urls(self):
         urls = {}
@@ -360,7 +408,7 @@ def main():
     def stop(result):
         reactor.stop()
         if isinstance(result, failure.Failure):
-            if isinstance(result.value, MissingMacro):
+            if isinstance(result.value, NotificationError):
                 log.error(str(result.value))
             else:
                 log.error(str(result))
