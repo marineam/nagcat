@@ -42,6 +42,8 @@ def parse_options():
             help="port to listen on (required)")
     parser.add_option("-H", "--host", dest="host", default="",
             help="local host name or address to listen on")
+    parser.add_option("-R", "--read-only", action="store_true",
+            help="provide information but don't accept commands")
 
     (options, args) = parser.parse_args()
 
@@ -74,14 +76,17 @@ def main():
     if options.pidfile:
         util.write_pid(options.pidfile)
 
-    try:
-        rpc = nagios_api.NagiosXMLRPC(options.nagios)
-    except errors.InitError, ex:
-        log.error(str(ex))
-        sys.exit(1)
-
     site = monitor_api.MonitorSite()
-    site.root.putChild("RPC2", rpc)
+    site.root.putChild("nagios", nagios_api.NagiosStatus(options.nagios))
+
+    if not options.read_only:
+        try:
+            rpc = nagios_api.NagiosXMLRPC(options.nagios)
+        except errors.InitError, ex:
+            log.error(str(ex))
+            sys.exit(1)
+        site.root.putChild("RPC2", rpc)
+
     reactor.listenTCP(options.port, site, interface=options.host)
 
     if options.daemon:

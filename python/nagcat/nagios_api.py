@@ -26,7 +26,7 @@ import tempfile
 import cStringIO
 from collections import deque
 
-from twisted.web import xmlrpc
+from twisted.web import resource, static, xmlrpc
 from twisted.internet import reactor, interfaces
 from twisted.python.log import Logger
 from twisted.python import failure
@@ -783,3 +783,23 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             do_cmd()
 
         return len(commands)
+
+class NagiosStatus(resource.Resource):
+    """Serve up Nagios data"""
+
+    isLeaf = False
+
+    def __init__(self, nagios_cfg):
+        resource.Resource.__init__(self)
+
+        cfg = nagios_objects.ConfigParser(nagios_cfg,
+                ('object_cache_file', 'status_file'))
+
+        self.putChild('', self)
+        self.putChild('objects',
+                static.File(cfg['object_cache_file'], 'text/plain'))
+        self.putChild('status',
+                static.File(cfg['status_file'], 'text/plain'))
+
+    def render_GET(self, request):
+        return ""
