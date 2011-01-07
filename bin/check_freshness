@@ -1,0 +1,146 @@
+#!/usr/bin/env python
+
+# Copyright 2010 ITA Software, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Start up nagcat
+# If the package cannot be found automatically assume the source directory
+# structure and look for it in ../python/ (ie if this is a svn checkout)
+
+import os
+import sys
+import time
+import socket
+import urllib2
+import traceback
+from optparse import OptionParser
+
+STATUS_OK = 0
+STATUS_WARN = 1
+STATUS_CRIT = 2
+STATUS_UNKN = 3
+
+try:
+    from nagcat.nagios_objects import ObjectParser
+except ImportError:
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append("%s/python" % root)
+    from nagcat.nagios_objects import ObjectParser
+
+class NagOptParser(OptionParser):
+    """Override error to exit with the code for UNKNOWN"""
+
+    def error(self, msg):
+        self.exit(STATUS_UNKN,
+                "%s: error: %s\n" % (self.get_prog_name(), msg))
+
+class Checker(object):
+
+    def __init__(self):
+        self.state = STATUS_OK
+        self.now = time.time()
+
+    def parse_options(self):
+        parser = OptionParser(
+                description="Test freshness of all service checks.")
+        parser.add_option('-s', '--status',
+                default=os.environ.get('NAGIOS_STATUSDATAFILE', None),
+                help="path or url to nagios' status.dat file")
+        parser.add_option('-t', '--timeout', default=15, type='int',
+                help="timeout in seconds for urls [default: 15 seconds]")
+        parser.add_option('-w', '--warning', default=15, type='int',
+                help="threshold in minutes for WARNING")
+        parser.add_option('-c', '--critical', default=30, type='int',
+                help="threshold in minutes for CRITICAL")
+        self.options, args = parser.parse_args()
+        if not self.options.status:
+            parser.error("No status file provided")
+        if args:
+            parser.error("Unknown extra arguments")
+
+    def check_object(self, obj):
+        if (obj['active_checks_enabled'] == '0' and
+                obj['passive_checks_enabled'] == '0'):
+            return False
+
+        freshness = (self.now - int(obj['last_check'])) // 60
+        if freshness > self.options.critical:
+            self.state = max(self.state, STATUS_CRIT)
+            return True
+        elif freshness > self.options.warning:
+            self.state = max(self.state, STATUS_WARN)
+            return True
+        else:
+            return False
+
+    def main(self):
+        self.parse_options()
+        if "://" in self.options.status:
+            socket.setdefaulttimeout(self.options.timeout)
+            status_file = urllib2.urlopen(self.options.status)
+            status = ObjectParser(status_file)
+            status_file.close()
+        else:
+            status = ObjectParser(self.options.status)
+
+        badh = []
+        bads = []
+
+        for host in status['host']:
+            if self.check_object(host):
+                badh.append(host['host_name'])
+        for service in status['service']:
+            if self.check_object(service):
+                bads.append("%s/%s" % (service['host_name'],
+                    service['service_description']))
+
+        if self.state == STATUS_OK:
+            print "FRESHNESS OK: stale hosts = 0, stale services = 0"
+        else:
+            if self.state == STATUS_WARN:
+                name = "WARNING"
+            elif self.state == STATUS_CRIT:
+                name = "CRITICAL"
+            else:
+                name = "UNKNOWN"
+
+            print "FRESHNESS %s: stale hosts = %d, stale services = %d" % (
+                    name, len(badh), len(bads))
+            print
+
+            if badh:
+                badh.sort()
+                print "Stale hosts checks:"
+                for name in badh:
+                    print "    %s" % name
+                print
+
+            if bads:
+                bads.sort()
+                print "Stale service checks:"
+                for name in bads:
+                    print "    %s" % name
+                print
+
+        return self.state
+
+if __name__ == "__main__":
+    try:
+        checker = Checker()
+        sys.exit(checker.main())
+    except Exception, ex:
+        print "FRESHNESS UNKNOWN: %s" % (ex,)
+        print
+        traceback.print_exc(file=sys.stdout)
+        sys.exit(STATUS_UNKN)
