@@ -131,10 +131,13 @@ cdef class ObjectParser:
         self._object_select = dict(object_select)
 
         try:
-            fd = open(object_file)
-            self._buffer = <bytes>fd.read()
+            if isinstance(object_file, basestring):
+                fd = open(object_file)
+                self._buffer = <bytes>fd.read()
+                fd.close()
+            else:
+                self._buffer = <bytes>object_file.read()
             self._pos = self._buffer
-            fd.close()
         except IOError, ex:
             raise ParseError("Failed to read Nagios object file: %s" % ex)
 
