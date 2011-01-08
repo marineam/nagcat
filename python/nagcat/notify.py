@@ -120,6 +120,7 @@ service: {
         Address: {HOSTADDRESS}
         State: {SERVICESTATE}
         Info: {SERVICEOUTPUT}
+        {LONGSERVICEOUTPUT}
 
         Date: {LONGDATETIME}
         """
