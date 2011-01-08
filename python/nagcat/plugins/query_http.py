@@ -60,6 +60,8 @@ class HTTPQuery(query.Query):
         self.conf['path'] = conf.get('path', '/')
         self.conf['data'] = conf.get('data', None)
         headers = conf.get('headers', {})
+        if headers:
+            headers.expand()
 
         # Some versions of twisted will send Host twice if it is in the
         # headers dict. Instead we set factory.host.
