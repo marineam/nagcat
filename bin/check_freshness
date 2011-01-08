@@ -56,13 +56,17 @@ class Checker(object):
                 description="Test freshness of all service checks.")
         parser.add_option('-s', '--status',
                 default=os.environ.get('NAGIOS_STATUSDATAFILE', None),
-                help="path or url to nagios' status.dat file")
+                help="Path or URL to Nagios' status.dat file")
         parser.add_option('-t', '--timeout', default=15, type='int',
-                help="timeout in seconds for urls [default: 15 seconds]")
+                help="Timeout in seconds for URLs [%default seconds]")
+        parser.add_option('-u', '--username', default='',
+                help="HTTP Basic username (if using an HTTP URL)")
+        parser.add_option('-p', '--password', default='',
+                help="HTTP Basic password (if using an HTTP URL)")
         parser.add_option('-w', '--warning', default=15, type='int',
-                help="threshold in minutes for WARNING")
+                help="Threshold in minutes for WARNING [%default minutes]")
         parser.add_option('-c', '--critical', default=30, type='int',
-                help="threshold in minutes for CRITICAL")
+                help="Threshold in minutes for CRITICAL [%default minutes]")
         self.options, args = parser.parse_args()
         if not self.options.status:
             parser.error("No status file provided")
@@ -84,13 +88,27 @@ class Checker(object):
         else:
             return False
 
+    def remote(self):
+        socket.setdefaulttimeout(self.options.timeout)
+
+        if self.options.username:
+            manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            manager.add_password(None, self.options.status,
+                    self.options.username, self.options.password)
+            handler = urllib2.HTTPBasicAuthHandler(manager)
+            opener = urllib2.build_opener(handler)
+            urllib2.install_opener(opener)
+
+        return urllib2.urlopen(self.options.status)
+
     def main(self):
         self.parse_options()
         if "://" in self.options.status:
-            socket.setdefaulttimeout(self.options.timeout)
-            status_file = urllib2.urlopen(self.options.status)
-            status = ObjectParser(status_file)
-            status_file.close()
+            status_file = self.remote()
+            try:
+                status = ObjectParser(status_file)
+            finally:
+                status_file.close()
         else:
             status = ObjectParser(self.options.status)
 
