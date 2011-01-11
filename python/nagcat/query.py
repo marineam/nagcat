@@ -157,8 +157,6 @@ class SSLMixin(Query):
         if SSL is None:
             raise errors.InitError("pyOpenSSL is required for SSL support.")
 
-        self.conf['ssl_verify'] = bool(conf.get('ssl_verify', False))
-
         for opt in ('key', 'cert', 'cacert'):
             self.conf['ssl_'+opt] = conf.get('ssl_'+opt, None)
             key_type = str(conf.get('ssl_'+opt+'_type', ''))
@@ -198,12 +196,14 @@ class SSLMixin(Query):
             else:
                 return crypto.load_certificate(filetype, data)
 
+        cacert = maybe_read('ssl_cacert')
+        if cacert:
+            cacert = [cacert]
+
         self.context = ssl.CertificateOptions(
                 privateKey=maybe_read('ssl_key', private=True),
-                certificate=maybe_read('ssl_cert'),
-                caCerts=[maybe_read('ssl_cacert')],
-                verify=self.conf['ssl_verify'],
-                method=SSL.SSLv23_METHOD)
+                certificate=maybe_read('ssl_cert'), caCerts=cacert,
+                verify=bool(cacert), method=SSL.SSLv23_METHOD)
         # Use SSLv23 to support v3 and TLSv1 but disable v2 (below)
         sslcontext = self.context.getContext()
         sslcontext.set_options(SSL.OP_NO_SSLv2)

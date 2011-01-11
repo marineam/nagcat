@@ -14,13 +14,14 @@
 
 """Various dummy servers for use in unit tests."""
 
-
+import os
 from email.parser import FeedParser
 from zope.interface import implements
 from twisted.internet import defer, interfaces, protocol, error
 from twisted.python import failure
 from twisted.web import resource, server
 from twisted.mail import smtp
+from twisted.trial import unittest
 
 class Root(resource.Resource):
     """Root directory of the dummy web server"""
@@ -120,3 +121,32 @@ class SMTP(smtp.SMTPFactory):
 
     def callback(self, result):
         self.message.callback(result)
+
+def ssl_path(filename):
+    dirname = "%s/ssl" % os.path.dirname(__file__)
+    return "%s/%s" % (dirname, filename)
+
+try:
+    from OpenSSL import SSL, crypto
+    from twisted.internet import ssl
+except ImportError:
+    def ssl_context(**kwargs):
+        raise unittest.SkipTest("SSL not supported!")
+else:
+    def ssl_context(privateKey=None, certificate=None, caCerts=None, **kwargs):
+        if privateKey:
+            data = open(ssl_path(privateKey)).read()
+            kwargs['privateKey'] = crypto.load_privatekey(crypto.FILETYPE_PEM, data)
+
+        if certificate:
+            data = open(ssl_path(certificate)).read()
+            kwargs['certificate'] = crypto.load_certificate(crypto.FILETYPE_PEM, data)
+
+        if caCerts:
+            newcerts = []
+            for filename in caCerts:
+                data = open(ssl_path(filename)).read()
+                newcerts.append(crypto.load_certificate(crypto.FILETYPE_PEM, data))
+            kwargs['caCerts'] = newcerts
+
+        return ssl.CertificateOptions(**kwargs)

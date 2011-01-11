@@ -61,3 +61,63 @@ class HTTPEmptyResponseTestCase(QueryTestCase):
 
     def tearDown(self):
         return self.server.loseConnection()
+
+class HTTPSQueryTestCase(QueryTestCase):
+
+    def start(self, *args, **kwargs):
+        context = dummy_server.ssl_context(*args, **kwargs)
+        self.server = reactor.listenSSL(0, dummy_server.HTTP(), context)
+        self.port = self.server.getHost().port
+        self.config = {'type': 'https',
+                       'host': "localhost",
+                       'port': self.port}
+
+    def testBasic(self):
+        self.start("localhost-a.key", "localhost-a.cert")
+        d = self.startQuery(self.config)
+        d.addBoth(self.assertEquals, "hello\n")
+        return d
+
+    def testVerifyClientBad(self):
+        self.start("localhost-a.key", "localhost-a.cert", ["ca.cert"], verify=True)
+
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestCritical)
+
+        d = self.startQuery(self.config)
+        d.addBoth(check)
+        return d
+
+    def testVerifyClientGood(self):
+        self.start("localhost-a.key", "localhost-a.cert", ["ca.cert"], verify=True)
+        config = self.config.copy()
+        config['ssl_key'] = dummy_server.ssl_path("localhost-b.key")
+        config['ssl_cert'] = dummy_server.ssl_path("localhost-b.cert")
+        d = self.startQuery(config)
+        d.addBoth(self.assertEquals, "hello\n")
+        return d
+
+    def testVerifyServerBad(self):
+        self.start("localhost-a.key", "localhost-a.cert")
+        config = self.config.copy()
+        config['ssl_cacert'] = dummy_server.ssl_path("bogus-ca.cert")
+
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestCritical)
+
+        d = self.startQuery(config)
+        d.addBoth(check)
+        return d
+
+    def testVerifyServerGood(self):
+        self.start("localhost-a.key", "localhost-a.cert")
+        config = self.config.copy()
+        config['ssl_cacert'] = dummy_server.ssl_path("ca.cert")
+        d = self.startQuery(config)
+        d.addBoth(self.assertEquals, "hello\n")
+        return d
+
+    def tearDown(self):
+        return self.server.loseConnection()
