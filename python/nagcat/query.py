@@ -19,8 +19,18 @@ All requests are defined as a Query class which is a Runnable.
 
 import errno
 
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from twisted.internet import error as neterror
+
+# SSL support is screwy
+try:
+   from twisted.internet import ssl
+except ImportError:
+   # happens the first time the interpreter tries to import it
+   ssl = None
+if ssl and not ssl.supported:
+   # happens second and later times
+   ssl = None
 
 from nagcat import errors, filters, log, plugin, runnable, util
 
@@ -118,6 +128,12 @@ class Query(runnable.Runnable):
 
         return result
 
+    def _connect(self, factory):
+        # Split out the reactor.connect call to allow for easy
+        # overriding in SSLMixin for adding SSL support.
+        reactor.connectTCP(self.addr, self.conf['port'],
+                factory, self.conf['timeout'])
+
     def __str__(self):
         return "<%s %r>" % (self.__class__.__name__, self.conf)
 
@@ -129,6 +145,37 @@ class Query(runnable.Runnable):
         not need to be used but may be useful for the tricky cases.
         """
         pass
+
+class SSLMixin(Query):
+    """Mixin class for adding SSL support to a query.
+
+    Note that subclasses must set self.conf['port']
+
+    Example usage:
+    >>>    class HTTPS(SSLMixin, HTTP):
+    >>>        pass
+    """
+
+    def __init__(self, nagcat, conf):
+        super(SSLMixin, self).__init__(nagcat, conf)
+        if ssl is None:
+            raise errors.InitError("pyOpenSSL is required for SSL support.")
+
+    @errors.callback
+    def _failure_tcp(self, result):
+        """Also catch SSL errors"""
+
+        result = super(SSLMixin, self)._failure_tcp(result)
+
+        if isinstance(result.value, ssl.SSL.Error):
+            raise errors.TestCritical("SSL Error: %s" % result.value)
+
+        return result
+
+    def _connect(self, factory):
+        context = ssl.ClientContextFactory()
+        reactor.connectSSL(self.addr, self.conf['port'],
+                factory, context, self.conf['timeout'])
 
 class FilteredQuery(Query):
     """A query that wraps another query and applies filters to it"""

@@ -17,16 +17,6 @@
 from zope.interface import classProvides
 from twisted.internet import reactor, defer, protocol
 
-# SSL support is screwy
-try:
-   from twisted.internet import ssl
-except ImportError:
-   # happens the first time the interpreter tries to import it
-   ssl = None
-if ssl and not ssl.supported:
-   # happens second and later times
-   ssl = None
-
 from nagcat import errors, query
 
 class RawProtocol(protocol.Protocol):
@@ -102,7 +92,7 @@ class TCPQuery(query.Query):
         super(TCPQuery, self).__init__(nagcat, conf)
 
         self.conf['addr'] = self.addr
-        self.conf['port'] = int(conf.get('port'))
+        self.conf['port'] = int(conf['port'])
         self.conf['data'] = conf.get('data', None)
 
     def _start(self):
@@ -111,23 +101,9 @@ class TCPQuery(query.Query):
         self._connect(factory)
         return factory.deferred
 
-    def _connect(self, factory):
-        reactor.connectTCP(self.addr, self.conf['port'],
-                factory, self.conf['timeout'])
-
-class SSLQuery(TCPQuery):
+class SSLQuery(query.SSLMixin, TCPQuery):
     """Send and receive data over a raw SSL socket"""
 
     classProvides(query.IQuery)
 
     name = "ssl"
-
-    def __init__(self, nagcat, conf):
-        if ssl is None:
-            raise errors.InitError("pyOpenSSL is required for SSL support.")
-        super(SSLQuery, self).__init__(nagcat, conf)
-
-    def _connect(self, factory):
-        context = ssl.ClientContextFactory()
-        reactor.connectSSL(self.addr, self.conf['port'],
-                factory, context, self.conf['timeout'])

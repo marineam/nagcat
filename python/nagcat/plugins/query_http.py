@@ -18,7 +18,7 @@ import urlparse
 from base64 import b64encode
 
 from zope.interface import classProvides
-from twisted.internet import reactor, defer
+from twisted.internet import defer
 from twisted.internet import error as neterror
 from twisted.web import error as weberror
 from twisted.web.client import HTTPClientFactory
@@ -28,16 +28,6 @@ try:
     import uuid
 except ImportError:
     uuid = None
-
-# SSL support is screwy
-try:
-   from twisted.internet import ssl
-except ImportError:
-   # happens the first time the interpreter tries to import it
-   ssl = None
-if ssl and not ssl.supported:
-   # happens second and later times
-   ssl = None
 
 from nagcat import errors, query
 
@@ -139,27 +129,10 @@ class HTTPQuery(query.Query):
 
         return result
 
-    def _connect(self, factory):
-        # Split out the reactor.connect call to allow for easy
-        # overriding in HTTPSQuery
-        reactor.connectTCP(self.addr, self.conf['port'],
-                factory, self.conf['timeout'])
-
-
-class HTTPSQuery(HTTPQuery):
+class HTTPSQuery(query.SSLMixin, HTTPQuery):
     """Process an HTTP GET or POST over SSL"""
 
     classProvides(query.IQuery)
 
     name = "https"
     port = 443
-
-    def __init__(self, nagcat, conf):
-        if ssl is None:
-            raise errors.InitError("pyOpenSSL is required for HTTPS support.")
-        super(HTTPSQuery, self).__init__(nagcat, conf)
-
-    def _connect(self, factory):
-        context = ssl.ClientContextFactory()
-        reactor.connectSSL(self.addr, self.conf['port'],
-                factory, context, self.conf['timeout'])
