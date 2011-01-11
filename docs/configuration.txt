@@ -468,6 +468,19 @@ query: {
     # Use HTTP Basic authentication (adds an Authorization header)
     username: "user"
     password: "pass"
+
+    # When using HTTPS you can provide paths to a client key and
+    # certificate. You can also provide a path to a CA cert to
+    # verify the other side's certificate against.
+    ssl_key: "/path/to/foo.key"
+    ssl_cert: "/path/to/foo.cert"
+    ssl_cacert: "path/to/ca.cert"
+
+    # If a key or cert is in ASN1 format instead of PEM use _type.
+    # Your files are probably in PEM format so you can leave this out.
+    ssl_key_type: "ASN1
+    ssl_cert_type: "ASN1"
+    ssl_cacert_type: "PEM"
 }
 
 Raw TCP/SSL:
@@ -478,6 +491,16 @@ query: {
 
     # Data to send. Be sure to include any newlines, etc.
     data: "some arbitrary data"
+
+    # Raw SSL sockets support the same ssl_ options as HTTPS,
+    # see the HTTPS section above for more info.
+    ssl_key: "/path/to/foo.key"
+    ssl_cert: "/path/to/foo.cert"
+    ssl_cacert: "path/to/ca.cert"
+
+    #ssl_key_type: "PEM
+    #ssl_cert_type: "PEM"
+    #ssl_cacert_type: "PEM"
 }
 
 Subprocess:
