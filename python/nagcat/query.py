@@ -22,15 +22,11 @@ import errno
 from twisted.internet import defer, reactor
 from twisted.internet import error as neterror
 
-# SSL support is screwy
 try:
-   from twisted.internet import ssl
+    from OpenSSL import SSL, crypto
+    from twisted.internet import ssl
 except ImportError:
-   # happens the first time the interpreter tries to import it
-   ssl = None
-if ssl and not ssl.supported:
-   # happens second and later times
-   ssl = None
+    SSL = None
 
 from nagcat import errors, filters, log, plugin, runnable, util
 
@@ -158,8 +154,59 @@ class SSLMixin(Query):
 
     def __init__(self, nagcat, conf):
         super(SSLMixin, self).__init__(nagcat, conf)
-        if ssl is None:
+        if SSL is None:
             raise errors.InitError("pyOpenSSL is required for SSL support.")
+
+        self.conf['ssl_verify'] = bool(conf.get('ssl_verify', False))
+
+        for opt in ('key', 'cert', 'cacert'):
+            self.conf['ssl_'+opt] = conf.get('ssl_'+opt, None)
+            key_type = str(conf.get('ssl_'+opt+'_type', ''))
+            if not key_type or key_type.upper() == "PEM":
+                key_type = crypto.FILETYPE_PEM
+            elif key_type.upper() == "ASN1":
+                key_type = crypto.FILETYPE_ASN1
+            else:
+                raise errors.InitError("Invalid ssl_%s_type %r, "
+                        "must be 'PEM' or 'ASN1'" % (opt, key_type))
+            self.conf['ssl_%s_type'%opt] = key_type
+
+        def maybe_read(key, private=False):
+            # Only support PEM for now
+            filetype = crypto.FILETYPE_PEM
+            path = self.conf[key]
+            filetype = self.conf[key+'_type']
+            if not path:
+                return None
+
+            log.debug("Loading %s from %s", key, path)
+
+            try:
+                fd = open(path)
+                try:
+                    data = fd.read()
+                finally:
+                    fd.close()
+            except IOError, ex:
+                raise errors.InitError("Failed to read %s file %s: %s" %
+                                       (path, key, ex.strerror))
+
+            log.trace("Loaded %s:\n%s", key, data)
+
+            if private:
+                return crypto.load_privatekey(filetype, data)
+            else:
+                return crypto.load_certificate(filetype, data)
+
+        self.context = ssl.CertificateOptions(
+                privateKey=maybe_read('ssl_key', private=True),
+                certificate=maybe_read('ssl_cert'),
+                caCerts=[maybe_read('ssl_cacert')],
+                verify=self.conf['ssl_verify'],
+                method=SSL.SSLv23_METHOD)
+        # Use SSLv23 to support v3 and TLSv1 but disable v2 (below)
+        sslcontext = self.context.getContext()
+        sslcontext.set_options(SSL.OP_NO_SSLv2)
 
     @errors.callback
     def _failure_tcp(self, result):
@@ -167,15 +214,14 @@ class SSLMixin(Query):
 
         result = super(SSLMixin, self)._failure_tcp(result)
 
-        if isinstance(result.value, ssl.SSL.Error):
+        if isinstance(result.value, SSL.Error):
             raise errors.TestCritical("SSL Error: %s" % result.value)
 
         return result
 
     def _connect(self, factory):
-        context = ssl.ClientContextFactory()
         reactor.connectSSL(self.addr, self.conf['port'],
-                factory, context, self.conf['timeout'])
+                factory, self.context, self.conf['timeout'])
 
 class FilteredQuery(Query):
     """A query that wraps another query and applies filters to it"""
