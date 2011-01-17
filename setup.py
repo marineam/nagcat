@@ -38,6 +38,7 @@ setup_args = dict(
                getPackages("python/twirrdy"),
     package_data = {'nagcat': ["plugins/dropin.cache",
                                "unittests/trend_data*",
+                               "unittests/ssl/*",
                                "unittests/queries/oracle_package.sql",
                                "unittests/queries/simple_subprocess"],
                     'snapy': ["netsnmp/unittests/snmpd.conf"]},
