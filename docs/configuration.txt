@@ -504,7 +504,7 @@ query: {
     # key names are limited by coil's requirements. If this doesn't work
     # for you submit the raw XML via a http query instead.
     params: 1
-    #params: [1,2]
+    #params: [1 2]
     #params: {this: 1}
 
     # Alias for params
