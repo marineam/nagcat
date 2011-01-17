@@ -483,6 +483,59 @@ query: {
     ssl_cacert_type: "PEM"
 }
 
+XMLRPC:
+
+This is an variation on HTTP/HTTPS queries for making XMLRPC calls.
+
+query: {
+    type: "xmlrpc"
+    # set type to "xmlrpcs" for SSL connections
+
+    # Path to POST to (/RPC2 is the default)
+    path: "/RPC2"
+
+    # Method name to call. (required)
+    method: "func_name"
+
+    # Arguments to the method. May be a single value, a list of values
+    # for multiple arguments, or a struct if the first argument is a
+    # structure. Due to current limitations of coil structs it is only
+    # possible to submit a struct as the first and only parameter. Also,
+    # key names are limited by coil's requirements. If this doesn't work
+    # for you submit the raw XML via a http query instead.
+    params: 1
+    #params: [1,2]
+    #params: {this: 1}
+
+    # Alias for params
+    parameters: 1
+
+    # May be "xml" or "value" which sets whether the result should be
+    # the raw XML response or the parsed value. XML may be useful for
+    # complex data structures which can be processed with xpath and
+    # similar filters, the parsed value (the default) is best for single
+    # values such as an integer or string.
+    result: "value"
+
+    # Extra request headers to send, must be a structure with
+    # header-name: "value" pairs.
+    headers: { Host: "foo.com" }
+
+    # Use HTTP Basic authentication (adds an Authorization header)
+    username: "user"
+    password: "pass"
+
+    # xmlrpcs queries support the same ssl_ options as normal HTTPS,
+    # see the HTTPS section above for more info.
+    ssl_key: "/path/to/foo.key"
+    ssl_cert: "/path/to/foo.cert"
+    ssl_cacert: "path/to/ca.cert"
+
+    #ssl_key_type: "PEM
+    #ssl_cert_type: "PEM"
+    #ssl_cacert_type: "PEM"
+}
+
 Raw TCP/SSL:
 
 query: {

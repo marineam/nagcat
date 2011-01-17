@@ -19,7 +19,7 @@ from email.parser import FeedParser
 from zope.interface import implements
 from twisted.internet import defer, interfaces, protocol, error
 from twisted.python import failure
-from twisted.web import resource, server
+from twisted.web import resource, server, xmlrpc
 from twisted.mail import smtp
 from twisted.trial import unittest
 
@@ -33,12 +33,24 @@ class Root(resource.Resource):
         request.content.seek(0, 0)
         return request.content.read()
 
+class RPC2(xmlrpc.XMLRPC):
+
+    def xmlrpc_echo1(self, x):
+        return x
+
+    def xmlrpc_echo2(self, x, y):
+        return x, y
+
+    def xmlrpc_fault(self):
+        raise xmlrpc.Fault(1, "Test Fault")
+
 class HTTP(server.Site):
     """Dummy web server"""
 
     def __init__(self):
         root = resource.Resource()
         root.putChild("", Root())
+        root.putChild("RPC2", RPC2())
         server.Site.__init__(self, root)
 
 class Echo(protocol.Protocol):

@@ -16,6 +16,7 @@ from twisted.internet import reactor
 from nagcat.unittests.queries import QueryTestCase
 from nagcat.unittests import dummy_server
 from nagcat import errors
+from coil.struct import Struct
 
 
 class HTTPQueryTestCase(QueryTestCase):
@@ -121,3 +122,62 @@ class HTTPSQueryTestCase(QueryTestCase):
 
     def tearDown(self):
         return self.server.loseConnection()
+
+class XMLRPCTestCase(QueryTestCase):
+
+    def setUp(self):
+        super(XMLRPCTestCase, self).setUp()
+        self.server = reactor.listenTCP(0, dummy_server.HTTP())
+        self.port = self.server.getHost().port
+        self.config = {'type': 'xmlrpc',
+                       'host': 'localhost',
+                       'port': self.port}
+
+    def tearDown(self):
+        return self.server.loseConnection()
+
+    def testBasic1(self):
+        self.config['method'] = 'echo1'
+        self.config['params'] = 1
+        d = self.startQuery(self.config)
+        d.addCallback(self.assertEquals, '1')
+        return d
+
+    def testBasic2(self):
+        self.config['method'] = 'echo2'
+        self.config['params'] = [1,2]
+        d = self.startQuery(self.config)
+        d.addCallback(self.assertEquals, "[1, 2]")
+        return d
+
+    def testDict(self):
+        value = {'this': 1, 'that': [2], 'empty': {}}
+        def check(result):
+            self.assertEquals(eval(result), value)
+        self.config['method'] = 'echo1'
+        self.config['params'] = Struct(value)
+        d = self.startQuery(self.config)
+        d.addCallback(check)
+        return d
+
+    def testFault(self):
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestCritical)
+        self.config['method'] = 'fault'
+        d = self.startQuery(self.config)
+        d.addBoth(check)
+        return d
+
+class XMLRPCSTestCase(XMLRPCTestCase):
+
+    def setUp(self):
+        QueryTestCase.setUp(self)
+        context = dummy_server.ssl_context("localhost-a.key",
+                                           "localhost-a.cert")
+        self.server = reactor.listenSSL(0, dummy_server.HTTP(), context)
+        self.port = self.server.getHost().port
+        self.config = {'type': 'xmlrpcs',
+                       'host': "localhost",
+                       'port': self.port}
+

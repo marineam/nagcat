@@ -15,6 +15,7 @@
 """HTTP Queries"""
 
 import urlparse
+import xmlrpclib
 from base64 import b64encode
 
 from zope.interface import classProvides
@@ -30,6 +31,7 @@ except ImportError:
     uuid = None
 
 from nagcat import errors, query
+import coil
 
 
 class HTTPQuery(query.Query):
@@ -37,6 +39,7 @@ class HTTPQuery(query.Query):
 
     classProvides(query.IQuery)
 
+    scheme = "http"
     name = "http"
     port = 80
 
@@ -44,7 +47,6 @@ class HTTPQuery(query.Query):
         super(HTTPQuery, self).__init__(nagcat, conf)
 
         self.agent = "NagCat" # Add more info?
-        self.scheme = self.name
         self.conf['addr'] = self.addr
         self.conf['port'] = int(conf.get('port', self.port))
         self.conf['path'] = conf.get('path', '/')
@@ -134,5 +136,59 @@ class HTTPSQuery(query.SSLMixin, HTTPQuery):
 
     classProvides(query.IQuery)
 
+    scheme = "https"
     name = "https"
+    port = 443
+
+class XMLRPCQuery(HTTPQuery):
+    """XMLRPC method calls over HTTP"""
+
+    classProvides(query.IQuery)
+
+    scheme = "http"
+    name = "xmlrpc"
+
+    def __init__(self, nagcat, conf):
+        conf.setdefault('path', '/RPC2')
+        params = conf.get('params', conf.get('parameters', []))
+        if isinstance(params, list):
+            params = tuple(params)
+        elif isinstance(params, coil.struct.Struct):
+            params = (params.dict(),)
+        else:
+            params = (params,)
+        conf['data'] = xmlrpclib.dumps(params, conf['method'])
+        conf['method'] = 'POST'
+        super(XMLRPCQuery, self).__init__(nagcat, conf)
+        self.conf['result'] = conf.get('result', 'value')
+        if self.conf['result'] not in ('value', 'xml'):
+            raise errors.InitError("result must be 'value' or 'xml'")
+
+    @errors.callback
+    def _xmlrpc_failure(self, result):
+        try:
+            value = xmlrpclib.loads(result)
+        except xmlrpclib.Fault, ex:
+            raise errors.TestCritical("XMLRPC Fault %d: %s" % (
+                                      ex.faultCode, ex.faultString))
+        except xmlrpc.Error, ex:
+            raise errors.TestCritical("XMLRPC Error: %s" % (ex,))
+
+        if self.conf['result'] == 'value':
+            return str(value[0][0])
+        else:
+            return result
+
+    def _start(self):
+        d = super(XMLRPCQuery, self)._start()
+        d.addCallback(self._xmlrpc_failure)
+        return d
+
+class XMLRPCSQuery(query.SSLMixin, XMLRPCQuery):
+    """XMLRPC method calls over HTTPS"""
+
+    classProvides(query.IQuery)
+
+    scheme = "https"
+    name = "xmlrpcs"
     port = 443
