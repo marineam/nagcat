@@ -28,7 +28,6 @@ class SaveFilter(filters._Filter):
 
     name = "save"
     handle_default = False
-    handle_errors = True
 
     def __init__(self, test, default, arguments):
         super(SaveFilter, self).__init__(test, default, arguments)
@@ -38,17 +37,7 @@ class SaveFilter(filters._Filter):
 
     @errors.callback
     def filter(self, result):
-        # Pull the value out of the error if needed
-        if isinstance(result, failure.Failure):
-            if isinstance(result, errors.Failure):
-                value = result.result
-            else:
-                value = None
-        else:
-            value = result
-
-        self.test.saved[self.arguments] = value
-
+        self.test.saved[self.arguments] = result
         return result
 
 class CriticalFilter(filters._Filter):
