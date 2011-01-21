@@ -31,6 +31,20 @@ STATUS_WARN = 1
 STATUS_CRIT = 2
 STATUS_UNKN = 3
 
+DOC = """This reports any test tests that have stopped reporting to Nagios.
+
+There may be several reasons for this:
+    - Nagcat isn't running but Nagios is.
+      This is pretty self-explanatory. :-)
+    - Nagios is not processing results properly.
+      This can happen if Nagios cannot keep up or hit a bug.
+    - Oracle tests run by Nagcat have gotten stuck.
+      This can happen when initiating a connection to Oralce fails in
+      just the right way. The cx_Oracle API doesn't provide any way to
+      time-out or cancel connect calls that hang so any tests depending
+      on that query will also hang and stop running.
+"""
+
 try:
     from nagcat.nagios_objects import ObjectParser
 except ImportError:
@@ -124,7 +138,7 @@ class Checker(object):
                     service['service_description']))
 
         if self.state == STATUS_OK:
-            print "FRESHNESS OK: stale hosts = 0, stale services = 0"
+            print "FRESHNESS OK: stale hosts = 0, stale services = 0\n"
         else:
             if self.state == STATUS_WARN:
                 name = "WARNING"
@@ -133,9 +147,8 @@ class Checker(object):
             else:
                 name = "UNKNOWN"
 
-            print "FRESHNESS %s: stale hosts = %d, stale services = %d" % (
+            print "FRESHNESS %s: stale hosts = %d, stale services = %d\n" % (
                     name, len(badh), len(bads))
-            print
 
             if badh:
                 badh.sort()
@@ -150,6 +163,8 @@ class Checker(object):
                 for name in bads:
                     print "    %s" % name
                 print
+
+        print DOC
 
         return self.state
 
