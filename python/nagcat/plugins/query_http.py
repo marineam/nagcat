@@ -171,7 +171,7 @@ class XMLRPCQuery(HTTPQuery):
         except xmlrpclib.Fault, ex:
             raise errors.TestCritical("XMLRPC Fault %d: %s" % (
                                       ex.faultCode, ex.faultString))
-        except xmlrpc.Error, ex:
+        except xmlrpclib.Error, ex:
             raise errors.TestCritical("XMLRPC Error: %s" % (ex,))
 
         if self.conf['result'] == 'value':

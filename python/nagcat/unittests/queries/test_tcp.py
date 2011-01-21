@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 from twisted.internet import reactor
 from nagcat.unittests.queries import QueryTestCase
 from nagcat.unittests import dummy_server
