@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "UNKNOWN - Nagios tried to actively run a passive test!"
+exit 3
