@@ -270,3 +270,31 @@ snmp_ntp_time: {
     ntp host: ${ntp_host}
     """
 }
+
+snmp_if_traffic: {
+    query: {
+        type: "compound"
+        rx: {
+            @extends: @root.snmp_template
+            oid_base: "IF-MIB::ifHCInOctets"
+            #oid_base: "IF-MIB::ifInOctets"
+            oid_key: "IF-MIB::ifDescr"
+            key: ...key
+            trend.base: 1024  # 1k is 1024, not 1000
+            trend.type: "counter"
+        }
+        tx: {
+            @extends: ..rx
+            oid_base: "IF-MIB::ifHCOutOctets"
+            #oid_base: "IF-MIB::ifOutOctets"
+        }
+
+        return: "'${..key} RX: %.2f MB TX: %.2f MB' % ($(rx)/1048576, $(tx)/1048576)"
+    }
+
+    trend.label: "Bytes"
+
+    key: "eth0"
+
+    documentation: "Network traffic through ${key}"
+}
