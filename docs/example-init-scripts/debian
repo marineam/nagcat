@@ -12,11 +12,11 @@
 DESC="Nagcat"
 USER=nagios
 GROUP=nagios
-PREFIX=/usr/local/nagcat
+DAEMON=/usr/local/bin/nagcat
 PYTHON=/usr/bin/python
 LOGFILE=/var/log/nagios3/nagcat.log
 PIDFILE=/var/run/nagios3/nagcat.pid
-CONFIG=/etc/nagios3/nagcat.cfg
+CONFIG=/etc/nagios3/nagcat.coil
 NAGIOSCFG=/etc/nagios3/nagios.cfg
 RRDTOOLDIR=/var/lib/nagios3/rra
 STATUS_PORT=9009
@@ -29,7 +29,7 @@ FILE_LIMIT=8000
 [ -r /etc/default/nagcat ] && . /etc/default/nagcat
 
 # Exit if the package is not installed
-[ -x "${DAEMON:=$PREFIX/bin/nagcat}" ] || exit 0
+[ -x "$DAEMON" ] || exit 0
 
 # Define LSB log_* functions.
 . /lib/lsb/init-functions
