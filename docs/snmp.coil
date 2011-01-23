@@ -271,6 +271,26 @@ snmp_ntp_time: {
     """
 }
 
+snmp_sys_uptime: {
+    query: {
+        type: "compound"
+        timeticks: {
+            @extends: @root.snmp_template
+            oid: "HOST-RESOURCES-MIB::hrSystemUptime.0"
+            ~trend
+        }
+        # Unit is 1/100th of a second, days is easier.
+        return: "$(timeticks) / 8640000"
+    }
+
+    trend: {
+        type: "gauge"
+        axis_label: "Days"
+    }
+
+    documentation: "Track system uptime"
+}
+
 snmp_if_traffic: {
     query: {
         type: "compound"
