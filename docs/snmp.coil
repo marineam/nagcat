@@ -292,7 +292,7 @@ snmp_if_traffic: {
         return: "'${..key} RX: %.2f MB TX: %.2f MB' % ($(rx)/1048576, $(tx)/1048576)"
     }
 
-    trend.label: "Bytes"
+    trend.axis_label: "Bytes/s"
 
     key: "eth0"
 
