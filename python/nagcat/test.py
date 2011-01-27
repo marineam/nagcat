@@ -265,7 +265,7 @@ class Test(BaseTest):
         if isinstance(result, failure.Failure):
             if isinstance(result.value, ChildError):
                 # A child failed, find the worst failure
-                level = 0
+                level = -1
                 failed = None
 
                 for subtest in self._subtests.itervalues():

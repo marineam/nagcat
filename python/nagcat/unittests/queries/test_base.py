@@ -83,6 +83,23 @@ class FilteredQueryCase(QueryTestCase):
         d.addBoth(self.endCritical, t)
         return d
 
+    def testFilterOK(self):
+        config = Struct({
+                'type': "noop",
+                'data': "something",
+                'filters': [ "ok: = something", "critical: = something" ],
+            })
+
+        t = query.FilteredQuery(self.nagcat, config)
+        def check(result):
+            self.assertEquals(result, None)
+            self.assertIsInstance(t.result, errors.Failure)
+            self.assertIsInstance(t.result.value, errors.TestOK)
+            self.assertEquals(t.result.result, "something")
+        d = t.start()
+        d.addBoth(check)
+        return d
+
 
 class NoOpQueryTestCase(QueryTestCase):
 

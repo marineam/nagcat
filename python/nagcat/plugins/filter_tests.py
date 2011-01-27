@@ -113,7 +113,7 @@ class CriticalFilter(filters._Filter):
                              'b':self.test_val}
 
                 if eval("a %s b" % self.test_op, eval_dict):
-                    raise self.error("Test failed: %s %s"
+                    raise self.error("Test matched: %s %s"
                             % (self.test_op, self.test_val))
         except Exception:
             result = errors.Failure(result=true_result)
@@ -128,3 +128,12 @@ class WarningFilter(CriticalFilter):
     name = "warning"
     handle_errors = False
     error = errors.TestWarning
+
+class OKFilter(CriticalFilter):
+    """Short-circuit the test and mark it as OK."""
+
+    classProvides(filters.IFilter)
+
+    name = "ok"
+    handle_errors = False
+    error = errors.TestOK

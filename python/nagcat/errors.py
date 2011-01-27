@@ -87,6 +87,10 @@ class TestWarning(TestError):
     state = "WARNING"
     index = 1
 
+class TestOK(TestError):
+    state = "OK"
+    index = 0
+
 class ConfigError(StructError):
     """Error in configuration file."""
 

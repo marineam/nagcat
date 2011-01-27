@@ -265,6 +265,14 @@ test-name: {
     #       and critical attributes rather than in the filter chain for
     #       clarity but using them as filters allows more complex tests.
     #       See the description of warning/critical below for more info.
+    #
+    #   "ok:<operator> <value>"
+    #       This is similar to the warning/critical filters except it
+    #       forces the test to the OK state. This is useful if further
+    #       filters and warning/critical checks should not be considered
+    #       for certain values. For example if a query fetched a null
+    #       value that is ok but the null would break the next filter.
+    #       See the description of warning/critical below for syntax.
     filters: [ "somefilter:arguments" ]
 
     # 'warning' and 'critical' will compare the data returned by the
