@@ -639,7 +639,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
     def _groupGetMiniSet(self, group_type, group_name):
         group_set = set()
 
-        if re.search(r'[\[\]?*+^$]', group_name):
+        if re.search(r'[\[\]()|?*+^$]', group_name):
             try:
                regex = re.compile(group_name)
                match = regex.match
