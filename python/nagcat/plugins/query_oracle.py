@@ -129,6 +129,7 @@ class OracleBase(query.Query):
                     user=self.conf['user'],
                     password=self.conf['password'],
                     dsn=self.conf['dsn'],
+                    timeout=self.conf['timeout'],
                     threaded=True)
 
         deferred.addCallback(self._connected_oracle)
@@ -158,7 +159,7 @@ class OracleBase(query.Query):
             error = result.value.args[0]
             # ORA-01013: user requested cancel of current operation
             # This happens when a query times out and is canceled.
-            if error.code == 1013:
+            if getattr(error, 'code', None) == 1013:
                 raise errors.TestCritical(
                         "Oracle query timed out after %s seconds" %
                         self.conf['timeout'])
