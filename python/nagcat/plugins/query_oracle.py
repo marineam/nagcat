@@ -129,7 +129,6 @@ class OracleBase(query.Query):
                     user=self.conf['user'],
                     password=self.conf['password'],
                     dsn=self.conf['dsn'],
-                    timeout=self.conf['timeout'],
                     threaded=True)
 
         deferred.addCallback(self._connected_oracle)
