@@ -207,10 +207,13 @@ class DataTestCase(OracleBase):
         return d
 
 
-class TimeoutTestCase(OracleBase):
+class TimeoutQueryTestCase(OracleBase):
+
+    SQL_SETUP = ("create table test (a number)", "commit")
+    SQL_CLEAN = ("drop table test", "commit")
 
     def setUp(self):
-        super(TimeoutTestCase, self).setUp()
+        super(TimeoutQueryTestCase, self).setUp()
 
         self.locked_conn = cx_Oracle.Connection(
                 user=self.config['user'],
@@ -218,37 +221,18 @@ class TimeoutTestCase(OracleBase):
                 dsn=self.config['dsn'],
                 threaded=True)
         self.execute_in_connection((
-                "create table test (a number)",
-                "commit",
                 "lock table test in exclusive mode",
                 ), self.locked_conn)
 
-        # This unit test would dead-lock if it failed,
-        # to be friendly we only lock for 5 seconds.
-        self.lock_timeout = reactor.callLater(5, self.do_timeout)
-
-    def do_timeout(self):
-        # Commit the transaction to release the lock
-        self.execute_in_connection(("commit",), self.locked_conn)
-        self.fail("Query failed to time out!")
-
     def tearDown(self):
-        super(TimeoutTestCase, self).tearDown()
-        self.execute_in_connection((
-                "drop table test",
-                "commit",
-                ), self.locked_conn)
         self.locked_conn.close()
         self.locked_conn = None
-        if self.lock_timeout.active():
-            self.lock_timeout.cancel()
-        self.lock_timeout = None
+        super(TimeoutQueryTestCase, self).tearDown()
 
     def test_timeout(self):
         def check(result):
             self.assertIsInstance(result, errors.Failure)
-            self.assert_(
-                    str(result.value).startswith("Oracle query timed out"),
+            self.assert_(str(result.value).startswith("Timeout"),
                     "Wrong error, got: %s" % result.value)
 
         deferred = self.startQuery(
@@ -262,15 +246,10 @@ class DummyFactory(protocol.Factory):
     protocol = protocol.Protocol
 
 class TimeoutConnectionTestCase(QueryTestCase):
-    """This test case demonstrates how to make a call to
-    cx_Oracle.connect() hang forever. Unfortunately it is impossible
-    for it to *not* hang forever due to the lack of an asyncronus
-    API. Maybe I can subclass cx_Oracle.Connection to fix this but that
-    doesn't sound fun... boo oracle.
-    """
-    skip = "cx_Oracle isn't asyncronus :-("
-    #if not cx_Oracle or not etree:
-    #    skip = "Missing cx_Oracle"
+    """Test killing hanging TCP connections"""
+
+    if not cx_Oracle or not etree:
+        skip = "Missing cx_Oracle"
 
     def setUp(self):
         super(TimeoutConnectionTestCase, self).setUp()
@@ -280,13 +259,20 @@ class TimeoutConnectionTestCase(QueryTestCase):
                 'type': 'oracle_sql',
                 'user': 'nobody',
                 'password': 'ponies',
+                'timeout': 0.5,
                 'dsn': 'localhost/blackhole'}
 
     def tearDown(self):
-        self.server.stopListening()
+        return self.server.stopListening()
 
     def test_timeout(self):
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assert_(str(result.value).startswith("Timeout"),
+                    "Wrong error, got: %s" % result.value)
+
         d = self.startQuery(self.config)
+        d.addBoth(check)
         return d
 
 

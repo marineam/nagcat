@@ -14,14 +14,15 @@
 
 """Oracle Queries"""
 
+import os
 import re
-import threading
+import signal
+import cPickle
 
 from zope.interface import classProvides
-from twisted.internet import threads, reactor
-from twisted.python import threadpool
+from twisted.internet import defer, error, process, protocol, reactor
+from twisted.python import failure
 from coil.struct import Struct
-
 
 try:
     from lxml import etree
@@ -33,20 +34,97 @@ try:
 except ImportError:
     cx_Oracle = None
 
-from nagcat import errors, query
+from nagcat import errors, log, query
 
 
-class _OracleThreadPool(threadpool.ThreadPool):
+class PickleReader(protocol.ProcessProtocol):
 
-    @staticmethod
-    def threadFactory(*argv, **kwargs):
-        thread = threading.Thread(*argv, **kwargs)
-        thread.daemon = True
-        return thread
+    def __init__(self, fd):
+        self.fd = fd
+        self.data = ""
+        self.timedout = False
+        self.deferred = defer.Deferred()
 
-    def stop(self):
-        """Don't bother joining, threads may be hung."""
-        self.joined = True
+    def childDataReceived(self, fd, data):
+        assert self.fd == fd
+        self.data += data
+
+    def timeout(self):
+        self.timedout = True
+        if self.transport.pid:
+            try:
+                os.kill(self.transport.pid, signal.SIGTERM)
+            except OSError, ex:
+                log.warn("Failed to send TERM to a subprocess: %s", ex)
+
+    def processEnded(self, reason):
+        if isinstance(reason.value, error.ProcessDone):
+            try:
+                self.deferred.callback(cPickle.loads(self.data))
+            except Exception:
+                self.deferred.errback(failure.Failure())
+        elif (isinstance(reason.value, error.ProcessTerminated)
+                and self.timedout):
+            self.deferred.errback(errors.Failure(errors.TestCritical(
+                    "Timeout waiting for Oracle query to finish.")))
+        else:
+            self.deferred.errback(reason)
+
+
+class ForkIt(process.Process):
+
+    def __init__(self, timeout, func, *args, **kwargs):
+        readfd, writefd = os.pipe()
+        self._write = os.fdopen(writefd, 'w')
+        self._func = func
+        self._args = args
+        self._kwargs = kwargs
+        proto = PickleReader(writefd)
+
+        # Setup timeout
+        call_id = reactor.callLater(timeout, proto.timeout)
+        proto.deferred.addBoth(self._cancelTimeout, call_id)
+
+        # Setup shutdown cleanup
+        call_id = reactor.addSystemEventTrigger(
+                'after', 'shutdown', proto.timeout)
+        proto.deferred.addBoth(self._cancelCleanup, call_id)
+
+        process.Process.__init__(self, reactor, executable=None, args=None,
+                environment=None, path=None, proto=proto,
+                childFDs={0:0, 1:1, 2:2, writefd: writefd})
+        self.pipes[writefd] = self.processReaderFactory(
+                reactor, self, writefd, readfd)
+        self._write.close()
+
+    def getResult(self):
+        return self.proto.deferred
+
+    def _cancelTimeout(self, result, call_id):
+        if call_id.active():
+            call_id.cancel()
+        return result
+
+    def _cancelCleanup(self, result, call_id):
+        reactor.removeSystemEventTrigger(call_id)
+        return result
+
+    def _execChild(self, *ignore, **kgnore):
+        """Run our function instead of exec"""
+        try:
+            result = self._func(*self._args, **self._kwargs)
+        except Exception:
+            result = failure.Failure()
+        cPickle.dump(result, self._write, -1)
+        self._write.close()
+        os._exit(0)
+
+    def _resetSignalDisposition(self):
+        """Reset non-standard signal handlers."""
+        for signalnum in xrange(1, signal.NSIG):
+            if signal.getsignal(signalnum) not in (None,
+                    signal.SIG_DFL, signal.SIG_IGN):
+                signal.signal(signalnum, signal.SIG_DFL)
 
 
 class _DBColumn:
@@ -101,8 +179,6 @@ class OracleBase(query.Query):
     Subclasses must provide _start_oracle()
     """
 
-    threadpool = None
-
     def __init__(self, nagcat, conf):
         if not etree or not cx_Oracle:
             raise errors.InitError(
@@ -115,75 +191,27 @@ class OracleBase(query.Query):
                 raise errors.ConfigError('%s is required but missing' % param)
             self.conf[param] = conf[param]
 
-        if not OracleBase.threadpool:
-            OracleBase.threadpool = _OracleThreadPool(0, 10, 'oracle')
-            reactor.callWhenRunning(OracleBase.threadpool.start)
-
-    def _start_oracle(self):
-        raise Exception("unimplemented")
-
     def _start(self):
-        deferred = threads.deferToThreadPool(
-                reactor, self.threadpool,
-                cx_Oracle.connect,
+        proc = ForkIt(self.conf['timeout'], self._forked)
+        return proc.getResult()
+
+    def _forked(self):
+        try:
+            connection = cx_Oracle.connect(
                     user=self.conf['user'],
                     password=self.conf['password'],
-                    dsn=self.conf['dsn'],
-                    threaded=True)
+                    dsn=self.conf['dsn'])
+            cursor = connection.cursor()
+            try:
+                return self._forked_query(cursor)
+            finally:
+                cursor.close()
+                connection.close()
+        except cx_Oracle.Error, ex:
+            return errors.Failure(errors.TestCritical("Oracle query failed: %s" % ex))
 
-        deferred.addCallback(self._connected_oracle)
-        deferred.addErrback(self._failure_oracle)
-        return deferred
-
-    @errors.callback
-    def _connected_oracle(self, connection):
-        """Once connected setup the timeout and go"""
-        self.connection = connection
-        self.cursor = self.connection.cursor()
-        self.query_timeout = reactor.callLater(
-                self.conf['timeout'],
-                self.connection.cancel)
-        self.query_shutdown = reactor.addSystemEventTrigger(
-                'before', 'shutdown',
-                self.connection.cancel)
-
-        deferred = self._start_oracle()
-        deferred.addBoth(self._cleanup_oracle)
-        return deferred
-
-    @errors.callback
-    def _failure_oracle(self, result):
-        """Catch common oracle failures here"""
-        if isinstance(result.value, cx_Oracle.Error):
-            error = result.value.args[0]
-            # ORA-01013: user requested cancel of current operation
-            # This happens when a query times out and is canceled.
-            if getattr(error, 'code', None) == 1013:
-                raise errors.TestCritical(
-                        "Oracle query timed out after %s seconds" %
-                        self.conf['timeout'])
-            else:
-                raise errors.TestCritical(
-                        "Oracle query failed: %s" % result.value)
-        return result
-
-    @errors.callback
-    def _cleanup_oracle(self, result):
-        """Close the cursor and connection"""
-
-        reactor.removeSystemEventTrigger(self.query_shutdown)
-        if self.query_timeout.active():
-            self.query_timeout.cancel()
-
-        self.query_shutdown = None
-        self.query_timeout = None
-
-        self.cursor.close()
-        self.cursor = None
-        self.connection.close()
-        self.connection = None
-
-        return result
+    def _forked_query(self, cursor):
+        raise Exception("unimplemented")
 
     def _to_xml(self, cursor, root="queryresult"):
         """Convert a table to XML Elements
@@ -249,17 +277,9 @@ class OracleSQL(OracleBase):
 
         self.conf['parameters'] = parameters
 
-    def _start_oracle(self):
-        deferred = threads.deferToThreadPool(reactor,
-                self.threadpool, self.cursor.execute,
-                self.conf['sql'], self.conf['parameters'])
-        deferred.addCallback(self._success)
-        return deferred
-
-    @errors.callback
-    def _success(self, result):
-        """Got data back! Convert it to XML"""
-        return self._to_string(self.cursor)
+    def _forked_query(self, cursor):
+        cursor.execute(self.conf['sql'], self.conf['parameters'])
+        return self._to_string(cursor)
 
 
 class OracleSQL2(OracleSQL):
@@ -325,28 +345,22 @@ class OraclePLSQL(OracleBase):
 
         return param
 
-    def _build_params(self):
+    def _build_params(self, cursor):
         params = []
         for param in self.conf['parameters']:
             if param[0] == "in":
                 params.append(param[2])
             elif param[0] == "out":
-                params.append(self.cursor.var(param[2]))
+                params.append(cursor.var(param[2]))
             else:
                 assert 0
         return params
 
-    def _start_oracle(self):
-        deferred = threads.deferToThreadPool(reactor,
-                self.threadpool, self.cursor.callproc,
-                self.conf['procedure'], self._build_params())
-        deferred.addCallback(self._success)
-        return deferred
+    def _forked_query(self, cursor):
+        result = cursor.callproc(self.conf['procedure'],
+                                 self._build_params(cursor))
 
-    @errors.callback
-    def _success(self, result):
-        """Convert the 'out' parameters into XML. """
-
+        # Convert the 'out' parameters into XML.
         root = etree.Element('result')
         for i, param in enumerate(self.conf['parameters']):
             if param[0] != 'out':
