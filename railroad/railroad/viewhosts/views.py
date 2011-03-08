@@ -13,19 +13,19 @@
 # limitations under the License.
 
 import json
+import math
 import os
 import sys
 import re
 import time
 import pickle
-import urllib
 
 import coil
 import rrdtool
+from django import forms
 from django.conf import settings
-from django.http import HttpResponse, HttpRequest
+from django.http import HttpResponse, HttpRequest, Http404
 from django.template import Context, loader
-from django.http import Http404
 from nagcat import nagios_objects
 
 from railroad.errors import RailroadError
@@ -254,6 +254,122 @@ def error404(request):
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))
+
+def graphpage(request,host=None,service=None):
+    """Returns a page of graphs matching specific filter criteria."""
+    t = loader.get_template('graphpage.html')
+    htmltitle = "Railroad Graphs"
+    pagetitle = "Railroad Graphs"
+    # fake up a query if we're using Django URL arguments
+    query = request.GET.copy()
+    if host:
+        query['host'] = host
+    if service:
+        query['service'] = service
+    if len(query):
+        # if no box is checked, check them all
+        if not (('a_red' in query) or ('a_yellow' in query)
+                or ('a_green' in query)):
+            query['a_red'] = True
+            query['a_yellow'] = True
+            query['a_green'] = True
+        filterform = FilterForm(query)
+    else:
+        filterform = FilterForm()
+    stat, obj = parse()
+    loaded_graphs = []
+    end = int(time.time())
+    start = end - DAY
+    loaded_graphs = servicelist_by_filters(stat,query)
+    sortby = query.get('sortby','')
+    revsort = bool(query.get('sortreverse',False))
+    if sortby == 'rrd':
+        keyfunc = sortkey_from_rrd
+    else:
+        keyfunc = lambda x: x['service_description']
+    loaded_graphs.sort(key=keyfunc,reverse=revsort)
+    for graph in loaded_graphs:
+        graph['is_graphable'] = is_graphable(graph['host_name'],
+                                             graph['service_description'])
+        graph['start'] = start
+        graph['end'] = end
+        graph['period'] = 'ajax'
+
+    context_data = {'getvars' : query,
+                    'request' : request,
+                    'filterform' : filterform,
+                    'loaded_graphs' : loaded_graphs,
+                    'htmltitle' : htmltitle,
+                    'pagetitle' : pagetitle,
+                    }
+    context_data = add_hostlist(stat, obj, context_data)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
+
+def sortkey_from_rrd(service):
+    """Generate a sort key for SERVICE from the latest minute of RRD values.
+
+    Currently just returns the whole list of results, meaning that we effectively sort by first trend."""
+    return fetch_current_rrd_data(service)[2][0]
+
+def fetch_current_rrd_data(service,interval=60,aggregate='AVERAGE'):
+    """Fetch the current data for SERVICE over INTERVAL aggregated by AGGREGATE."""
+    rra_path = settings.RRA_PATH
+    rrd = '%s%s/%s.rrd' % (rra_path, service['host_name'],
+                           service['service_description'])
+    if not os.path.exists(rrd):
+        # there's no RRD file for state-only checks so return a dummy list
+        end = int(time.time)
+        start = end - interval
+        return [(start,end,interval),
+                ('dummy1','dummy2'),
+                (0,0)]
+    end = rrdtool.last(rrd)
+    start = end - interval
+    return rrdtool.fetch(rrd,'--start',str(start),'--end',str(end),aggregate)
+
+def servicelist_by_filters(stat,filters={}):
+    """Return a list of services from STAT that match FILTERS."""
+    # by default, match everything
+    svcs = servicelist(stat)
+    # first, look at hostnames
+    hnames = set(hostnames(stat))
+    if filters.get('host',None):
+        # try exact match first
+        if filters['host'] in hnames:
+            svcs = [ s for s in svcs if s['host_name'] == filters['host']]
+        else:
+            svcs = [ s for s in svcs if re.search(filters['host'],s['host_name']) ]
+    if filters.get('service',None):
+        # very unlikely that an exact match would also be a substring,
+        # so don't bother trying that first
+        svcs = [ s for s in svcs
+                 if re.search(filters['service'],s['service_description']) ]
+    if (('a_red' in filters) or ('a_yellow' in filters)
+        or ('a_green' in filters)):
+        alertlevels = set()
+        if filters.get('a_red',False):
+            alertlevels.add("2")
+        if filters.get('a_yellow',False):
+            alertlevels.add("1")
+        if filters.get('a_green',False):
+            alertlevels.add("0")
+        svcs = [ s for s in svcs if s['current_state'] in alertlevels ]
+    return svcs
+
+sort_options = (
+    ('svc','Service Name'),
+    ('rrd','Latest RRD values'),
+    )
+
+class FilterForm(forms.Form):
+    host = forms.CharField(required=False)
+    service = forms.CharField(required=False)
+    a_green = forms.BooleanField(required=False,initial=True,label="OKAY (green)")
+    a_yellow = forms.BooleanField(required=False,initial=True,label="WARN (yellow)")
+    a_red = forms.BooleanField(required=False,initial=True,label="CRITICAL (red)")
+    sortreverse = forms.BooleanField(required=False,label="Reverse sort order")
+    sortby = forms.ChoiceField(choices=sort_options,initial="svc",label="Sort results by")
 
 def host(request, host):
     """Returns a page showing all services of the specified host"""

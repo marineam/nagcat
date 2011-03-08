@@ -32,8 +32,9 @@ urlpatterns = patterns('',
 #    (r'^pagetest/$', 'railroad.pagetest.views.index'),
     (r'^test$', 'railroad.viewhosts.views.form'),
 
-    # Individual viewers
-    (r'^viewhost/(?P<host>\w+)$', 'railroad.viewhosts.views.host'),
+    # Viewers
+    (r'^graphs', 'railroad.viewhosts.views.graphpage'),
+    (r'^viewhost/(?P<host>\w+)$', 'railroad.viewhosts.views.graphpage'),
     (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$', 'railroad.viewhosts.views.service'),
     (r'^viewgroup/(?P<group>[^/]+)$', 'railroad.viewhosts.views.group'),
     (r'^viewgroup/(?P<group>[^/]+)/(?P<test>.+)/(?P<alias>.+)$', 'railroad.viewhosts.views.groupservice'),

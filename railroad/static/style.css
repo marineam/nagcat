@@ -68,6 +68,9 @@ body {
 .listheader {
 	font-size: 12pt;
 }
+.pagination { 
+        text-align: center;
+}
 /* TODO: Finish this styling */
 .biglist ul {
 	margin: 0;
@@ -250,3 +253,19 @@ pre {
 	cursor: pointer;
 }
 
+.filterform th { 
+        text-align: right;
+        border-spacing: 1px 5px;
+}
+
+.filterform { 
+        border-spacing: 60px 5px;
+}
+
+.filters h3 { 
+        text-align: center;
+}
+
+.submit { 
+        text-align: center;
+}

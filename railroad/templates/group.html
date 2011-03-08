@@ -20,7 +20,7 @@
 			<td class="redbg">
 		{% endifequal %}
 	{% endifequal %}
-	<a href="{% url railroad.viewhosts.views.host host.host_name %}">{{host.host_name}}</a>
+	<a href="{% url railroad.viewhosts.views.graphpage host.host_name %}">{{host.host_name}}</a>
 	</td>
 	{% if forloop.counter|divisibleby:"5" %}</tr><tr>{% endif %}	
 {% endfor %}

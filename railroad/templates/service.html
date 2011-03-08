@@ -3,7 +3,7 @@
 {% block title %}Service detail: {{host_name}} &gt; {{service_name}}{% endblock %}
 
 {% block header %}
-<a href="{% url railroad.viewhosts.views.host  host_name %}">
+<a href="{% url railroad.viewhosts.views.graphpage  host_name %}">
 {% ifequal host_state '0' %}
 	<span class="greenbg">
 {% else %}

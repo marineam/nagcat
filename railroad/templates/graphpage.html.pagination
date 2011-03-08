@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ htmltitle }}{% endblock %}
+
+{% block header %}{{ pagetitle }}{% endblock %}
+
+{% block content %}
+{% include "filterform.html" %}
+{% load pagination_tags %}
+{% autopaginate loaded_graphs 10 %}
+<div class="pagination">{% paginate %}</div>
+<div class="services">
+<table id="graphs">
+{% include "graph.html" %}
+</table>
+</div>
+<div class="pagination">{% paginate %}</div>
+{% endblock %}
