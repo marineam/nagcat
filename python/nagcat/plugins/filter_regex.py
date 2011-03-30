@@ -90,3 +90,42 @@ class GrepVFilter(GrepFilter):
     classProvides(filters.IFilter)
     name = "grepv"
     invert = True
+
+class LinesFilter(filters._Filter):
+    """Report the number of lines, similar to wc -l
+
+    Note: Unlike wc -l we always act as if there is a terminating newline
+    whether it is there or not. Thus "foo" and "foo\n" are both one line.
+    Only an empty string counts as zero lines.
+    """
+
+    classProvides(filters.IFilter)
+
+    name = "lines"
+    handle_default = False
+    handle_arguments = False
+
+    @errors.callback
+    def filter(self, result):
+        if not result:
+            return "0"
+        # strip a single terminating newline
+        if result.endswith('\n'):
+            result = result[:-1]
+        return str(len(result.split('\n')))
+
+class BytesFilter(filters._Filter):
+    """Report the number of bites, like wc -c
+
+    Unlike the lines filter I don't fiddle with newlines here.
+    """
+
+    classProvides(filters.IFilter)
+
+    name = "bytes"
+    handle_default = False
+    handle_arguments = False
+
+    @errors.callback
+    def filter(self, result):
+        return str(len(result))

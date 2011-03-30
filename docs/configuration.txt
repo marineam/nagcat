@@ -211,6 +211,19 @@ test-name: {
     #   "grepv:<some regular expression>"
     #       Inverse grep, named after the "grep -v" command.
     #
+    #   "lines"
+    #       This filter simply counts the number of lines in the data
+    #       similar to wc -l. Note that unlike wc -l this filter always
+    #       behaves as if there is a terminating newline. Only an empty
+    #       string counts as zero lines. This is because internally
+    #       nagcat generally doesn't bother with adding terminating
+    #       newlines like Unix commands do.
+    #
+    #   "bytes"
+    #       This filter simply counts the number of bytes in the data
+    #       like wc -c. Unlike the lines filter this one doesn't bother
+    #       with adding a terminating newline since it isn't needed.
+    #
     #   "date2epoch:<date format>"
     #       Convert a date using the given format to a time in seconds
     #       since the epoch, useful for doing math with $(NOW).

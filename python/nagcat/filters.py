@@ -57,8 +57,10 @@ class IFilter(plugin.INagcatPlugin):
 class _Filter(object):
     """Filter class template"""
 
-    # Set weather this filter allows default values
+    # Set whether this filter allows default values
     handle_default = True
+    # Set whether this filter accepts arguments
+    handle_arguments = True
     # Set weather this filter should be on the errorback chain
     # in addition to the normal callback chain.
     handle_errors = False
@@ -70,6 +72,10 @@ class _Filter(object):
 
         if not self.handle_default and self.default is not None:
             raise errors.InitError("'%s' filters cannot take default values"
+                    % self.__class__.__name__.replace("Filter_",""))
+
+        if not self.handle_arguments and self.arguments:
+            raise errors.InitError("'%s' filters cannot take arguments"
                     % self.__class__.__name__.replace("Filter_",""))
 
     @errors.callback

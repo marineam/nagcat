@@ -46,3 +46,39 @@ class GrepTestCase(unittest.TestCase):
     def testDefault(self):
         f = filters.Filter(object(), "grep[doh]:^foo$")
         self.assertEquals(f.filter("zoom\nbar\nbaz"), "doh")
+
+class LinesTestCase(unittest.TestCase):
+
+    def testZero(self):
+        f = filters.Filter(object(), "lines")
+        self.assertEquals(f.filter(""), "0")
+
+    def testWithNewline(self):
+        f = filters.Filter(object(), "lines")
+        self.assertEquals(f.filter("\n"), "1")
+        self.assertEquals(f.filter("foo\n"), "1")
+        self.assertEquals(f.filter("foo\nbar\n"), "2")
+
+    def testWithoutNewline(self):
+        f = filters.Filter(object(), "lines")
+        self.assertEquals(f.filter("foo"), "1")
+        self.assertEquals(f.filter("foo\nbar"), "2")
+
+    def testErrors(self):
+        for bad in ("lines[]", "lines[x]:", "lines:x"):
+            self.assertRaises(errors.InitError, filters.Filter, object(), bad)
+
+class BytesTestCase(unittest.TestCase):
+
+    def testZero(self):
+        f = filters.Filter(object(), "bytes")
+        self.assertEquals(f.filter(""), "0")
+
+    def testNonZero(self):
+        f = filters.Filter(object(), "bytes")
+        self.assertEquals(f.filter("f"), "1")
+        self.assertEquals(f.filter("f\n"), "2")
+
+    def testErrors(self):
+        for bad in ("bytes[]", "bytes[x]:", "bytes:x"):
+            self.assertRaises(errors.InitError, filters.Filter, object(), bad)
