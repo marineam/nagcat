@@ -271,7 +271,11 @@ class Test(BaseTest):
                 for subtest in self._subtests.itervalues():
                     if isinstance(subtest.result, failure.Failure):
                         if isinstance(subtest.result.value, errors.TestError):
-                            if subtest.result.value.index > level:
+                            # UNKNOWN beats CRITICAL
+                            # CRITICAL beats WARNING
+                            # but an OK assertion beats everything.
+                            if (subtest.result.value.index > level or
+                                    subtest.result.value.state == "OK"):
                                 level = subtest.result.value.index
                                 failed = subtest.result
                         else:
