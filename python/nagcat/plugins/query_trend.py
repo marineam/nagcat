@@ -43,11 +43,14 @@ class LastUpdateQuery(query.Query):
         super(LastUpdateQuery, self).__init__(nagcat, conf)
         self._nagcat = nagcat
         self.conf['host'] = conf['host']
-        self.conf['description'] = conf['description']
+        self.conf['description'] = conf.get('description',
+                conf.get('@root.description', conf.get('@root.test', None)))
         self.conf['freshness'] = util.Interval(conf.get('freshness', None))
         self.conf['source'] = conf.get('source', None)
         if not self.conf['source'] and not etree:
             raise errors.InitError("lxml is required")
+        if not self.conf['description']:
+            raise errors.InitError("No service description to query")
 
     def _start(self):
         deferred = self._nagcat.trend.lastupdate(

@@ -94,7 +94,8 @@ class ServiceQuery(HostQuery):
 
     def __init__(self, nagcat, conf):
         super(ServiceQuery, self).__init__(nagcat, conf)
-        self.conf['description'] = conf.get('description')
+        self.conf['description'] = conf.get('description',
+                conf.get('@root.description', conf.get('@root.test')))
 
     def _nagios_select(self):
         status = self._nagcat.nagios_status()
