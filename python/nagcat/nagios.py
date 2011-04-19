@@ -14,6 +14,9 @@
 
 """NagCat->Nagios connector"""
 
+import os
+import errno
+
 from coil.errors import CoilError
 from nagcat import errors, log, nagios_api, nagios_objects, scheduler
 
@@ -24,15 +27,32 @@ class NagcatNagios(scheduler.Scheduler):
         """Read given Nagios config file and load tests"""
 
         cfg = nagios_objects.ConfigParser(nagios_cfg,
-                ('object_cache_file', 'command_file', 'check_result_path'))
+                ('object_cache_file', 'status_file',
+                 'command_file', 'check_result_path'))
         self._nagios_obj = cfg['object_cache_file']
         spool = nagios_api.spool_path(cfg['check_result_path'], 'nagcat')
         self._nagios_cmd = nagios_api.NagiosCommander(
                 cfg['command_file'], spool)
 
+        self._status_file = cfg['status_file']
+        self._status_cache = None
+        self._status_mtime = 0
+
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])
+        log.info("Using Nagios status file: %s", self._status_file)
         return super(NagcatNagios, self).__init__(config, **kwargs)
+
+    def nagios_status(self):
+        fd = open(self._status_file, 'r')
+        try:
+            stat = os.fstat(fd.fileno())
+            if self._status_mtime < stat.st_mtime:
+                self._status_cache = nagios_objects.ObjectParser(fd)
+                self._status_mtime = stat.st_mtime
+            return self._status_cache
+        finally:
+            fd.close()
 
     def _parse_tests(self, tag):
         """Get the list of NagCat services in the object cache"""
