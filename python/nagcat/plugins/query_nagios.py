@@ -36,10 +36,6 @@ class HostQuery(query.Query):
         self._nagcat = nagcat
         assert self.host
 
-        if not hasattr(nagcat, "nagios_status"):
-            # FIXME
-            raise errors.InitError("boo lame")
-
         if not self.conf['attribute'] and not etree:
             raise errors.InitError("lxml is required!")
 
@@ -52,7 +48,7 @@ class HostQuery(query.Query):
                 break
 
         if not found:
-            raise errors.TestCritical("No such host %s/%s" % (self.host,))
+            raise errors.TestCritical("No such host %s" % (self.host,))
 
         return found
 

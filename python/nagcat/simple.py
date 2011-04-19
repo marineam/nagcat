@@ -14,8 +14,19 @@
 
 """Nagcat single-test scheduler"""
 
+from collections import defaultdict
+
 from nagcat import errors, log
 from nagcat import scheduler
+
+class ObjectDummy(defaultdict):
+    """Provide a replacement for a real ObjectParser"""
+
+    def __init__(self):
+        super(ObjectDummy, self).__init__(list)
+
+    def types(self):
+        return self.keys()
 
 class NagcatDummy(scheduler.Scheduler):
     """For testing"""
@@ -23,7 +34,10 @@ class NagcatDummy(scheduler.Scheduler):
     def build_tests(self, config):
         return []
 
-class NagcatSimple(scheduler.Scheduler):
+    def nagios_status(self):
+        return ObjectDummy()
+
+class NagcatSimple(NagcatDummy):
     """Run only a single test, do not report to nagios.
 
     Useful for testing a new test template.
@@ -43,6 +57,7 @@ class NagcatSimple(scheduler.Scheduler):
             raise errors.InitError("Test '%s' not found in config file!"
                     % test_name)
 
+        config = config.copy()
         config.setdefault('host', host)
         config.setdefault('port', port)
         config.setdefault('test', test_name)
