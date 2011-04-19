@@ -17,6 +17,8 @@
 
 """Python parser for nagios object files"""
 
+cimport cython
+
 from nagcat import errors
 
 # libc memory functions
@@ -35,6 +37,7 @@ cdef extern from "string.h":
     int strcmp(char *s1, char *s2)
 
 
+@cython.profile(False)
 cdef inline void _ignore(char **ptr):
     """eat whitespace and comments"""
     # ptr[0] == *ptr; ptr[0][0] == **ptr
