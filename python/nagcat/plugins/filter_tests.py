@@ -71,7 +71,7 @@ class BaseTestFilter(filters._Filter):
         try:
             msg = self.tester.test(true_result)
             if msg:
-                raise self.raise_error(msg)
+                raise self.raise_error("%s %s" % (self.name, msg))
         except Exception:
             return errors.Failure(result=true_result)
         else:

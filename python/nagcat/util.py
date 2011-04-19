@@ -299,10 +299,10 @@ class RegexTester(Tester):
 
         if self.test_op == '=~':
             if compiled.search(input_val):
-                return "Matched regex: %s" % (compiled.pattern,)
+                return "matched regex: %s" % (compiled.pattern,)
         elif self.test_op == '!~':
             if not compiled.search(input_val):
-                return "Failed to match regex: %s" % (compiled.pattern,)
+                return "failed to match regex: %s" % (compiled.pattern,)
         else:
             assert 0
 
@@ -327,7 +327,7 @@ class EvalTester(Tester):
                      'b': self.compiled or self.compile()}
 
         if eval("a %s b" % self.test_op, eval_dict):
-            return "Test matched: %s %s" % (self.test_op, self.test_val)
+            return "test matched: %s %s" % (self.test_op, self.test_val)
 
 
 def setup(user=None, group=None, file_limit=None, core_dumps=None):
