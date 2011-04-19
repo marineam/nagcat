@@ -734,6 +734,98 @@ The output XML is similar to the oracle_sql output:
   </list>
 </result>
 
+Nagios:
+
+It is possible to query host and service status directly from nagios.
+This can be useful for checking how long a test has been in a particular
+state among other things.
+
+query: {
+    type: "host_status"
+
+    # The host can be overridden like any query, the default is whatever
+    # host the test is configured for.
+    host: "somehost"
+
+    # Pull a specific attribute out of the host status, if this is not
+    # set then the whole status block is returned as XML.
+    attribute: "plugin_output"
+}
+
+query: {
+    type: "service_status"
+
+    # The service description from nagios, defaults to the description
+    # for this particular test.
+    description: "Some Service"
+
+    # Same as with host_status
+    host: "somehost"
+    attribute: "plugin_output"
+}
+
+When attribute is not set the XML is simply a direct translation of the
+data in Nagios' status file, for example:
+
+<service>
+	<host_name>somehost</host_name>
+	<service_description>Some Service</service_description>
+	<modified_attributes>0</modified_attributes>
+	<check_command>check_bad</check_command>
+	<check_period>24x7</check_period>
+	<notification_period>24x7</notification_period>
+	<check_interval>1.000000</check_interval>
+	<retry_interval>1.000000</retry_interval>
+	<event_handler></event_handler>
+	<has_been_checked>1</has_been_checked>
+	<should_be_scheduled>0</should_be_scheduled>
+	<check_execution_time>0.000</check_execution_time>
+	<check_latency>0.200</check_latency>
+	<check_type>1</check_type>
+	<current_state>0</current_state>
+	<last_hard_state>0</last_hard_state>
+	<last_event_id>3316759</last_event_id>
+	<current_event_id>3317232</current_event_id>
+	<current_problem_id>0</current_problem_id>
+	<last_problem_id>1654469</last_problem_id>
+	<current_attempt>1</current_attempt>
+	<max_attempts>3</max_attempts>
+	<state_type>1</state_type>
+	<last_state_change>1282600105</last_state_change>
+	<last_hard_state_change>1274941043</last_hard_state_change>
+	<last_time_ok>1294429576</last_time_ok>
+	<last_time_warning>0</last_time_warning>
+	<last_time_unknown>0</last_time_unknown>
+	<last_time_critical>1282579061</last_time_critical>
+	<plugin_output>service_alive: OK</plugin_output>
+	<long_plugin_output></long_plugin_output>
+	<performance_data></performance_data>
+	<last_check>1294429576</last_check>
+	<next_check>0</next_check>
+	<check_options>0</check_options>
+	<current_notification_number>0</current_notification_number>
+	<current_notification_id>0</current_notification_id>
+	<last_notification>0</last_notification>
+	<next_notification>0</next_notification>
+	<no_more_notifications>0</no_more_notifications>
+	<notifications_enabled>1</notifications_enabled>
+	<active_checks_enabled>0</active_checks_enabled>
+	<passive_checks_enabled>1</passive_checks_enabled>
+	<event_handler_enabled>0</event_handler_enabled>
+	<problem_has_been_acknowledged>0</problem_has_been_acknowledged>
+	<acknowledgement_type>0</acknowledgement_type>
+	<flap_detection_enabled>1</flap_detection_enabled>
+	<failure_prediction_enabled>1</failure_prediction_enabled>
+	<process_performance_data>0</process_performance_data>
+	<obsess_over_service>0</obsess_over_service>
+	<last_update>1294429603</last_update>
+	<is_flapping>0</is_flapping>
+	<percent_state_change>0.00</percent_state_change>
+	<scheduled_downtime_depth>0</scheduled_downtime_depth>
+</service>
+
+Host is similar, just wrapped in <host> instead.
+
 RRDTool:
 
 If the result of a test depends on the previous value (such as an alert
