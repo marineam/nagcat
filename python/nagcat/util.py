@@ -21,6 +21,7 @@ import os
 import sys
 import grp
 import pwd
+import time
 import resource
 
 from nagcat import log
@@ -234,6 +235,99 @@ class MathString(str):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+class TesterError(Exception):
+    """Error creating a Tester object or test failed"""
+
+class Tester(object):
+    """Evaluate threshold tests.
+
+    The input expression format is 'op test_value' and will evaluate
+    'input_value op test_value' when calling tester.test(input_value).
+    """
+
+    # Supported operators
+    expr_ops = ()
+    # Expression format
+    expr_format = re.compile("\s*([<>=!~]{1,2})\s*(\S+.*)")
+
+    @classmethod
+    def mktest(cls, expression):
+        match = cls.expr_format.match(expression)
+        if not match:
+            raise TesterError("Invalid test expression: %s" % (expression,))
+
+        test_op = match.group(1)
+        test_val = match.group(2)
+        if '~' in test_op:
+            test_cls = RegexTester
+        else:
+            test_cls = EvalTester
+
+        return test_cls(test_op, test_val)
+
+    def __init__(self, test_op, test_val):
+        self.test_op = test_op
+        self.test_val = test_val
+        self.compiled = self.compile(static=True)
+
+        if test_op not in self.expr_ops:
+            raise TesterError("Invalid test operator: %s" % (test_op,))
+
+    def compile(self, static=False):
+        value = self.test_val.replace("$(NOW)", str(time.time()))
+        if not static or value == self.test_val:
+            return value
+
+    def test(self, input_val):
+        raise NotImplemented()
+
+class RegexTester(Tester):
+
+    expr_ops = ('=~', '!~')
+
+    def compile(self, static=False):
+        expr = super(RegexTester, self).compile(static)
+        if expr is not None:
+            try:
+               return re.compile(expr, re.MULTILINE)
+            except re.error, ex:
+                raise TesterError("Invalid test regex %r: %s" % (expr,ex))
+
+    def test(self, input_val):
+        compiled = self.compiled or self.compile()
+
+        if self.test_op == '=~':
+            if compiled.search(input_val):
+                return "Matched regex: %s" % (compiled.pattern,)
+        elif self.test_op == '!~':
+            if not compiled.search(input_val):
+                return "Failed to match regex: %s" % (compiled.pattern,)
+        else:
+            assert 0
+
+class EvalTester(Tester):
+
+    expr_ops = ('>','<','==','>=','<=','<>','!=')
+    # '=' is also allowed
+
+    def __init__(self, test_op, test_val):
+        # Convert non-python operator
+        if test_op == '=':
+            test_op = '=='
+        super(EvalTester, self).__init__(test_op, test_val)
+
+    def compile(self, static=False):
+        value = super(EvalTester, self).compile(static)
+        if value is not None:
+            return MathString(value)
+
+    def test(self, input_val):
+        eval_dict = {'a': MathString(input_val),
+                     'b': self.compiled or self.compile()}
+
+        if eval("a %s b" % self.test_op, eval_dict):
+            return "Test matched: %s %s" % (self.test_op, self.test_val)
 
 
 def setup(user=None, group=None, file_limit=None, core_dumps=None):

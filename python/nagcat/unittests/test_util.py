@@ -265,3 +265,76 @@ class MathStringTestCase(unittest.TestCase):
         self.assertEquals(a != b, True)
         self.assertEquals(a != "this", False)
         self.assertEquals(a != "that", True)
+
+class TesterTestCase(unittest.TestCase):
+
+    def test_mktest1(self):
+        t = util.Tester.mktest("==1")
+        self.assertIsInstance(t, util.EvalTester)
+
+    def test_mktest2(self):
+        t = util.Tester.mktest("=~1")
+        self.assertIsInstance(t, util.RegexTester)
+
+class EvalTesterTestCase(unittest.TestCase):
+
+    def test_eq1(self):
+        t = util.EvalTester("=", "this")
+        self.assertTrue(t.test("this"))
+        self.assertFalse(t.test("that"))
+
+    def test_eq2(self):
+        t = util.EvalTester("==", "this")
+        self.assertTrue(t.test("this"))
+        self.assertFalse(t.test("that"))
+
+    def test_ne1(self):
+        t = util.EvalTester("!=", "this")
+        self.assertTrue(t.test("that"))
+        self.assertFalse(t.test("this"))
+
+    def test_ne2(self):
+        t = util.EvalTester("<>", "this")
+        self.assertTrue(t.test("that"))
+        self.assertFalse(t.test("this"))
+
+    def test_gr(self):
+        t = util.EvalTester(">", "1")
+        self.assertTrue(t.test("2"))
+        self.assertFalse(t.test("-1"))
+        self.assertRaises(util.MathError, t.test, "bleh")
+
+    def test_lt(self):
+        t = util.EvalTester("<", "1")
+        self.assertTrue(t.test("-1"))
+        self.assertFalse(t.test("2"))
+        self.assertRaises(util.MathError, t.test, "bleh")
+
+    def test_ge(self):
+        t = util.EvalTester(">=", "1")
+        self.assertTrue(t.test("2"))
+        self.assertTrue(t.test("1"))
+        self.assertFalse(t.test("-1"))
+        self.assertRaises(util.MathError, t.test, "bleh")
+
+    def test_le(self):
+        t = util.EvalTester("<=", "1")
+        self.assertTrue(t.test("-1"))
+        self.assertTrue(t.test("1"))
+        self.assertFalse(t.test("2"))
+        self.assertRaises(util.MathError, t.test, "bleh")
+
+class RegexTesterTestCase(unittest.TestCase):
+
+    def test_eq(self):
+        t = util.RegexTester("=~", "\w+")
+        self.assertTrue(t.test("this"))
+        self.assertFalse(t.test("----"))
+
+    def test_ne(self):
+        t = util.RegexTester("!~", "\w+")
+        self.assertTrue(t.test("----"))
+        self.assertFalse(t.test("this"))
+
+    def test_bad(self):
+        self.assertRaises(util.TesterError, util.RegexTester, "=~", "(bleh")
