@@ -49,7 +49,11 @@ class Interval(float):
     @classmethod
     def _parse(cls, value):
         match = re.match("^\s*(\d+(\.\d+)?)\s*"
-                "(s|sec|seconds?|m|min|minutes?|h|hours?|d|days?)?\s*$",
+                "(s|sec|seconds?"
+                "|m|min|minutes?"
+                "|h|hours?"
+                "|d|days?"
+                "|w|weeks?)?\s*$",
                 value, re.IGNORECASE)
         if not match:
             raise IntervalError("Invalid time value %r" % value)
@@ -62,6 +66,8 @@ class Interval(float):
             return float(match.group(1)) * 3600
         elif match.group(3)[0].lower() == 'd':
             return float(match.group(1)) * 86400
+        elif match.group(3)[0].lower() == 'w':
+            return float(match.group(1)) * 604800
         else:
             assert(0)
 

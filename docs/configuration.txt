@@ -190,9 +190,12 @@ test-name: {
     # value. It is used in some errors and rrdtool trend graphs.
     label: "% Disk Used"
 
-    # 'repeat' defines when or how frequently to run. It may be a
-    # specific time of day or a time interval such as 10s or 10m.
-    # The default is 1 minute. The default units are seconds.
+    # 'repeat' defines how frequently to run the test. The value can be
+    # a number in seconds or a string of the format "1s" or "1 second"
+    # or "2 seconds", which ever you prefer. In addition to seconds
+    # possible units are minutes, hours, days, and weeks. For this value
+    # you probably only need seconds and minutes but other time values
+    # use the same format. The default value is 1 minute.
     repeat: "1m"
 
     # Filters are strings defining some manipulation to the data

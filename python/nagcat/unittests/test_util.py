@@ -54,6 +54,22 @@ class IntervalTestcase(unittest.TestCase):
         a = util.Interval("5 h")
         self.assertEquals(a.seconds, 18000)
 
+    def testDays(self):
+        a = util.Interval("5 Days")
+        self.assertEquals(a.seconds, 432000)
+        a = util.Interval("5.5 day")
+        self.assertEquals(a.seconds, 475200)
+        a = util.Interval("5 d")
+        self.assertEquals(a.seconds, 432000)
+
+    def testWeeks(self):
+        a = util.Interval("5 Weeks")
+        self.assertEquals(a.seconds, 3024000)
+        a = util.Interval("5.5 week")
+        self.assertEquals(a.seconds, 3326400)
+        a = util.Interval("5 w")
+        self.assertEquals(a.seconds, 3024000)
+
     def testEq(self):
         a = util.Interval("300 seconds")
         b = util.Interval("5 minutes")
