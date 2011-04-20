@@ -311,6 +311,13 @@ test-name: {
     warning: "<operator> <value>"
     critical: "<operator> <value>"
 
+    # 'warning_time_limit' provides a time limit on how long the test
+    # may remain in a warning state. After the time limit expires the
+    # test will become critical. This is useful for issues that are only
+    # a big deal if they persist for a while. The format is the same as
+    # the 'repeat' value and the default is 0 (disabled).
+    warning_time_limit: "30 minutes"
+
     # The 'trend' block defines how to record and graph the data over
     # time using rrdtool. By the final state is always recorded but if
     # the data is numeric this can be used to record it as well.
