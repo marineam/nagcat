@@ -122,6 +122,7 @@ class Test(BaseTest):
     def __init__(self, nagcat, conf):
         BaseTest.__init__(self, conf)
 
+        self._nagcat = nagcat
         self._test = conf.get('test', "")
         self._description = conf.get('description', self._test)
         self._documentation = conf.get('documentation', "")
@@ -129,6 +130,12 @@ class Test(BaseTest):
         self._priority = conf.get('priority', "")
         self._url = conf.get('url', "")
         self._subtests = {}
+
+        # Special little value!
+        # Mark this test as CRITICAL if it has been in WARNING
+        # for too long. A value of 0 disables this check.
+        self._warning_time_limit = util.Interval(
+                conf.get('warning_time_limit', 0))
 
         # If self._documentation is a list convert it to a string
         if isinstance(self._documentation, list):
@@ -247,6 +254,33 @@ class Test(BaseTest):
         assert callable(func)
         self._report_callbacks.append((func, args, kwargs))
 
+    def _apply_time_limit(self, state):
+        if not self._warning_time_limit or state != "WARNING":
+            return state
+
+        status = self._nagcat.nagios_status()
+
+        found = None
+        for service in status['service']:
+            if (service['service_description'] == self._description
+                    and service['host_name'] == self.host):
+                found = service
+                break
+
+        if not found:
+            return state
+
+        if found['last_hard_state'] != '1': # WARNING
+            return state
+
+        limit = (int(found['last_hard_state_change']) +
+                 self._warning_time_limit)
+        if self._now > limit:
+            log.debug("Warning time limit of %s exceeded for %s",
+                    self._warning_time_limit, self)
+            state = "CRITICAL"
+
+        return state
 
     def _report(self, result):
         """Generate a report of the final result, pass that report off
@@ -298,6 +332,7 @@ class Test(BaseTest):
             else:
                 state = "UNKNOWN"
 
+            state = self._apply_time_limit(state)
             error = str(failed.value)
             summary = error
         else:
