@@ -589,6 +589,8 @@ query: {
 
 Subprocess:
 
+Run a command. An exit status of 0 is OK, anything else is Critical.
+
 query: {
     type: "subprocess"
 
@@ -602,6 +604,22 @@ query: {
     environment: {
         PATH: "/special/path:/usr/bin"
     }
+}
+
+A variation of "subprocess" is "nagios_plugin" which interprets the exit
+code the same way as Nagios would where 0 is OK, 1 is Warning, 2 is
+Critical, and 3 and above is Unknown. Note that unlike real Nagios
+plugins nagcat does not define the standard macros as environment
+variables. If your plugin needs any set them manually in the
+environment block. This may change in the future.
+
+query: {
+    type: "nagios_plugin"
+
+    # These are the exact same as for "subprocess" queries
+    command: "something"
+    data: "something"
+    environment: {}
 }
 
 SNMP: (versions 1 and 2 only currently)

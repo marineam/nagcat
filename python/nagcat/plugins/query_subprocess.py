@@ -64,8 +64,7 @@ class SubprocessProtocol(protocol.ProcessProtocol):
                 result = errors.Failure(errors.TestCritical(
                     "Command not found."))
             else:
-                result = errors.Failure(errors.TestCritical(
-                    reason.value.args[0]), result=self.result)
+                result = errors.Failure(reason.value, result=self.result)
         else:
             result = reason
 
@@ -136,4 +135,36 @@ class SubprocessQuery(query.Query):
 
     def _start(self):
         proc = SubprocessFactory(self)
+        proc.deferred.addErrback(self._checkError)
         return proc.deferred
+
+    def _checkError(self, reason):
+        if isinstance(reason.value, neterror.ProcessTerminated):
+            return errors.Failure(errors.TestCritical(
+                    reason.value.args[0]), result=reason.result)
+        else:
+            return reason
+
+class NagiosPluginQuery(SubprocessQuery):
+    """Query that runs a command"""
+
+    classProvides(query.IQuery)
+
+    name = "nagios_plugin"
+
+    def _checkError(self, reason):
+        if isinstance(reason.value, neterror.ProcessTerminated):
+            if reason.value.exitCode == 1:
+                return errors.Failure(errors.TestWarning(
+                    reason.result.split('\n', 1)[0]), result=reason.result)
+            elif reason.value.exitCode == 2:
+                return errors.Failure(errors.TestCritical(
+                    reason.result.split('\n', 1)[0]), result=reason.result)
+            elif reason.value.exitCode == 3:
+                return errors.Failure(errors.TestUnknown(
+                    reason.result.split('\n', 1)[0]), result=reason.result)
+            else:
+                return errors.Failure(errors.TestUnknown(
+                    reason.value.args[0]), result=reason.result)
+        else:
+            return reason

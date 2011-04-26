@@ -79,6 +79,9 @@ class TestError(Exception):
 class TestAbort(TestError):
     pass
 
+class TestUnknown(TestError):
+    pass
+
 class TestCritical(TestError):
     state = "CRITICAL"
     index = 2

@@ -62,3 +62,50 @@ class SubprocessQueryTestCase(QueryTestCase):
         d = self.startQuery(type='subprocess', command='simple_subprocess')
         d.addBoth(check)
         return d
+
+class NagiosPluginQueryTestCase(QueryTestCase):
+
+    def testOK(self):
+        d = self.startQuery(type='nagios_plugin', command='echo hello')
+        d.addCallback(self.assertEquals, "hello\n")
+        return d
+
+    def testWarning(self):
+        def check(reason):
+            self.assertIsInstance(reason, errors.Failure)
+            self.assertIsInstance(reason.value, errors.TestWarning)
+            self.assertEquals(reason.result, "hello\n")
+
+        d = self.startQuery(type='nagios_plugin', command='echo hello; exit 1')
+        d.addBoth(check)
+        return d
+
+    def testCritical(self):
+        def check(reason):
+            self.assertIsInstance(reason, errors.Failure)
+            self.assertIsInstance(reason.value, errors.TestCritical)
+            self.assertEquals(reason.result, "hello\n")
+
+        d = self.startQuery(type='nagios_plugin', command='echo hello; exit 2')
+        d.addBoth(check)
+        return d
+
+    def testUnknown(self):
+        def check(reason):
+            self.assertIsInstance(reason, errors.Failure)
+            self.assertIsInstance(reason.value, errors.TestUnknown)
+            self.assertEquals(reason.result, "hello\n")
+
+        d = self.startQuery(type='nagios_plugin', command='echo hello; exit 3')
+        d.addBoth(check)
+        return d
+
+    def testUnknown2(self):
+        def check(reason):
+            self.assertIsInstance(reason, errors.Failure)
+            self.assertIsInstance(reason.value, errors.TestUnknown)
+            self.assertEquals(reason.result, "hello\n")
+
+        d = self.startQuery(type='nagios_plugin', command='echo hello; exit 4')
+        d.addBoth(check)
+        return d
