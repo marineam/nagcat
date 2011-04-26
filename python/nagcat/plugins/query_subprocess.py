@@ -15,6 +15,7 @@
 """Subprocess Queries"""
 
 import os
+import re
 import signal
 
 from zope.interface import classProvides
@@ -152,19 +153,76 @@ class NagiosPluginQuery(SubprocessQuery):
 
     name = "nagios_plugin"
 
+    # 'label'=value[UOM];[warn];[crit];[min];[max]
+    # where UOM (unit of measure) will usually be:
+    #   a. no unit specified - assume a number (int or float) of things
+    #   b. s - seconds (also us, ms)
+    #   c. % - percentage
+    #   d. B - bytes (also KB, MB, TB)
+    #   e. c - a continous counter
+    # See http://nagiosplug.sourceforge.net/developer-guidelines.html
+    perf_format = re.compile(r'''(?P<label>\S+)=
+                                (?P<value>[^;]*)
+                                (;(?P<warn>[^;]*)
+                                (;(?P<crit>[^;]*)
+                                (;(?P<min>[^;]*)
+                                (;(?P<max>[^;]*))?)?)?)?''', re.X)
+
+    def __init__(self, nagcat, conf):
+        super(NagiosPluginQuery, self).__init__(nagcat, conf)
+
+        # don't pass stuff in on stdin
+        self.conf['data'] = ''
+
+        # Should we grab perf data or text? (empty means text)
+        self.conf['perfdata'] = str(conf.get('perfdata', ''))
+
+    def _start(self):
+        proc = SubprocessFactory(self)
+        proc.deferred.addErrback(self._checkError)
+        proc.deferred.addCallback(self._parseOutput)
+        return proc.deferred
+
+    @errors.callback
+    def _parseOutput(self, result):
+        if not isinstance(result, basestring):
+            return result
+
+        # grab performance data from the first line
+        lines = result.split('\n', 1)
+        split = lines[0].split('|', 1)
+
+        if self.conf['perfdata']:
+            if len(split) != 2:
+                raise errors.Critical("No performance data found")
+
+            for match in self.perf_format.finditer(split[1]):
+                if match.group('label') == self.conf['perfdata']:
+                    return match.group('value')
+
+            raise errors.Critical("No performance data found for %s" %
+                                    (self.conf['perfdata'],))
+        else:
+            # Return the text sans perf data
+            return split[0] + '\n'.join(lines[1:])
+
     def _checkError(self, reason):
         if isinstance(reason.value, neterror.ProcessTerminated):
+            parsed = self._parseOutput(reason.result)
+            if isinstance(parsed, errors.Failure):
+                return parsed
+
             if reason.value.exitCode == 1:
                 return errors.Failure(errors.TestWarning(
-                    reason.result.split('\n', 1)[0]), result=reason.result)
+                    reason.result.split('\n', 1)[0]), result=parsed)
             elif reason.value.exitCode == 2:
                 return errors.Failure(errors.TestCritical(
-                    reason.result.split('\n', 1)[0]), result=reason.result)
+                    reason.result.split('\n', 1)[0]), result=parsed)
             elif reason.value.exitCode == 3:
                 return errors.Failure(errors.TestUnknown(
-                    reason.result.split('\n', 1)[0]), result=reason.result)
+                    reason.result.split('\n', 1)[0]), result=parsed)
             else:
                 return errors.Failure(errors.TestUnknown(
-                    reason.value.args[0]), result=reason.result)
+                    reason.value.args[0]), result=parsed)
         else:
             return reason
