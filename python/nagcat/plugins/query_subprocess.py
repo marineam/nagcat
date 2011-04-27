@@ -25,6 +25,16 @@ from twisted.internet import error as neterror
 from nagcat import errors, log, query
 
 
+class SubprocessError(errors.TestError):
+    """Process returned non-zero exit status"""
+
+    def __init__(self, ex):
+        assert isinstance(ex, neterror.ProcessTerminated)
+        self.exitCode = ex.exitCode
+        self.signal = ex.signal
+        self.status = ex.status
+        super(SubprocessError, self).__init__(ex.args[0])
+
 class SubprocessProtocol(protocol.ProcessProtocol):
     """Handle input/output for subprocess queries"""
 
@@ -65,7 +75,8 @@ class SubprocessProtocol(protocol.ProcessProtocol):
                 result = errors.Failure(errors.TestCritical(
                     "Command not found."))
             else:
-                result = errors.Failure(reason.value, result=self.result)
+                result = errors.Failure(SubprocessError(reason.value),
+                                        result=self.result)
         else:
             result = reason
 
@@ -116,15 +127,13 @@ class SubprocessFactory(process.Process):
         os.setpgrp()
         process.Process._setupChild(self, *args, **kwargs)
 
-class SubprocessQuery(query.Query):
+class SubprocessBase(query.Query):
     """Query that runs a command"""
 
-    classProvides(query.IQuery)
-
-    name = "subprocess"
+    name = "subprocess_base"
 
     def __init__(self, nagcat, conf):
-        super(SubprocessQuery, self).__init__(nagcat, conf)
+        super(SubprocessBase, self).__init__(nagcat, conf)
 
         env = os.environ.copy()
         if 'environment' in conf:
@@ -136,17 +145,28 @@ class SubprocessQuery(query.Query):
 
     def _start(self):
         proc = SubprocessFactory(self)
-        proc.deferred.addErrback(self._checkError)
         return proc.deferred
 
+class SubprocessQuery(SubprocessBase):
+    """Query that runs a command"""
+
+    classProvides(query.IQuery)
+
+    name = "subprocess"
+
+    def _start(self):
+        deferred = super(SubprocessQuery, self)._start()
+        deferred.addErrback(self._checkError)
+        return deferred
+
     def _checkError(self, reason):
-        if isinstance(reason.value, neterror.ProcessTerminated):
+        if isinstance(reason.value, SubprocessError):
             return errors.Failure(errors.TestCritical(
-                    reason.value.args[0]), result=reason.result)
+                    str(reason.value)), result=reason.result)
         else:
             return reason
 
-class NagiosPluginQuery(SubprocessQuery):
+class NagiosPluginQuery(query.Query):
     """Query that runs a command"""
 
     classProvides(query.IQuery)
@@ -171,17 +191,17 @@ class NagiosPluginQuery(SubprocessQuery):
     def __init__(self, nagcat, conf):
         super(NagiosPluginQuery, self).__init__(nagcat, conf)
 
-        # don't pass stuff in on stdin
-        self.conf['data'] = ''
+        self.subquery = nagcat.new_query(conf, qcls=SubprocessBase)
+        self.addDependency(self.subquery)
+        self.conf.update(self.subquery.conf)
 
         # Should we grab perf data or text? (empty means text)
         self.conf['perfdata'] = str(conf.get('perfdata', ''))
 
     def _start(self):
-        proc = SubprocessFactory(self)
-        proc.deferred.addErrback(self._checkError)
-        proc.deferred.addCallback(self._parseOutput)
-        return proc.deferred
+        deferred = defer.succeed(self.subquery.result)
+        deferred.addCallbacks(self._parseOutput, self._checkError)
+        return deferred
 
     @errors.callback
     def _parseOutput(self, result):
@@ -204,25 +224,25 @@ class NagiosPluginQuery(SubprocessQuery):
                                     (self.conf['perfdata'],))
         else:
             # Return the text sans perf data
-            return split[0] + '\n'.join(lines[1:])
+            return split[0] + '\n'.join(lines[1:]) + '\n'
 
     def _checkError(self, reason):
-        if isinstance(reason.value, neterror.ProcessTerminated):
+        if isinstance(reason.value, SubprocessError):
             parsed = self._parseOutput(reason.result)
             if isinstance(parsed, errors.Failure):
                 return parsed
 
             if reason.value.exitCode == 1:
                 return errors.Failure(errors.TestWarning(
-                    reason.result.split('\n', 1)[0]), result=parsed)
+                    parsed.split('\n', 1)[0]), result=parsed)
             elif reason.value.exitCode == 2:
                 return errors.Failure(errors.TestCritical(
-                    reason.result.split('\n', 1)[0]), result=parsed)
+                    parsed.split('\n', 1)[0]), result=parsed)
             elif reason.value.exitCode == 3:
                 return errors.Failure(errors.TestUnknown(
-                    reason.result.split('\n', 1)[0]), result=parsed)
+                    parsed.split('\n', 1)[0]), result=parsed)
             else:
                 return errors.Failure(errors.TestUnknown(
-                    reason.value.args[0]), result=parsed)
+                    str(reason.value)), result=parsed)
         else:
             return reason
