@@ -80,7 +80,7 @@ foo-client-in-sync: {
             filters: [ "regex:\d+" ]
         }
 
-        return: "master - client"
+        return: "$(master) - $(client)"
     }
 
     warning: ">100"
