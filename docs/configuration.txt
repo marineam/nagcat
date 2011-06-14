@@ -114,7 +114,7 @@ foo-client-in-sync: {
         type: "compound"
         master: {
             type: "http"
-            host: "somehostdc7"
+            host: "themasterdc7"
             port: ""
             path: "/status/sequence_number"
             filters: [ "regex:\d+" ]
@@ -132,14 +132,20 @@ foo-client-in-sync: {
     warning: ">100"
     critical: ">200"
 }
+
 Then in Nagios you would need to include these parameters in the test
 declaration:
-    _query.master.host                  somehostdc9
+
+define service {
+    host_name                           someclientdc9
+    # other nagios options...
+    _test                               foo-client-in-sync
+    _port                               9019
+    _query.master.host                  themasterdc9
     _query.master.port                  1234
-    host                                someclientdc9
-    port                                9019
     _query.client.path                  /some/path
     _query.client.interestingvalue      foo.*bar
+}
 
 
 Format Details
