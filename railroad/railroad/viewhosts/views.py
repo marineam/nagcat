@@ -114,6 +114,9 @@ def parse():
 #    except Exception:
     obj_path = '%sobjects.cache' % data_path 
     obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
+    # / in group names break urls, replace with - which are safer
+    for group in obj['hostgroup']:
+        group['alias'] = group['alias'].replace('/', '-')
 
     return stat, obj
 
