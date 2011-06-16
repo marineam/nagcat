@@ -134,15 +134,15 @@ def servicelist(stat):
 
 def groupnames(obj):
     """Returns a list of groups names"""
-    return map(lambda x: x['alias'], obj['hostgroup'])
+    return [x['alias'] for x in views.grouplist(obj)]
 
 def hostnames(stat):
     """Returns a list of host names"""
-    return map(lambda x: x['host_name'], stat['host'])
+    return [x['host_name'] for x in hostlist(stat)]
 
 def servicenames(stat):
     """Returns a list of service names"""
-    return map(lambda x: x['service_description'], stat['service'])
+    return [x['service_description'] for x in servicelist(stat)]
 
 def groupdetail(obj, group_name):
     """Returns the group object with the specified name"""
@@ -366,8 +366,9 @@ sort_options = (
     )
 
 class FilterForm(forms.Form):
-    host = forms.CharField(required=False)
-    service = forms.CharField(required=False)
+    # The widget, attr is used to enable autocomplete on these text forms
+    host = forms.CharField(required=False, widget = forms.TextInput(attrs = { "id": "host", "class": "autocomplete"}))
+    service = forms.CharField(required=False, widget = forms.TextInput( attrs = { "id": "service", "class":"autocomplete"}))
     a_green = forms.BooleanField(required=False,initial=True,label="OKAY (green)")
     a_yellow = forms.BooleanField(required=False,initial=True,label="WARN (yellow)")
     a_red = forms.BooleanField(required=False,initial=True,label="CRITICAL (red)")
@@ -410,8 +411,7 @@ def service(request, host, service):
         raise Http404
 
     plugin_output = service_detail.get('plugin_output', '')
-    if plugin_output:
-        long_output = service_detail.get('long_plugin_output', '')
+    long_output = service_detail.get('long_plugin_output', '')
 
     service_state = service_detail.get('current_state', '')
 
@@ -573,18 +573,18 @@ def customgraph(request):
 
     t = loader.get_template('graph.html')
 
-    format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
-    typeDict = {'group': [], 'host': [], 'service': [], }
+    #format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
+    #typeDict = {'group': [], 'host': [], 'service': [], }
 
-    for match in format:
-        type = querydict.get(match[0], '').lower()
-        val = querydict.get(match[1], '')
-        if type and val:
-            typeDict[type] = val
+    #for match in format:
+    #    type = querydict.get(match[0], '').lower()
+    #    val = querydict.get(match[1], '')
+    #    if type and val:
+    #        typeDict[type] = val
 
-    group = typeDict['group']
-    host = typeDict['host']
-    service = typeDict['service']
+    group = request.GET.get("group", "")
+    host = request.GET.get("host", "")
+    service = request.GET.get("service", "")
 
     service_list = []
     end = int(time.time())
@@ -602,7 +602,7 @@ def customgraph(request):
                 x['end'] = end
                 x['period'] = 'ajax'
         else:
-            return HttpResponse('')
+            return HttpResponse(str(request.GET))
     else:
         if host:
             service_detail = servicedetail(stat, host, service)

@@ -8,18 +8,16 @@
 </form>
 </div> -->
 <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
-<select name="type0" class="type" id="type0">
-<option></option>
-<option value="group">Group</option>
-<option value="host">Host</option>
-<option value="service">Service</option>
-</select>
-<select name="value0" class="value" id="value0">
-</select>
-<br />
-<div id="options">
-</div>
-<input type="submit" value="Add" id="submit" disabled />
+<label>Host:    </label>
+<input class="autocomplete value" id="host" name="host" type="text">
+<br /> <br />
+<label>Group:   </label>
+<input class="autocomplete value" id="group" name="group" type="text">
+<br /> <br />
+<label>Service: </label>
+<input class="autocomplete value" id="service" name="service"  type="text">
+<br /> <br />
+<input type="submit" value="Add" id="submit"/>
 <input type="reset" value="Clear" />
 </form>
 <br />

@@ -26,7 +26,7 @@ urlpatterns = patterns('',
     (r'^$', 'railroad.viewhosts.views.index'),
 
     # parserrd backend
-    (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/$', 'railroad.parserrd.views.index'),
+    (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/?$', 'railroad.parserrd.views.index'),
 
     # Test functions
 #    (r'^pagetest/$', 'railroad.pagetest.views.index'),
@@ -38,13 +38,15 @@ urlpatterns = patterns('',
     (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$', 'railroad.viewhosts.views.service'),
     (r'^viewgroup/(?P<group>[^/]+)$', 'railroad.viewhosts.views.group'),
     (r'^viewgroup/(?P<group>[^/]+)/(?P<test>.+)/(?P<alias>.+)$', 'railroad.viewhosts.views.groupservice'),
-
     # Configurator and helper functions for AJAX
     (r'^c/(?P<id>\d+)$', 'railroad.viewhosts.views.directurl'),
     (r'^configurator$', 'railroad.viewhosts.views.directconfigurator'),
     (r'^configurator/graph$', 'railroad.viewhosts.views.customgraph'),
     (r'^configurator/formstate$', 'railroad.viewhosts.views.formstate'),
     (r'^configurator/generatelink$', 'railroad.viewhosts.views.generatelink'),
+
+    # Stuff for AJAX
+    (r'^ajax/autocomplete/(?P<context>\w+)$', 'railroad.ajax.views.autocomplete'),
 
     # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
     # to INSTALLED_APPS to enable admin documentation:

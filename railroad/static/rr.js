@@ -402,6 +402,11 @@ $(document).ready(function() {
     $(".graph").each(parseGraphs);
 
     /**** CONFIGURATOR SETUP ****/
+    //$('.autocomplete').autocomplete(("/railroad/ajax/autocomplete/"+ $('.autocomplete').attr('id')), 10);
+	// TODO: delete remnants (most of it) carefully!
+    $('.autocomplete').each(function () {
+        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('id'))
+    } )
 
     // Handle configurator form submissions
     $('#configurator').submit(function() {
@@ -435,15 +440,12 @@ $(document).ready(function() {
 
     // Firefox refresh is dumb and will leave the same selection, breaking
     // things. Reset our selection
-    $('#type0').attr('value', '');
    
     // Properly clear the form when someone attempts to reset it
     $('#configurator').bind('reset', function() {
         // Enable all fields
         $('[id^=type]').attr('disabled', null);
         $('[id^=value]').attr('disabled', null);
-        // Disable Add button
-        $('#submit').attr('disabled', 'disabled');
         // Remove added fields and empty the first value box 
         $('#options').empty();
         $('#value0').empty();
@@ -506,17 +508,6 @@ $(document).ready(function() {
                         // preferable to inserting raw html, and allows us to
                         // easily copy all properties of the original html
                         // template.
-                        $('#type0').clone()
-                                   .attr('id', 'type' + id)
-                                   .attr('name', 'type' + id)
-                                   .empty()
-                                   .append(new Option())
-                                   .attr('disabled', null)
-                                   .appendTo('#options');
-
-                        // Have to add a space between them
-                        $('#options').append(' ');
-
                         $('#value0').clone()
                                     .attr('id', 'value' + id)
                                     .attr('name', 'value' + id)
