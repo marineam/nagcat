@@ -154,7 +154,7 @@ class Graph(object):
                     dsconf.get('label', ds.capitalize()))
             default_color = self.color.next()
 
-        scale = int(dsconf.get('trend.scale', 0))
+        scale = float(dsconf.get('trend.scale', 0))
         if scale:
             args.append("DEF:_raw_%s=%s:%s:AVERAGE" %
                     (ds, rrd_esc(self.rrd_path), ds))
