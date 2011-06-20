@@ -21,14 +21,12 @@ import time
 import pickle
 import itertools
 
+import coil
+import rrdtool
 from django import forms
 from django.conf import settings
 from django.http import HttpResponse, HttpRequest, Http404
-from django.template import Context, loader, RequestContext
-from django.shortcuts import render_to_response
-
-import coil
-import rrdtool
+from django.template import Context, loader
 from nagcat import nagios_objects
 
 from railroad.errors import RailroadError
@@ -245,20 +243,25 @@ def add_hostlist(stat, obj, c):
 
 def index(request):
     """Returns the index page"""
+    t = loader.get_template('index.html')
     stat, obj = parse()
     context_data = {}
     context_data = add_hostlist(stat, obj, context_data)
-    return render_to_response('index.html', context_data, context_instance=request)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def error404(request):
     """Returns the 404 page"""
+    t = loader.get_template('404.html')
     stat, obj = parse()
     context_data = {}
     context_data = add_hostlist(stat, obj, context_data)
-    return render_to_response('404.html', context_data, context_instance=request)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def graphpage(request,host=None,service=None):
     """Returns a page of graphs matching specific filter criteria."""
+    t = loader.get_template('graphpage.html')
     htmltitle = "Railroad Graphs"
     pagetitle = "Railroad Graphs"
     # fake up a query if we're using Django URL arguments
@@ -304,7 +307,8 @@ def graphpage(request,host=None,service=None):
                     'pagetitle' : pagetitle,
                     }
     context_data = add_hostlist(stat, obj, context_data)
-    return render_to_response('graphpage.html', context_data, context_instance=RequestContext(request))
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def sortkey_from_rrd(service):
     """Generate a sort key for SERVICE from the latest minute of RRD values.
@@ -399,6 +403,7 @@ def host(request, host):
 
 def service(request, host, service):
     """Returns a page showing service details of specified service of host"""
+    t = loader.get_template('service.html')
     stat, obj = parse()
     service_detail = servicedetail(stat, host, service)
     host_detail = hostdetail(stat, host)
@@ -432,10 +437,12 @@ def service(request, host, service):
     }
 
     context_data = add_hostlist(stat, obj, context_data)
-    return render_to_response('service.html', context_data, context_instance=request)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def group(request, group):
     """Returns a page showing all hosts/services of the specified group"""
+    t = loader.get_template('group.html')
     stat, obj = parse()
     service_dict = {}
 
@@ -479,9 +486,10 @@ def group(request, group):
         'services': services,
         'time_interval': [start, end]
     }
-
+    
     context_data = add_hostlist(stat, obj, context_data)
-    return render_to_response(t, context_data, context_instance=request)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def groupservice(request, group, test, alias):
     """Returns a page showing all instances of specified service of group"""
@@ -531,6 +539,7 @@ def groupservice(request, group, test, alias):
 
 def form(request):
     """Returns a form for choosing group/host/service"""
+    t = loader.get_template('form.html')
     stat, obj = parse()
     group_list = grouplist(obj)
     group_list.sort(lambda x,y: cmp(x['alias'], y['alias']))
@@ -548,7 +557,8 @@ def form(request):
         'service_list': service_list,
         'time_interval': [start, end]
     }
-    return render_to_response('form.html', context_data, context_instance=request)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def customgraph(request):
     """Returns graph(s) per request
@@ -564,28 +574,25 @@ def customgraph(request):
 
     stat,obj = parse()
 
+    t = loader.get_template('graph.html')
+
     # Since we allow for multiple hosts, groups, services, getlist instead of get
     groups = request.GET.getlist("group")
     hosts = request.GET.getlist("host")
     services = request.GET.getlist("service")
 
     # Remove empty entries, i.e null strings in the list
-    groups = [x for x in groups if x]
-    hosts = [x for x in hosts if x]
-    services = [x for x in services if x]
-
     # Define as sets to remove duplicates easily, allow for some set notation later
-    hosts = set(hosts)
-    groups = set(groups)
-    services = set(services)
+    groups = set([x for x in groups if x])
+    hosts = set([x for x in hosts if x])
+    services = set([x for x in services if x])
     group_hosts = set() # Hosts under the given groups
     all_hosts = set()  # All hosts will contain all host names from host and group
     
     # Populate group_hosts with the hosts in the groups
     if groups:
         for group in groups:
-            for host in hostnames_by_group(stat,obj,group):
-                group_hosts.update([host])
+            group_hosts.update(set(hostnames_by_group(stat,obj,group)))
 
     all_hosts.update(hosts | group_hosts) if hosts | group_hosts else None
     service_list = [] #Will contain the service objects
@@ -617,7 +624,8 @@ def customgraph(request):
     context_data = {
         'loaded_graphs': service_list,
     }
-    return render_to_response('graph.html', context_data, context_instance=request)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def directurl(request, id):
     """Returns a saved page by id"""
@@ -667,6 +675,7 @@ def configurator(stat, obj, htmltitle='Configurator',            \
     Loads specified graphs, sets specified htmltitle and pagetitle, and
     displays the configurator form
     """
+    t = loader.get_template('configurator.html')
     context_data = {
         'loaded_graphs': loaded_graphs,
         'htmltitle': htmltitle,
@@ -675,7 +684,8 @@ def configurator(stat, obj, htmltitle='Configurator',            \
         'graphs': True,
     }
     context_data = add_hostlist(stat, obj, context_data)
-    return render_to_response('configurator.html', context_data, context_instance=request)
+    c = Context(context_data)
+    return HttpResponse(t.render(c))
 
 def generatelink(request):
     """Add the current page configuration to db and return its row id"""
@@ -707,7 +717,7 @@ def generatelink(request):
         link = URL(content=content)
         link.save()
         id = link.id
-    return HttpResponse(json.dumps(hostname + settings.URL_PREFIX + 'c/' + str(id)))
+    return HttpResponse(json.dumps(hostname + '/railroad/c/' + str(id)))
 
 def stripstate(state):
     """Strips names out of groups/hosts/services in state"""

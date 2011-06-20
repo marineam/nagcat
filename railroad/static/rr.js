@@ -402,6 +402,7 @@ $(document).ready(function() {
     $(".graph").each(parseGraphs);
 
     /**** CONFIGURATOR SETUP ****/
+    // used to make multiple host inputs for configurator
     $('#hostadd').click(function () {
         var num = $('.clonedHost').length;
         var newNum = Number (num + 1); 
@@ -409,12 +410,13 @@ $(document).ready(function() {
         newElem.children(':first').attr('id', 'host' + newNum).attr('name', 'host');
         newElem.children(':first').val('');
         $('#hostdiv' + num).after(newElem);
+
         $('.autocomplete').each(function () {
-        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
+            $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
         } );
     }); 
 
-            // used to make multiple group inputs for configurator
+    // used to make multiple group inputs for configurator
     $('#groupadd').click(function () {
         var num = $('.clonedGroup').length;
         var newNum = Number (num + 1); 
@@ -422,8 +424,9 @@ $(document).ready(function() {
         newElem.children(':first').attr('id', 'group' + newNum).attr('name', 'group');
         newElem.children(':first').val('');
         $('#groupdiv' + num).after(newElem);
+
         $('.autocomplete').each(function () {
-        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
+            $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
         } );
     });
 
@@ -435,10 +438,12 @@ $(document).ready(function() {
         newElem.children(':first').attr('id', 'service' + newNum).attr('name', 'service');
         newElem.children(':first').val('');
         $('#servicediv' + num).after(newElem);
+
         $('.autocomplete').each(function () {
-        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
+            $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
         });
     });
+
 
     // TODO: make form submission remove cloned inputs, keep originals.
 	// TODO: delete remnants (most of it) carefully!
@@ -446,12 +451,17 @@ $(document).ready(function() {
         $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('id'))
     } )
 
+    $('#cleargraphs').click(function () {
+        $('.service_row').remove();
+        $('#configurator').data('changed', true);
+    });
     // Handle configurator form submissions
     $('#configurator').submit(function() {
         $(this).append('<div class="throbber"></div>');
         // Enable the fields again so they can be submitted
         $('[id^=type]').attr('disabled', null);
         $('[id^=value]').attr('disabled', null);
+
 
         fields = $('#configurator').formSerialize();
         $.ajax({
@@ -472,6 +482,22 @@ $(document).ready(function() {
             }
         });
         $('#configurator').data('changed', true);
+        // Delete extra cloned buttons
+        var cloned_hosts = $('.clonedHost').length;
+        var cloned_groups = $('.clonedGroup').length;
+        var cloned_services = $('.clonedService').length;
+
+        for (var i=cloned_hosts; i >1; i--) {
+            $('#hostdiv' + i).remove();
+        }
+
+        for (var i=cloned_groups; i > 1; i--) {
+            $('#groupdiv' + i).remove();
+        }
+
+        for (var i=cloned_services; i > 1; i--) {
+            $('#servicediv' + i).remove();
+        }
         // Prevent normal form submission
         return false;
     });
