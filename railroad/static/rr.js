@@ -579,7 +579,7 @@ $(document).ready(function() {
     });
 
     expand_img = '/railroad-static/img/expand.png';
-    collapse_img = '/railroad-static/img/contract.png'
+    collapse_img = '/railroad-static/img/collapse.png'
     $('.collapse').live('click', function() {
         // Hide the graph
         $(this).parents().siblings('.graph_container').children().css('display', 'none');
