@@ -319,7 +319,7 @@ def fetch_current_rrd_data(service,interval=60,aggregate='AVERAGE'):
                            service['service_description'])
     if not os.path.exists(rrd):
         # there's no RRD file for state-only checks so return a dummy list
-        end = int(time.time)
+        end = int(time.time())
         start = end - interval
         return [(start,end,interval),
                 ('dummy1','dummy2'),
