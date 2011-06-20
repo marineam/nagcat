@@ -402,7 +402,45 @@ $(document).ready(function() {
     $(".graph").each(parseGraphs);
 
     /**** CONFIGURATOR SETUP ****/
-    //$('.autocomplete').autocomplete(("/railroad/ajax/autocomplete/"+ $('.autocomplete').attr('id')), 10);
+    $('#hostadd').click(function () {
+        var num = $('.clonedHost').length;
+        var newNum = Number (num + 1); 
+        var newElem = $('#hostdiv' + num).clone().attr('id', 'hostdiv' + newNum);
+        newElem.children(':first').attr('id', 'host' + newNum).attr('name', 'host');
+        newElem.children(':first').val('');
+        $('#hostdiv' + num).after(newElem);
+        $('.autocomplete').each(function () {
+        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
+        } );
+    }); 
+
+            // used to make multiple group inputs for configurator
+    $('#groupadd').click(function () {
+        var num = $('.clonedGroup').length;
+        var newNum = Number (num + 1); 
+        var newElem = $('#groupdiv' + num).clone(false).attr('id', 'groupdiv' + newNum);
+        newElem.children(':first').attr('id', 'group' + newNum).attr('name', 'group');
+        newElem.children(':first').val('');
+        $('#groupdiv' + num).after(newElem);
+        $('.autocomplete').each(function () {
+        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
+        } );
+    });
+
+    // used to make multiple service inputs for configurator
+    $('#serviceadd').click(function () {
+        var num = $('.clonedService').length;
+        var newNum = Number (num + 1);
+        var newElem = $('#servicediv' + num).clone(false).attr('id', 'servicediv' + newNum);
+        newElem.children(':first').attr('id', 'service' + newNum).attr('name', 'service');
+        newElem.children(':first').val('');
+        $('#servicediv' + num).after(newElem);
+        $('.autocomplete').each(function () {
+        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('name'))
+        });
+    });
+
+    // TODO: make form submission remove cloned inputs, keep originals.
 	// TODO: delete remnants (most of it) carefully!
     $('.autocomplete').each(function () {
         $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('id'))

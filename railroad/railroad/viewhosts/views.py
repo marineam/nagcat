@@ -19,6 +19,7 @@ import sys
 import re
 import time
 import pickle
+import itertools
 
 import coil
 import rrdtool
@@ -564,66 +565,66 @@ def customgraph(request):
 
     Graphs can be specified by:
     Host - all services possessed by host
+    Group - All services of all hosts in the group
+    Service - All hosts with the specified service(s)
     Host & Service - service of host
     Group & Service - all instances of service in group
+    Host & Group & Service - All chosen services of all chosen hosts
     """
-    querydict = request.GET
 
     stat,obj = parse()
 
     t = loader.get_template('graph.html')
 
-    #format = [('type0','value0'), ('type1','value1'), ('type2','value2')]
-    #typeDict = {'group': [], 'host': [], 'service': [], }
+    # Since we allow for multiple hosts, groups, services, getlist instead of get
+    groups = request.GET.getlist("group")
+    hosts = request.GET.getlist("host")
+    services = request.GET.getlist("service")
 
-    #for match in format:
-    #    type = querydict.get(match[0], '').lower()
-    #    val = querydict.get(match[1], '')
-    #    if type and val:
-    #        typeDict[type] = val
+    # Remove empty entries, i.e null strings in the list
+    groups = [x for x in groups if x]
+    hosts = [x for x in hosts if x]
+    services = [x for x in services if x]
 
-    group = request.GET.get("group", "")
-    host = request.GET.get("host", "")
-    service = request.GET.get("service", "")
+    # Define as sets to remove duplicates easily, allow for some set notation later
+    hosts = set(hosts)
+    groups = set(groups)
+    services = set(services)
+    group_hosts = set() # Hosts under the given groups
+    all_hosts = set()  # All hosts will contain all host names from host and group
+    
+    # Populate group_hosts with the hosts in the groups
+    if groups:
+        for group in groups:
+            for host in hostnames_by_group(stat,obj,group):
+                group_hosts.update([host])
 
-    service_list = []
-    end = int(time.time())
-    start = end - DAY
+    all_hosts.update(hosts | group_hosts) if hosts | group_hosts else None
+    service_list = [] #Will contain the service objects
+    end = int(time.time()) # For graphing
+    start = end - DAY #For graphing
 
-    if not(service):
-        if host:
-            service_list = servicelist_by_host(stat, host)
-            service_list.sort(lambda x, y:  \
-                cmp(x['service_description'], y['service_description']))
-            for x in service_list:
-                x['is_graphable'] = \
-                    is_graphable(host, x['service_description'])
-                x['start'] = start
-                x['end'] = end
-                x['period'] = 'ajax'
-        else:
-            return HttpResponse(str(request.GET))
-    else:
-        if host:
-            service_detail = servicedetail(stat, host, service)
-            service_detail['is_graphable'] = is_graphable(host, service)
-            service_detail['start'] = start
-            service_detail['end'] = end
-            service_detail['period'] = 'ajax'
-            service_list = [service_detail]
-        elif group:
-            target = hostnames_by_group(stat, obj, group)
-            all_services = servicelist(stat)
+    # Given hosts and no services, we want to get all services for those hosts.
+    if all_hosts and not services:
+        for host in all_hosts:
+            for service in servicelist_by_host(stat,host):
+                service_list.append(service)
+    # Given no hosts and services, we want to get all hosts for those services.
+    # Given hosts and services, we want to start by getting all of the hosts with the services listed, and then will later filter out the hosts we don't want
+    if (not all_hosts and services) or (all_hosts and services):
+        for service in services:
+            for host in hostlist_by_service(stat,service):
+                service_list.append(servicedetail(stat,host['host_name'],service))
+    # Given hosts and services, we already have a list of all hosts for the listed services, we want to filter out hosts that weren't listed.
+    if all_hosts and services:
+        service_list = [service for service in service_list if (lambda x: x in all_hosts) (service['host_name'])]
 
-            service_list = [s for s in all_services \
-                if s['service_description'] == service  \
-                    and s['host_name'] in target]
-            for x in service_list: 
-                x['is_graphable'] = \
-                    is_graphable(x['host_name'], x['service_description'])
-                x['start'] = start
-                x['end'] = end
-                x['period'] = 'ajax'
+    # Find out whether each service object is graphable or not
+    for service in service_list:
+        service['is_graphable'] = is_graphable(service['host_name'], service['service_description'])
+        service['start']  = start
+        service['end']    = end
+        service['period'] = 'ajax'
 
     context_data = {
         'loaded_graphs': service_list,
