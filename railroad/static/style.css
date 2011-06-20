@@ -112,6 +112,13 @@ body {
 	background-color: tomato;
 }
 
+.state_ok       { background-color: #BFB; }
+.state_warning  { background-color: #FFB; }
+.state_critical { background-color: #FF6347; }
+.state_unknown  { background-color: #CCC; }
+
+td.status_text { width: 500px; }
+
 /* Graph styling */
 .graph {
 	width: 500px;

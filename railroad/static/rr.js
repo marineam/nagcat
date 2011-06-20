@@ -394,7 +394,7 @@ $(document).ready(function() {
                             $(graph).closest('.graph_container')
                                     .find(buttonClass)
                                     .addClass('selected');
-                        });      
+                        });
         });
     });
 
@@ -540,6 +540,37 @@ $(document).ready(function() {
         $('#configurator').data('changed', true);
     });
 
+    expand_img = '/railroad-static/img/expand.png';
+    collapse_img = '/railroad-static/img/contract.png'
+    $('.collapse').live('click', function() {
+        // Hide the graph
+        $(this).parents().siblings('.graph_container').children().css('display', 'none');
+
+        // change the button to expand
+        $(this).removeClass('collapse');
+        $(this).addClass('expand');
+        $(this).children('img').attr('src', expand_img);
+
+        // minimize the text
+        $(this).parents().siblings('.status_text').css('font-size', '0em');
+        $(this).parents().siblings('.status_text').children('h2').css('display', 'inline');
+        $(this).parents().siblings('.status_text').children('h2').css('margin-right', '15px');
+    });
+    $('.expand').live('click', function() {
+        // Show the graph
+        $(this).parents().siblings('.graph_container').children().css('display', 'block');
+
+        // change the button to collapse
+        $(this).removeClass('expand');
+        $(this).addClass('collapse');
+        $(this).children('img').attr('src', collapse_img);
+
+        // minimize the text
+        $(this).parents().siblings('.status_text').css('font-size', '1em');
+        $(this).parents().siblings('.status_text').children('h2').css('display', 'block');
+        $(this).parents().siblings('.status_text').children('h2').css('margin', '0px');
+    });
+
     // Handle configurator link generation
     $('#static').click(function() {
         function paint_link(data) {
@@ -646,4 +677,3 @@ $(document).ready(function() {
     setTimeout(autoFetchData, 60 * 1000);
 
 });
-
