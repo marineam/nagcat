@@ -117,7 +117,12 @@ body {
 .state_critical { background-color: #FF6347; }
 .state_unknown  { background-color: #CCC; }
 
+#graphs { border-collapse: collapse; }
+
+td.controls { vertical-align: top }
+td.controls div { margin-top: 15px; }
 td.status_text { width: 500px; }
+td.graph_container { width: 540px; text-align: center; }
 
 /* Graph styling */
 .graph {
@@ -152,8 +157,8 @@ td.status_text { width: 500px; }
 	top: -7px;
 }
 .ylabel {
-	position: absolute;
-	top: 200px;
+	position: relative;
+	top: 250px;
 	width: 200px;
 	left: 10px;
 	text-align: center;
@@ -166,9 +171,6 @@ td.status_text { width: 500px; }
 	transform: rotate(-90deg);
 	transform-origin: left;
 	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
-}
-.ylabel span {
-	background-color: #F0F0F0;
 	padding: 5px;
 }
 .ajax_info {
@@ -187,11 +189,6 @@ td.status_text { width: 500px; }
 }
 .toggle, .options ul li {
 	cursor: pointer;
-}
-.options {
-	position: absolute;
-	top: -15px;
-	left: 0;
 }
 .options ul {
 	padding: 0;

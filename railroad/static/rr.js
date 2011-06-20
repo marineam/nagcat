@@ -167,9 +167,11 @@ function createGraph(element, path, callback, zoom) {
                     $(element).data('end',
                                     data.end);
                     if(data.options.yaxis.label) {
-                        $(element).before('<div class="ylabel"><span>' +
-                                          data.options.yaxis.label +
-                                          '</span></div>');
+                        // if there isn't already a ylabel
+                        if ($(element).siblings('.ylabel').length == 0) {
+                            $(element).before('<div class="ylabel">' +
+                                              data.options.yaxis.label + '</div>');
+                        }
                     }
                     if(data.empty == true) {
                         $(element).append('<div class="empty">no data</div>');
@@ -607,32 +609,24 @@ $(document).ready(function() {
     expand_img = '/railroad-static/img/expand.png';
     collapse_img = '/railroad-static/img/collapse.png'
     $('.collapse').live('click', function() {
-        // Hide the graph
-        $(this).parents().siblings('.graph_container').children().css('display', 'none');
+        // Hide the graph and status text
+        $(this).parents().siblings('.graph_container').children().hide(200);
+        $(this).parents().siblings('.status_text').children('p').hide(200);
 
         // change the button to expand
         $(this).removeClass('collapse');
         $(this).addClass('expand');
         $(this).children('img').attr('src', expand_img);
-
-        // minimize the text
-        $(this).parents().siblings('.status_text').css('font-size', '0em');
-        $(this).parents().siblings('.status_text').children('h2').css('display', 'inline');
-        $(this).parents().siblings('.status_text').children('h2').css('margin-right', '15px');
     });
     $('.expand').live('click', function() {
-        // Show the graph
-        $(this).parents().siblings('.graph_container').children().css('display', 'block');
+        // Show the graph and status text
+        $(this).parents().siblings('.graph_container').children().show(200);
+        $(this).parents().siblings('.status_text').children('p').show(200);
 
         // change the button to collapse
         $(this).removeClass('expand');
         $(this).addClass('collapse');
         $(this).children('img').attr('src', collapse_img);
-
-        // minimize the text
-        $(this).parents().siblings('.status_text').css('font-size', '1em');
-        $(this).parents().siblings('.status_text').children('h2').css('display', 'block');
-        $(this).parents().siblings('.status_text').children('h2').css('margin', '0px');
     });
 
     // Handle configurator link generation

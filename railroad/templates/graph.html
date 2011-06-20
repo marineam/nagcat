@@ -1,26 +1,26 @@
 {% for graph in loaded_graphs %}
     <tr class="service_row">
-    <td>
+    <td class="controls">
         <div class="collapse"><img alt="Collapse" src="/railroad-static/img/collapse.png"/></div>
         {# TODO: Kind of odd place for this? #}
         <a href="{{graph.host_name}}/{{graph.service_description}}" class="service_data"></a>
     </td>
     {% ifequal graph.current_state '0' %}
-        <td class="state_ok">
+        <td class="status_text state_ok">
     {% endifequal %}
     {% ifequal graph.current_state '1' %}
-        <td class="state_warning">
+        <td class="status_text state_warning">
     {% endifequal %}
     {% ifequal graph.current_state '2' %}
-        <td class="state_critical">
+        <td class="status_text state_critical">
     {% endifequal %}
     {% ifequal graph.current_state '3' %}
-        <td class="state_unknown">
+        <td class="status_text state_unknown">
     {% endifequal %}
 
         <h2><a href="{% url railroad.viewhosts.views.graphpage graph.host_name %}">{{graph.host_name}}</a></h2>
         <h2><a href="{% url railroad.viewhosts.views.service graph.host_name graph.service_description %}">{{graph.service_description}}</a></h2>
-        {{graph.plugin_output}}
+        <p>{{graph.plugin_output}}</p>
     </td>
 
     {% if graph.is_graphable %}
@@ -58,7 +58,7 @@
             <div class="legend"></div>
         </td>
     {% else %}
-        <td class="no_graph">No graph</td>
+        <td class="graph_container">No graph</td>
     {% endif %}
     
     </tr>
