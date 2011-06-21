@@ -177,9 +177,11 @@ function createGraph(element, path, callback, zoom) {
                         $(element).append('<div class="empty">no data</div>');
                     }
 
-                    update = $(element).closest('.graph_container')
-                                       .find('.update');
-                    update.html('updated: ' + data.current_time);
+                    update = $(element).closest('.graph_container') .find('.update')
+                                 .html('updated: ' + data.current_time);
+
+                    // get the graphs collapsed/expanded as they should be.
+                    $('fieldset#autocollapse').children().trigger('change');
 
                     if(callback != null) {
                         callback(data);
@@ -463,29 +465,53 @@ $(document).ready(function() {
         return false;
     });
 
-
-    expand_img = '/railroad-static/img/expand.png';
-    collapse_img = '/railroad-static/img/collapse.png'
-    $('.collapse').live('click', function() {
+    function collapse_row(row) {
         // Hide the graph and status text
-        $(this).parents().siblings('.graph_container').children().hide(200);
-        $(this).parents().siblings('.status_text').children('p').hide(200);
+        $(row).children('.graph_container').children().hide(200);
+        $(row).children('.status_text').children('p').hide(200);
 
         // change the button to expand
-        $(this).removeClass('collapse');
-        $(this).addClass('expand');
-        $(this).children('img').attr('src', expand_img);
+        $(row).children('.controls').children('div').removeClass('collapse');
+        $(row).children('.controls').children('div').addClass('expand');
+    }
+    function expand_row(row) {
+        // Hide the graph and status text
+        $(row).children('.graph_container').children().show(200);
+        $(row).children('.status_text').children('p').show(200);
+
+        // change the button to expand
+        $(row).children('.controls').children('div').removeClass('expand');
+        $(row).children('.controls').children('div').addClass('collapse');
+    }
+
+    $('.collapse').live('click', function() {
+        collapse_row($(this).parents().parents().first());
     });
     $('.expand').live('click', function() {
-        // Show the graph and status text
-        $(this).parents().siblings('.graph_container').children().show(200);
-        $(this).parents().siblings('.status_text').children('p').show(200);
-
-        // change the button to collapse
-        $(this).removeClass('expand');
-        $(this).addClass('collapse');
-        $(this).children('img').attr('src', collapse_img);
+        expand_row($(this).parents().parents().first());
     });
+
+    // *************************** Auto collapse ***************************
+    // set up events on each checkbox to collapse/expand the service_rows to
+    // match the current state of the checkbox.
+    $('fieldset#autocollapse').children().bind('change', function() {
+        var checkbox = this;
+        $('.service_row').each(function(index, element) {
+            if ($(element).find('*').hasClass($(checkbox).attr('name'))) {
+                if ($(checkbox).prop('checked')) {
+                    expand_row(element);
+                } else {
+                    collapse_row(element);
+                }
+            }
+        });
+    });
+
+    // TODO: This should pull from sort of preferences
+    $('[name=state_ok]').prop('checked', false);
+    $('[name=state_warning]').prop('checked', true);
+    $('[name=state_critical]').prop('checked', true);
+    $('[name=state_unknown]').prop('checked', true);
 
     // Handle configurator link generation
     $('#static').click(function() {

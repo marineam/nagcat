@@ -1,30 +1,38 @@
-<h3>Filters:</h3>
-<!-- <div style="float: right">
-<form name="sort" action="{#{% url railroad.viewhosts.views.sort %}#}" method="get" id="configurator">
-<select name="sortBy" id="sortBy">
-<option></option>
-</select>
-<input type="submit" value="Sort" id="sort" />
-</form>
-</div> -->
-<form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
-<div id="hostdiv1" class="clonedHost ui-widget">
-<label for="host">Host: </label>
-<input class="autocomplete value" id="host" name="host" type="text">
+<div id="service_controls">
+    <div id="service_selector">
+        <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
+            <ol>
+                <li>
+                    <label for="host">Host</label>
+                    <input class="autocomplete value" id="host" name="host" type="text">
+                </li>
+
+                <li>
+                    <label for="group">Group</label>
+                    <input class="autocomplete value" id="group" name="group" type="text">
+                </li>
+
+                <li>
+                    <label for="service">Service</label>
+                    <input class="autocomplete value" id="service" name="service" type="text">
+                </li>
+
+                <li>
+                    <input type="submit" value="Add" id="submit"/>
+                    <input type="reset" value="Clear Forms" />
+                    <input type="button" value="Clear Graphs" id="cleargraphs">
+                </li>
+            </ol>
+        </form>
+    </div>
+    <div id="service_options">
+        <form>
+            <fieldset id="autocollapse">
+                <legend>Expand all</legend>
+                <input type="checkbox" name="state_ok">OK</input>
+                <input type="checkbox" name="state_warning">Warning</input>
+                <input type="checkbox" name="state_critical">Critical</input>
+                <input type="checkbox" name="state_unknown">Unknown</input>
+            </fieldset>
+    </div>
 </div>
-<br /> 
-<div id="groupdiv1" class="ui-widget">
-Group: <input class="autocomplete value" id="group" name="group" type="text">
-</div>
-</div>
-<br /> 
-<div id="servicediv1" class="clonedService ui-widget">
-Service: <input class="autocomplete value cloneInput" id="service" name="service"  type="text">
-</div>
-<br /> 
-<input type="submit" value="Add" id="submit"/>
-<input type="reset" value="Clear Forms" />
-<input type="button" value="Clear Graphs" id="cleargraphs">
-</form>
-<br />
-<br />

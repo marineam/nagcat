@@ -112,6 +112,17 @@ body {
 	background-color: tomato;
 }
 
+.collapse, .expand {
+	width: 16px;
+	height: 16px;
+}
+.collapse {
+	background-image: url("/railroad-static/img/collapse.png");
+}
+.expand {
+	background-image: url("/railroad-static/img/expand.png");
+}
+
 .state_ok       { background-color: #BFB; }
 .state_warning  { background-color: #FFB; }
 .state_critical { background-color: #FF6347; }
@@ -247,14 +258,30 @@ pre {
 }
 
 /* Configurator */
+#service_controls {
+       overflow: hidden;
+}
+#service_selector, #service_options {
+       float: left;
+       margin: 10px;
+}
+#configurator ol li {
+       list-style: none outside none;
+       margin: 5px;
+       overflow: hidden;
+}
+#configurator ol li label {
+       width: 75px;
+       float: left;
+}
+#configurator ol li input {
+       float: left;
+}
+/* Filtering */
+
 .type select {
 	/* Seems buggy in many browsers, doing in Python for now */
 	text-transform: capitalize;
-}
-.delete {
-	font-weight: bold;
-	color: red;
-	cursor: pointer;
 }
 
 .filterform th { 
