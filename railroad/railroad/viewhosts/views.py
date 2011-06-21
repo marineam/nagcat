@@ -577,15 +577,15 @@ def customgraph(request):
     t = loader.get_template('graph.html')
 
     # Since we allow for multiple hosts, groups, services, getlist instead of get
-    groups = request.GET.getlist("group")
-    hosts = request.GET.getlist("host")
-    services = request.GET.getlist("service")
+    groups = request.GET.get("group")
+    hosts = request.GET.get("host")
+    services = request.GET.get("service")
 
     # Remove empty entries, i.e null strings in the list
     # Define as sets to remove duplicates easily, allow for some set notation later
-    groups = set([x for x in groups if x])
-    hosts = set([x for x in hosts if x])
-    services = set([x for x in services if x])
+    groups = set([x.strip() for x in groups.split(',') if x.strip()])
+    hosts  = set([x.strip() for x in hosts.split(',') if x.strip()])
+    services = set([x.strip() for x in services.split(',') if x.strip()])
     group_hosts = set() # Hosts under the given groups
     all_hosts = set()  # All hosts will contain all host names from host and group
     

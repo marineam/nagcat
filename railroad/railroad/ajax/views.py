@@ -1,13 +1,25 @@
 from django.http import HttpResponse
 from railroad.viewhosts import views
+import itertools
 
 def autocomplete(request, context):
-    query = request.GET.get('q', '').lower()
+    query = request.GET.get('q', '')
     limit = int(request.GET.get('limit', 10))
+
 
     stat, obj = views.parse()
 
     choices = []
+    queries = []
+    q_results = []
+    result = ""
+
+    if len(query.split(',')) > 1:
+        queries = query.split(',')
+    else:
+        queries = [query]
+
+    queries = [q.strip() for q in queries if q.strip()]
 
     if context == 'host':
         choices = views.hostnames(stat)
@@ -16,9 +28,10 @@ def autocomplete(request, context):
     elif context == 'service':
         choices = views.servicenames(stat)
 
-    matching_names = [x for x in choices if x.lower().startswith(query)]
-
-    result = '\n'.join(matching_names[:limit])
-
-
+    for q in queries:
+        matching_names = [x for x in choices if x.lower().startswith(q)]
+        q_results.append(matching_names)
+    results = itertools.product(*q_results)
+    results = [','.join(result) for result in results]
+    result = '\n'.join(results)
     return HttpResponse(result)
