@@ -26,7 +26,9 @@ def autocomplete(request, context):
     elif context == 'group':
         choices = [x['alias'] for x in views.grouplist(obj)]
     elif context == 'service':
-        choices = views.servicenames(stat)
+        # servicesnames will return services with the sane name for different hosts, so
+        # we make it a set to get rid of duplicate names
+        choices = set(views.servicenames(stat))
 
     for q in queries:
         matching_names = [x for x in choices if x.lower().startswith(q)]
