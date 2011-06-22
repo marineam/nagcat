@@ -405,14 +405,17 @@ $(document).ready(function() {
 
     /**** CONFIGURATOR SETUP ****/
 	// TODO: delete remnants (most of it) carefully!
-    $('.autocomplete').each(function () {
-        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('id'))
-    } )
+
+    // Autocomplete anything with class = "... autocomplete ..."
+    $('.autocomplete').each(function () { 
+        $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" + $(this).attr('name' ), minLength : 1})
+    });
 
     $('#cleargraphs').click(function () {
         $('.service_row').remove();
         $('#configurator').data('changed', true);
     });
+
     // Handle configurator form submissions
     $('#configurator').submit(function() {
         $(this).append('<div class="throbber"></div>');

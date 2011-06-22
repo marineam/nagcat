@@ -1,9 +1,10 @@
 from django.http import HttpResponse
 from railroad.viewhosts import views
 import itertools
+import json
 
 def autocomplete(request, context):
-    query = request.GET.get('q', '')
+    query = request.GET.get('term', '')
     limit = int(request.GET.get('limit', 10))
 
 
@@ -12,7 +13,7 @@ def autocomplete(request, context):
     choices = []
     queries = []
     q_results = []
-    result = ""
+    res = {}
 
     if len(query.split(',')) > 1:
         queries = query.split(',')
@@ -35,5 +36,5 @@ def autocomplete(request, context):
         q_results.append(matching_names)
     results = itertools.product(*q_results)
     results = [','.join(result) for result in results]
-    result = '\n'.join(results)
-    return HttpResponse(result)
+    result = [ { "value" : r, "id": r, "label": r } for r in results ] 
+    return HttpResponse(json.dumps(result))

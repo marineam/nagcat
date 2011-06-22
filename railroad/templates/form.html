@@ -8,14 +8,17 @@
 </form>
 </div> -->
 <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
-<div id="hostdiv1" class="clonedHost">
-Host: <input class="autocomplete value" id="host" name="host" type="text">
+<div id="hostdiv1" class="clonedHost ui-widget">
+<label for="host">Host: </label>
+<input class="autocomplete value" id="host" name="host" type="text">
 </div>
 <br /> 
+<div id="groupdiv1" class="ui-widget">
 Group: <input class="autocomplete value" id="group" name="group" type="text">
 </div>
+</div>
 <br /> 
-<div id="servicediv1" class="clonedService">
+<div id="servicediv1" class="clonedService ui-widget">
 Service: <input class="autocomplete value cloneInput" id="service" name="service"  type="text">
 </div>
 <br /> 

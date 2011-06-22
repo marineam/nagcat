@@ -1,3 +1,6 @@
 *.pyc
 _trial_temp
+railroad/sample/django.wsgi
+railroad/railroad/settings.py
 dropin.cache
+*.swp

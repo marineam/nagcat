@@ -19,7 +19,6 @@ import sys
 import re
 import time
 import pickle
-import itertools
 
 import coil
 import rrdtool
@@ -577,15 +576,15 @@ def customgraph(request):
     t = loader.get_template('graph.html')
 
     # Since we allow for multiple hosts, groups, services, getlist instead of get
-    groups = request.GET.get("group")
-    hosts = request.GET.get("host")
-    services = request.GET.get("service")
+    groups = request.GET.getlist("group")
+    hosts = request.GET.getlist("host")
+    services = request.GET.getlist("service")
 
     # Remove empty entries, i.e null strings in the list
     # Define as sets to remove duplicates easily, allow for some set notation later
-    groups = set([x.strip() for x in groups.split(',') if x.strip()])
-    hosts  = set([x.strip() for x in hosts.split(',') if x.strip()])
-    services = set([x.strip() for x in services.split(',') if x.strip()])
+    groups   = set([group.strip() for val in groups for group in val.split(',') if group.strip()])
+    hosts   = set([host.strip() for val in hosts for host in val.split(',') if host.strip()])
+    services   = set([service.strip() for val in services for service in val.split(',') if service.strip()])
     group_hosts = set() # Hosts under the given groups
     all_hosts = set()  # All hosts will contain all host names from host and group
     
