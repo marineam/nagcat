@@ -36,5 +36,5 @@ def autocomplete(request, context):
         q_results.append(matching_names)
     results = itertools.product(*q_results)
     results = [','.join(result) for result in results]
-    result = [ { "value" : r, "id": r, "label": r } for r in results ] 
+    result = [ { "value" : r } for r in results ] 
     return HttpResponse(json.dumps(result))
