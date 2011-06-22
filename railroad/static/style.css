@@ -59,6 +59,19 @@ body {
 	z-index: 5;
 }
 
+/* General stuff */
+.hint {
+    padding: 3px;
+    border: 1px solid #FC4;
+    background-color: #FFB;
+    color: #444;
+    font-size: .7em;
+}
+
+.hint:before {
+    content: "Hint: "
+}
+
 /* Content and sidebars */
 #content {
 	margin: 10px;
@@ -275,8 +288,9 @@ pre {
        width: 75px;
        float: left;
 }
-#configurator ol li input {
+#configurator ol li input[type=text] {
        float: left;
+       width: 400px;
 }
 /* Filtering */
 

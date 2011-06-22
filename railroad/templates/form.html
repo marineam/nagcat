@@ -3,19 +3,23 @@
         <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
             <ol>
                 <li>
-                    <label for="host">Host</label>
+                    <label for="host">Hosts</label>
                     <input class="autocomplete value" id="host" name="host" type="text">
                 </li>
 
                 <li>
-                    <label for="group">Group</label>
+                    <label for="group">Groups</label>
                     <input class="autocomplete value" id="group" name="group" type="text">
                 </li>
 
                 <li>
-                    <label for="service">Service</label>
+                    <label for="service">Services</label>
                     <input class="autocomplete value" id="service" name="service" type="text">
                 </li>
+
+                <p>
+                    <span class="hint">You can autocomplete multiple comma seperated values at a time.</span>
+                </p>
 
                 <li>
                     <input type="submit" value="Add" id="submit"/>
