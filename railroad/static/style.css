@@ -131,7 +131,7 @@ body {
 #graphs { border-collapse: collapse; }
 
 td.controls { vertical-align: top }
-td.controls div { margin-top: 15px; }
+td.controls div { margin-top: 3px; }
 td.status_text { width: 500px; }
 td.graph_container { width: 540px; text-align: center; }
 
@@ -239,6 +239,7 @@ td.graph_container { width: 540px; text-align: center; }
 .services h2 {
 	font-size: 14pt;
 	margin: 0;
+    margin-right: 10px;
 }
 .services {
 	font-size: 10pt;
