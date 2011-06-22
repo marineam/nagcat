@@ -28,11 +28,18 @@
     <div id="service_options">
         <form>
             <fieldset id="autocollapse">
-                <legend>Expand all</legend>
-                <input type="checkbox" name="state_ok">OK</input>
-                <input type="checkbox" name="state_warning">Warning</input>
-                <input type="checkbox" name="state_critical">Critical</input>
-                <input type="checkbox" name="state_unknown">Unknown</input>
+                <legend>Expansion</legend>
+                <div id="expansion_by_type">
+                    <label>Expand All</label>
+                    <input type="checkbox" name="state_ok">OK</input>
+                    <input type="checkbox" name="state_warning">Warning</input>
+                    <input type="checkbox" name="state_critical">Critical</input>
+                    <input type="checkbox" name="state_unknown">Unknown</input>
+                </div>
+                <div id="expansion_mass">
+                    <input type="button" value="Expand All" id="expandall" />
+                    <input type="button" value="Collapse All" id="collapseall" />
+                </div>
             </fieldset>
     </div>
 </div>

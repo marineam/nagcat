@@ -181,7 +181,7 @@ function createGraph(element, path, callback, zoom) {
                                  .html('updated: ' + data.current_time);
 
                     // get the graphs collapsed/expanded as they should be.
-                    $('fieldset#autocollapse').children().trigger('change');
+                    $('#expansion_by_type').children().trigger('change');
 
                     if(callback != null) {
                         callback(data);
@@ -465,6 +465,7 @@ $(document).ready(function() {
         return false;
     });
 
+    // **********  Functions to collapse rows **************
     function collapse_row(row) {
         // Hide the graph and status text
         $(row).children('.graph_container').children().hide(200);
@@ -484,6 +485,17 @@ $(document).ready(function() {
         $(row).children('.controls').children('div').addClass('collapse');
     }
 
+    $('#expandall').click(function() {
+        $('tr.service_row').each(function(index, row) {
+            expand_row(row);
+        });
+    });
+    $('#collapseall').click(function() {
+        $('tr.service_row').each(function(index, row) {
+            collapse_row(row);
+        });
+    });
+
     $('.collapse').live('click', function() {
         collapse_row($(this).parents().parents().first());
     });
@@ -494,7 +506,7 @@ $(document).ready(function() {
     // *************************** Auto collapse ***************************
     // set up events on each checkbox to collapse/expand the service_rows to
     // match the current state of the checkbox.
-    $('fieldset#autocollapse').children().bind('change', function() {
+    $('#expansion_by_type').children().bind('change', function() {
         var checkbox = this;
         $('.service_row').each(function(index, element) {
             if ($(element).find('*').hasClass($(checkbox).attr('name'))) {
