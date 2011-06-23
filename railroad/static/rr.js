@@ -507,7 +507,7 @@ $(document).ready(function() {
     $('#clearform').bind('click', function () {
         $('#host').val("");
         $('#group').val("");
-        $('service').val("");
+        $('#service').val("");
     });
 
     // Handle configurator form submissions
