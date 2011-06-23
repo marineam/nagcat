@@ -77,6 +77,9 @@ body {
     right: 5px;
     color: #D32;
     cursor: pointer;
+    width: 16px;
+    height: 16px;
+    background-image: url("/railroad-static/img/remove.png");
 }
 
 /* Content and sidebars */
@@ -132,15 +135,18 @@ body {
 	background-color: tomato;
 }
 
-.collapse, .expand {
+.collapse_row, .expand_row {
 	width: 16px;
 	height: 16px;
 }
-.collapse {
+.collapse_row {
 	background-image: url("/railroad-static/img/collapse.png");
 }
-.expand {
+.expand_row {
 	background-image: url("/railroad-static/img/expand.png");
+}
+.remove_row {
+	background-image: url("/railroad-static/img/remove.png");
 }
 
 .state_ok       { background-color: #BFB; }

@@ -517,27 +517,27 @@ $(document).ready(function() {
         return false;
     });
 
-    // **********  Functions to collapse rows **************
-    var collapse_time = 250;
+    // **********  Functions to manipulate rows **************
+    var animate_time = 250;
     function collapse_row(row) {
         // Hide the graph and status text
-        $(row).children('.graph_container').children().hide(collapse_time);
-        $(row).children('.status_text').children('p').hide(collapse_time);
+        $(row).children('.graph_container').children().hide(animate_time);
+        $(row).children('.status_text').children('p').hide(animate_time);
         $(row).children('.status_text').children('h2').css({'display': 'inline'});
 
         // change the button to expand
-        $(row).children('.controls').children('div').removeClass('collapse');
-        $(row).children('.controls').children('div').addClass('expand');
+        $(row).children('.controls').children('div').removeClass('collapse_row');
+        $(row).children('.controls').children('div').addClass('expand_row');
     }
     function expand_row(row) {
         // Hide the graph and status text
-        $(row).children('.graph_container').children().show(collapse_time);
-        $(row).children('.status_text').children('p').show(collapse_time);
+        $(row).children('.graph_container').children().show(animate_time);
+        $(row).children('.status_text').children('p').show(animate_time);
         $(row).children('.status_text').children('h2').css({'display': 'block'});
 
         // change the button to expand
-        $(row).children('.controls').children('div').removeClass('expand');
-        $(row).children('.controls').children('div').addClass('collapse');
+        $(row).children('.controls').children('div').removeClass('expand_row');
+        $(row).children('.controls').children('div').addClass('collapse_row');
     }
 
     $('#expandall').click(function() {
@@ -553,11 +553,17 @@ $(document).ready(function() {
         $('#expansion_by_type').children().prop('checked', false);
     });
 
-    $('.collapse').live('click', function() {
+    $('.collapse_row').live('click', function() {
         collapse_row($(this).parents().parents().first());
     });
-    $('.expand').live('click', function() {
+    $('.expand_row').live('click', function() {
         expand_row($(this).parents().parents().first());
+    });
+    $('.remove_row').live('click', function() {
+        var tr = $(this).parents().parents().first();
+        tr.hide(animate_time, function() {
+            $(tr).remove();
+        });
     });
 
     // *************************** Auto collapse ***************************
@@ -688,7 +694,7 @@ $(document).ready(function() {
     setTimeout(autoFetchData, 60 * 1000);
 
     /******* Hint System *******/
-    $('.hint').append('<span class="hide_hint">X</span>');
+    $('.hint').append('<span class="hide_hint"></span>');
 
     $('.hint .hide_hint').bind('click',
         function() {
