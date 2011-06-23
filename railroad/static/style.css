@@ -279,8 +279,11 @@ pre {
 }
 
 /* Configurator */
-#service_controls {
-       overflow: hidden;
+#configurator {
+    overflow: hidden;
+}
+fieldset {
+    margin: 10px 3px;
 }
 #service_selector, #service_options {
        float: left;
@@ -290,6 +293,7 @@ pre {
        list-style: none outside none;
        margin: 5px;
        overflow: hidden;
+       display: block;
 }
 #configurator ol li label {
        width: 75px;

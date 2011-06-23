@@ -1,58 +1,54 @@
-<div id="service_controls">
+<form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
     <div id="service_selector">
-        <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
-            <ol>
-                <li>
-                    <label for="timezone">Time Zone</label>
-                    <select name="timezone" id="timezone">
-                        <option value="0">UTC</option>
-                        <option value="-5">EST</option>
-                        <option value="-6">CST</option>
-                        <option value="-7">MST</option>
-                        <option value="-8">PST</option>
-                    </select>
-                    <input type="checkbox" name="dst" id="dst" value="1">DST? </input>
-                </li>
-                <li>
-                    <label for="host">Host</label>
-                    <input class="autocomplete value" id="host" name="host" type="text">
-                </li>
+        <ol>
+            <li>
+                <label for="host">Host</label>
+                <input class="autocomplete value" id="host" name="host" type="text">
+            </li>
 
-                <li>
-                    <label for="group">Groups</label>
-                    <input class="autocomplete value" id="group" name="group" type="text">
-                </li>
+            <li>
+                <label for="group">Groups</label>
+                <input class="autocomplete value" id="group" name="group" type="text">
+            </li>
 
-                <li>
-                    <label for="service">Services</label>
-                    <input class="autocomplete value" id="service" name="service" type="text">
-                </li>
+            <li>
+                <label for="service">Services</label>
+                <input class="autocomplete value" id="service" name="service" type="text">
+            </li>
 
-                <span class="hint" id="csv">You can autocomplete multiple comma seperated values at a time.</span>
+            <li>
+                <input type="submit" value="Add" id="submit"/>
+                <input type="reset" value="Clear Forms" />
+                <input type="button" value="Clear Graphs" id="cleargraphs">
+            </li>
 
-                <li>
-                    <input type="submit" value="Add" id="submit"/>
-                    <input type="reset" value="Clear Forms" />
-                    <input type="button" value="Clear Graphs" id="cleargraphs">
-                </li>
-            </ol>
-        </form>
+            <li class="hint" id="csv">You can autocomplete multiple comma seperated values at a time.</li>
+        </ol>
     </div>
     <div id="service_options">
-        <form>
-            <fieldset id="autocollapse">
-                <legend>Expansion</legend>
-                <div id="expansion_by_type">
-                    <label>Expand All</label>
-                    <input type="checkbox" name="state_ok">OK</input>
-                    <input type="checkbox" name="state_warning">Warning</input>
-                    <input type="checkbox" name="state_critical">Critical</input>
-                    <input type="checkbox" name="state_unknown">Unknown</input>
-                </div>
-                <div id="expansion_mass">
-                    <input type="button" value="Expand All" id="expandall" />
-                    <input type="button" value="Collapse All" id="collapseall" />
-                </div>
-            </fieldset>
+        <fieldset id="autocollapse">
+            <legend>Expansion</legend>
+            <div id="expansion_by_type">
+                <input type="checkbox" name="state_ok">OK</input>
+                <input type="checkbox" name="state_warning">Warning</input>
+                <input type="checkbox" name="state_critical">Critical</input>
+                <input type="checkbox" name="state_unknown">Unknown</input>
+            </div>
+            <div id="expansion_mass">
+                <input type="button" value="Expand All" id="expandall" />
+                <input type="button" value="Collapse All" id="collapseall" />
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Time Zone</legend>
+            <select name="timezone" id="timezone">
+                <option value="0">UTC</option>
+                <option value="-5">EST</option>
+                <option value="-6">CST</option>
+                <option value="-7">MST</option>
+                <option value="-8">PST</option>
+            </select>
+            <input type="checkbox" name="dst" id="dst" value="1">DST? </input>
+        </fieldset>
     </div>
-</div>
+</form>

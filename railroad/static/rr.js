@@ -488,7 +488,6 @@ $(document).ready(function() {
         $('[id^=type]').attr('disabled', null);
         $('[id^=value]').attr('disabled', null);
 
-
         fields = $('#configurator').formSerialize();
         $.ajax({
             data: fields,
