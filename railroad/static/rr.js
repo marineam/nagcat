@@ -489,22 +489,6 @@ $(document).ready(function() {
             }
         });
         $('#configurator').data('changed', true);
-        // Delete extra cloned buttons
-        var cloned_hosts = $('.clonedHost').length;
-        var cloned_groups = $('.clonedGroup').length;
-        var cloned_services = $('.clonedService').length;
-
-        for (var i=cloned_hosts; i >1; i--) {
-            $('#hostdiv' + i).remove();
-        }
-
-        for (var i=cloned_groups; i > 1; i--) {
-            $('#groupdiv' + i).remove();
-        }
-
-        for (var i=cloned_services; i > 1; i--) {
-            $('#servicediv' + i).remove();
-        }
         // Prevent normal form submission
         return false;
     });
