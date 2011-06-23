@@ -322,7 +322,8 @@ function localStorageSupport() {
 }
 function localStorageSet(key, value) {
     if (localStorageSupport()) {
-        localStorage[key] = value;
+        var json = JSON.stringify(value)
+        localStorage[key] = json;
         return true;
     }
     // Should we try other methods of storing data?
@@ -330,7 +331,13 @@ function localStorageSet(key, value) {
 }
 function localStorageGet(key) {
     if (localStorageSupport()) {
-        return localStorage[key];
+        var ob;
+        try {
+            ob = JSON.parse(localStorage[key]);
+        } catch(e) {
+            ob = localStorage[key];
+        }
+        return ob;
     }
     // Should we try other methods of storing data?
     return null;
@@ -659,6 +666,31 @@ $(document).ready(function() {
     // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 60 * 1000);
 
+    /******* Hint System *******/
+    $('.hint').append('<span class="hide_hint">X</span>');
+
+    $('.hint .hide_hint').bind('click',
+        function() {
+            var hint_id = $(this).parent().attr('id');
+            var hints_hidden = localStorageGet('hints_hidden');
+            if (hints_hidden == null) {
+                hints_hidden = {};
+            }
+            hints_hidden[hint_id] = true;
+            localStorageSet('hints_hidden', hints_hidden);
+            $(this).parent().remove();
+        });
+
+    var hints_hidden = localStorageGet('hints_hidden');
+    if (hints_hidden == null) {
+        hints_hidden = {};
+    }
+    $('.hint').each(function() {
+        if (hints_hidden[$(this).attr('id')]) {
+            $(this).remove();
+        }
+    });
+
     /******* Debug *******/
     $('#content').append('<div id="debug"></div>');
     if (!localStorageGet('debug')) {
@@ -667,7 +699,12 @@ $(document).ready(function() {
 
     if (localStorageSupport()) {
         for (var prop in localStorage) {
-            $('#debug').append(prop + ': ' + localStorage[prop] + '<br>');
+            var desc = localStorage[prop];
+            $('#debug').append('(' + typeof(desc) + ') ' + prop + ': ' + desc + '<br>');
         }
+        $('#debug').append('<a href="#">Reset localStorage</a>');
+        $('#debug a').click(function() {
+            localStorage.clear();
+        });
     }
 });
