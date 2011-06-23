@@ -567,13 +567,11 @@ $(document).ready(function() {
         $('tr.service_row').each(function(index, row) {
             expand_row(row);
         });
-        $('#expansion_by_type').children().prop('checked', true);
     });
     $('#collapseall').click(function() {
         $('tr.service_row').each(function(index, row) {
             collapse_row(row);
         });
-        $('#expansion_by_type').children().prop('checked', false);
     });
 
     $('.collapse_row').live('click', function() {
