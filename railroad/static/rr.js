@@ -313,6 +313,18 @@ function autoFetchData() {
 }
 
 /******* Local Storage Hooks *******/
+function updateDebug() {
+    $('#debug').html('');
+    for (var prop in localStorage) {
+        var desc = localStorage[prop];
+        $('#debug').append('(' + typeof(desc) + ') ' + prop + ': ' + desc + '<br>');
+    }
+    $('#debug').append('<a href="#">Reset localStorage</a>');
+    $('#debug a').click(function() {
+        localStorage.clear();
+        updateDebug();
+    });
+}
 function localStorageSupport() {
     try {
         return 'localStorage' in window && window['localStorage'] !== null;
@@ -324,6 +336,7 @@ function localStorageSet(key, value) {
     if (localStorageSupport()) {
         var json = JSON.stringify(value)
         localStorage[key] = json;
+        updateDebug();
         return true;
     }
     // Should we try other methods of storing data?
@@ -693,18 +706,11 @@ $(document).ready(function() {
 
     /******* Debug *******/
     $('#content').append('<div id="debug"></div>');
-    if (!localStorageGet('debug')) {
-        localStorageSet('debug', true);
-    }
 
     if (localStorageSupport()) {
-        for (var prop in localStorage) {
-            var desc = localStorage[prop];
-            $('#debug').append('(' + typeof(desc) + ') ' + prop + ': ' + desc + '<br>');
+        if (!localStorageGet('debug')) {
+            localStorageSet('debug', true);
         }
-        $('#debug').append('<a href="#">Reset localStorage</a>');
-        $('#debug a').click(function() {
-            localStorage.clear();
-        });
+        updateDebug();
     }
 });
