@@ -315,3 +315,10 @@ pre {
 .submit { 
         text-align: center;
 }
+
+#debug {
+    font-size: 0.6em;
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+}

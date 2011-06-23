@@ -312,6 +312,30 @@ function autoFetchData() {
     setTimeout(autoFetchData, 60 * 1000);
 }
 
+/******* Local Storage Hooks *******/
+function localStorageSupport() {
+    try {
+        return 'localStorage' in window && window['localStorage'] !== null;
+    } catch (e) {
+        return false;
+    }
+}
+function localStorageSet(key, value) {
+    if (localStorageSupport()) {
+        localStorage[key] = value;
+        return true;
+    }
+    // Should we try other methods of storing data?
+    return false;
+}
+function localStorageGet(key) {
+    if (localStorageSupport()) {
+        return localStorage[key];
+    }
+    // Should we try other methods of storing data?
+    return null;
+}
+
 /******* DOM HOOK SETUP *******/
 
 // Execute setup code when page loads
@@ -635,4 +659,15 @@ $(document).ready(function() {
     // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 60 * 1000);
 
+    /******* Debug *******/
+    $('#content').append('<div id="debug"></div>');
+    if (!localStorageGet('debug')) {
+        localStorageSet('debug', true);
+    }
+
+    if (localStorageSupport()) {
+        for (var prop in localStorage) {
+            $('#debug').append(prop + ': ' + localStorage[prop] + '<br>');
+        }
+    }
 });
