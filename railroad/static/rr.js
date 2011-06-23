@@ -464,12 +464,11 @@ $(document).ready(function() {
         var str = "";
         $('#timezone option:selected').each(function () {
             str += $(this).val();
-            alert(str);
             });
         localStorageSet('timezone', str);
     });
     $('#dst').change(function() {
-        localStorageSet('dst',$('#dst').attr('checked'));
+        localStorageSet('dst',$('#dst').prop('checked'));
     });
 
     // Autocomplete anything with class = "... autocomplete ..."
