@@ -452,6 +452,26 @@ $(document).ready(function() {
     /**** CONFIGURATOR SETUP ****/
 	// TODO: delete remnants (most of it) carefully!
 
+    if (localStorageGet("timezone")) {
+        $("#timezone").val(localStorageGet("timezone")).attr('selected','selected');
+    }
+    if (localStorageGet("dst")) {
+        $('#dst').attr('checked', localStorageGet('dst'));
+        }
+    $('#timezone option:eq(-5)').attr('selected', 'selected');
+
+    $('#timezone').change(function() {
+        var str = "";
+        $('#timezone option:selected').each(function () {
+            str += $(this).val();
+            alert(str);
+            });
+        localStorageSet('timezone', str);
+    });
+    $('#dst').change(function() {
+        localStorageSet('dst',$('#dst').attr('checked'));
+    });
+
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () { 
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" + $(this).attr('name' ), minLength : 1, autoFocus: true})

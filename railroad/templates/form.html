@@ -3,7 +3,19 @@
         <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
             <ol>
                 <li>
-                    <label for="host">Hosts</label>
+                    <label for="timezone">Time Zone</label>
+                    <select name="timezone" id="timezone">
+                        <option value="0">UTC</option>
+                        <option value="-5">EST</option>
+                        <option value="-6">CST</option>
+                        <option value="-7">MST</option>
+                        <option value="-8">PST</option>
+                    </select>
+                    <input type="checkbox" name="dst" id="dst" value="1">
+                    <label for="dst">DST?</label>
+                </li>
+                <li>
+                    <label for="host">Host</label>
                     <input class="autocomplete value" id="host" name="host" type="text">
                 </li>
 
