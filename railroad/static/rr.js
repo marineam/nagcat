@@ -480,6 +480,12 @@ $(document).ready(function() {
         $('.service_row').remove();
         $('#configurator').data('changed', true);
     });
+    
+    $('#clearform').bind('click', function () {
+        $('#host').val("");
+        $('#group').val("");
+        $('service').val("");
+    });
 
     // Handle configurator form submissions
     $('#configurator').submit(function() {
@@ -495,7 +501,7 @@ $(document).ready(function() {
             url: $('#configurator').attr('action'),
             success: function(data, textStatus, XMLHttpRequest) {
                 //reset_fields();
-                $('#configurator').trigger('reset');
+                $('#clearform').trigger('click');
                 // Add the new graph and setup the new graphs
                 $('#graphs').append(data);
                 $('.graph:not(.setup)').each(parseGraphs);
