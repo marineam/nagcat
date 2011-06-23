@@ -456,19 +456,19 @@ $(document).ready(function() {
         $("#timezone").val(localStorageGet("timezone")).attr('selected','selected');
     }
     if (localStorageGet("dst")) {
-        $('#dst').attr('checked', localStorageGet('dst'));
+        $('#dst').prop('checked', localStorageGet('dst'));
         }
     if (localStorageGet("state_ok")) {
-        $('#state_ok').attr('checked', localStorageGet('state_ok'));
+        $('#state_ok').prop('checked', localStorageGet('state_ok'));
         }
     if (localStorageGet("state_warning")) {
-        $('#state_warning').attr('checked', localStorageGet('dst'));
+        $('#state_warning').prop('checked', localStorageGet('state_warning'));
         }
     if (localStorageGet("state_critical")) {
-        $('#state_critical').attr('checked', localStorageGet('state_critical'));
+        $('#state_critical').prop('checked', localStorageGet('state_critical'));
         }
     if (localStorageGet("state_unknown")) {
-        $('#state_unknown').attr('checked', localStorageGet('state_unknown'));
+        $('#state_unknown').prop('checked', localStorageGet('state_unknown'));
         }
 
     $('#timezone').change(function() {
@@ -604,12 +604,6 @@ $(document).ready(function() {
             }
         });
     });
-
-    // TODO: This should pull from sort of preferences
-    $('[name=state_ok]').prop('checked', false);
-    $('[name=state_warning]').prop('checked', true);
-    $('[name=state_critical]').prop('checked', true);
-    $('[name=state_unknown]').prop('checked', true);
 
     // Handle configurator link generation
     $('#static').click(function() {
