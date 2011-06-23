@@ -458,7 +458,18 @@ $(document).ready(function() {
     if (localStorageGet("dst")) {
         $('#dst').attr('checked', localStorageGet('dst'));
         }
-    $('#timezone option:eq(-5)').attr('selected', 'selected');
+    if (localStorageGet("state_ok")) {
+        $('#state_ok').attr('checked', localStorageGet('state_ok'));
+        }
+    if (localStorageGet("state_warning")) {
+        $('#state_warning').attr('checked', localStorageGet('dst'));
+        }
+    if (localStorageGet("state_critical")) {
+        $('#state_critical').attr('checked', localStorageGet('state_critical'));
+        }
+    if (localStorageGet("state_unknown")) {
+        $('#state_unknown').attr('checked', localStorageGet('state_unknown'));
+        }
 
     $('#timezone').change(function() {
         var str = "";
@@ -469,6 +480,18 @@ $(document).ready(function() {
     });
     $('#dst').change(function() {
         localStorageSet('dst',$('#dst').prop('checked'));
+    });
+    $('#state_ok').change(function() {
+        localStorageSet('state_ok',$('#state_ok').prop('checked'));
+    });
+    $('#state_warning').change(function() {
+        localStorageSet('state_warning',$('#state_warning').prop('checked'));
+    });
+    $('#state_critical').change(function() {
+        localStorageSet('state_critical',$('#state_critical').prop('checked'));
+    });
+    $('#state_unknown').change(function() {
+        localStorageSet('state_unknown',$('#state_unknown').prop('checked'));
     });
 
     // Autocomplete anything with class = "... autocomplete ..."
