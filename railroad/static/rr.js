@@ -470,6 +470,19 @@ $(document).ready(function() {
     if (localStorageGet("state_unknown")) {
         $('#state_unknown').prop('checked', localStorageGet('state_unknown'));
         }
+    $('#debug_check').prop('checked', localStorageGet('debug'));
+    if (localStorageGet('debug')){
+        $('#content').append('<div id="debug"></div>');
+        updateDebug();
+    }
+
+    $('#debug_check').change(function () {
+        localStorageSet('debug', $('#debug_check').prop('checked'));
+        if (!$('.debug').val()) {
+            $('#content').append('<div id="debug"></div>');
+        }
+        updateDebug();
+    });
 
     $('#timezone').change(function() {
         var str = "";
@@ -733,13 +746,11 @@ $(document).ready(function() {
         }
     });
 
-    /******* Debug *******/
-    $('#content').append('<div id="debug"></div>');
 
-    if (localStorageSupport()) {
-        if (!localStorageGet('debug')) {
-            localStorageSet('debug', true);
-        }
-        updateDebug();
+
+    /******* Debug *******/
+    if (localStorageGet('debug')) {
+        $('#content').append('<div id="debug"></div>');
     }
+
 });
