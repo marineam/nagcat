@@ -29,10 +29,10 @@
         <fieldset id="autocollapse">
             <legend>Expansion</legend>
             <div id="expansion_by_type">
-                <input type="checkbox" name="state_ok" id="state_ok">OK</input>
-                <input type="checkbox" name="state_warning" id="state_warning">Warning</input>
-                <input type="checkbox" name="state_critical" id="state_critical">Critical</input>
-                <input type="checkbox" name="state_unknown" id="state_unknown">Unknown</input>
+                <input type="checkbox" class="persist" name="state_ok" id="state_ok">OK</input>
+                <input type="checkbox" class="persist" name="state_warning" id="state_warning">Warning</input>
+                <input type="checkbox" class="persist" name="state_critical" id="state_critical">Critical</input>
+                <input type="checkbox" class="persist" name="state_unknown" id="state_unknown">Unknown</input>
             </div>
             <div id="expansion_mass">
                 <input type="button" value="Expand All" id="expandall" />
@@ -41,18 +41,28 @@
         </fieldset>
         <fieldset>
             <legend>Time Zone</legend>
-            <select name="timezone" id="timezone">
+            <select name="timezone" id="timezone" class="persist">
                 <option value="0">UTC</option>
                 <option value="-5">EST</option>
                 <option value="-6">CST</option>
                 <option value="-7">MST</option>
                 <option value="-8">PST</option>
             </select>
-            <input type="checkbox" name="dst" id="dst" value="1">DST? </input>
+            <input type="checkbox" name="dst" id="dst" value="1" class="persist">DST? </input>
         </fieldset>
         <fieldset>
             <legend>Debug</legend>
                 <input type="checkbox" name="debug" id="debug_check">Debug</input>
+        </fieldset>
+        <fieldset>
+            <legend>Sort By</legend>
+            <select name="sortby" id="sortby" class="persist">
+                <option value="service">Service Name</option>
+                <option value="host">Host Name</option>
+                <option value="status">Status</option>
+                <option value="value">Latest RRD Value</option>
+            </select>
+            <input type="checkbox" name="reverse_sort" id="reverse_sort" class="persist">Reverse sort order</input>
         </fieldset>
     </div>
 </form>

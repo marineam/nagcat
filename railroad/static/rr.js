@@ -452,6 +452,10 @@ $(document).ready(function() {
     /**** CONFIGURATOR SETUP ****/
 	// TODO: delete remnants (most of it) carefully!
 
+    form_data = localStorageGet('configurator_form');
+    for (var prop in form_data) {
+        
+    }
     if (localStorageGet("timezone")) {
         $("#timezone").val(localStorageGet("timezone")).attr('selected','selected');
     }
@@ -484,28 +488,38 @@ $(document).ready(function() {
         updateDebug();
     });
 
-    $('#timezone').change(function() {
-        var str = "";
-        $('#timezone option:selected').each(function () {
-            str += $(this).val();
-            });
-        localStorageSet('timezone', str);
+    /*** Persistent form settings ***/
+    // Anything in #configurator with a class of "... persist ..." will get persistence.
+    $('#configurator').change(function() {
+        var store = {};
+        var value = null;
+        $(this).find('.persist').each(function() {
+            if ($(this).is('input')) {
+                if ($(this).attr('type') == 'checkbox') {
+                    value = $(this).prop('checked');
+                }
+            } else if ($(this).is('select')) {
+                value = $(this).val();
+            }
+
+            if (value != null) {
+                store[$(this).attr('id')] = value;
+            }
+        });
+        localStorageSet('form_configurator', store);
     });
-    $('#dst').change(function() {
-        localStorageSet('dst',$('#dst').prop('checked'));
-    });
-    $('#state_ok').change(function() {
-        localStorageSet('state_ok',$('#state_ok').prop('checked'));
-    });
-    $('#state_warning').change(function() {
-        localStorageSet('state_warning',$('#state_warning').prop('checked'));
-    });
-    $('#state_critical').change(function() {
-        localStorageSet('state_critical',$('#state_critical').prop('checked'));
-    });
-    $('#state_unknown').change(function() {
-        localStorageSet('state_unknown',$('#state_unknown').prop('checked'));
-    });
+
+    var form_store = localStorageGet('form_configurator');
+    for (key in form_store) {
+        element = $('#configurator').find('#' + key);
+        if ($(element).is('input')) {
+            if ($(element).attr('type') == 'checkbox') {
+                $(element).prop('checked', form_store[key]);
+            }
+        } else if ($(element).is('select')) {
+            $(element).val(form_store[key]);
+        }
+    }
 
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () { 
