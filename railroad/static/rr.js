@@ -741,8 +741,8 @@ $(document).ready(function() {
         hints_hidden = {};
     }
     $('.hint').each(function() {
-        if (hints_hidden[$(this).attr('id')]) {
-            $(this).remove();
+        if (! hints_hidden[$(this).attr('id')]) {
+            $(this).css('display', 'block');
         }
     });
 

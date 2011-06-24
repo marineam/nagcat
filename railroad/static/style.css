@@ -60,27 +60,6 @@ body {
 }
 
 /* General stuff */
-.hint {
-    padding: 3px 20px 3px 3px;
-    border: 1px solid #FC4;
-    background-color: #FFB;
-    color: #444;
-    font-size: .7em;
-    position: relative;
-}
-.hint:before { content: "Hint: " }
-
-.hide_hint {
-    margin-left: 5;
-    display: inline;
-    position: absolute;
-    right: 5px;
-    color: #D32;
-    cursor: pointer;
-    width: 16px;
-    height: 16px;
-    background-image: url("/railroad-static/img/remove.png");
-}
 
 /* Content and sidebars */
 #content {
@@ -299,7 +278,6 @@ fieldset {
        list-style: none outside none;
        margin: 5px;
        overflow: hidden;
-       display: block;
 }
 #configurator ol li label {
        width: 75px;
@@ -309,6 +287,30 @@ fieldset {
        float: left;
        width: 400px;
 }
+/* Hints! */
+.hint {
+    display: none ;
+    padding: 3px 20px 3px 3px;
+    border: 1px solid #FC4;
+    background-color: #FFB;
+    color: #444;
+    font-size: .7em;
+    position: relative;
+}
+.hint:before { content: "Hint: ";}
+
+.hide_hint {
+    margin-left: 5;
+    display: inline;
+    position: absolute;
+    right: 5px;
+    color: #D32;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    background-image: url("/railroad-static/img/remove.png");
+}
+
 /* Filtering */
 
 .type select {
