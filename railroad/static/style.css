@@ -337,7 +337,7 @@ fieldset {
 
 #debug {
     font-size: 0.6em;
-    position: absolute;
+    position: static;
     left: 10px;
     bottom: 10px;
 }

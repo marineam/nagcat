@@ -314,17 +314,20 @@ function autoFetchData() {
 
 /******* Local Storage Hooks *******/
 function updateDebug() {
-    $('#debug').html('');
-    for (var prop in localStorage) {
-        var desc = localStorage[prop];
-        $('#debug').append('(' + typeof(desc) + ') ' + prop + ': ' + desc + '<br>');
+    if (localStorageGet('debug')) {
+        $('#debug input').prop('checked', true);
+        $('#debug ul li').remove();
+        for (var prop in localStorage) {
+            var desc = localStorage[prop];
+            $('#debug ul').append('<li>({0}) {1}: {2}</li>'.format(typeof(desc), prop, desc));
+        }
+        $('#debug ul').append('<li><a href="#">Reset localStorage</a></li>');
+    } else {
+        $('#debug input').prop('checked', false);
+        $('#debug ul li').remove();
     }
-    $('#debug').append('<a href="#">Reset localStorage</a>');
-    $('#debug a').click(function() {
-        localStorage.clear();
-        updateDebug();
-    });
 }
+
 function localStorageSupport() {
     try {
         return 'localStorage' in window && window['localStorage'] !== null;
@@ -355,6 +358,28 @@ function localStorageGet(key) {
     // Should we try other methods of storing data?
     return null;
 }
+function localStorageClear() {
+    if (localStorageSupport()) {
+        localStorage.clear();
+        updateDebug();
+        return true;
+    }
+    return false;
+}
+
+/******* Misc helper functions *******/
+// Give strings a format function.
+// Use it like this
+//    "Hello {0}, how are you this find {1}?".format(user_name, time_of_day);
+//    Returns "Hello Mike, how are you this fine morning?"
+String.prototype.format = function() {
+    var formatted = this;
+    for (var i = 0; i < arguments.length; i++) {
+        var regexp = new RegExp('\\{'+i+'\\}', 'gi');
+        formatted = formatted.replace(regexp, arguments[i]);
+    }
+    return formatted;
+};
 
 /******* DOM HOOK SETUP *******/
 
@@ -452,40 +477,16 @@ $(document).ready(function() {
     /**** CONFIGURATOR SETUP ****/
 	// TODO: delete remnants (most of it) carefully!
 
-    form_data = localStorageGet('configurator_form');
-    for (var prop in form_data) {
-        
-    }
-    if (localStorageGet("timezone")) {
-        $("#timezone").val(localStorageGet("timezone")).attr('selected','selected');
-    }
-    if (localStorageGet("dst")) {
-        $('#dst').prop('checked', localStorageGet('dst'));
-        }
-    if (localStorageGet("state_ok")) {
-        $('#state_ok').prop('checked', localStorageGet('state_ok'));
-        }
-    if (localStorageGet("state_warning")) {
-        $('#state_warning').prop('checked', localStorageGet('state_warning'));
-        }
-    if (localStorageGet("state_critical")) {
-        $('#state_critical').prop('checked', localStorageGet('state_critical'));
-        }
-    if (localStorageGet("state_unknown")) {
-        $('#state_unknown').prop('checked', localStorageGet('state_unknown'));
-        }
     $('#debug_check').prop('checked', localStorageGet('debug'));
-    if (localStorageGet('debug')){
-        $('#content').append('<div id="debug"></div>');
-        updateDebug();
-    }
+    updateDebug();
 
     $('#debug_check').change(function () {
         localStorageSet('debug', $('#debug_check').prop('checked'));
-        if (!$('.debug').val()) {
-            $('#content').append('<div id="debug"></div>');
-        }
         updateDebug();
+    });
+
+    $('#debug a').live('click', function() {
+        localStorageClear();
     });
 
     /*** Persistent form settings ***/
@@ -730,8 +731,6 @@ $(document).ready(function() {
         $('#link').empty();
     });
 
-    /**** MISC ***/
-
     // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 60 * 1000);
 
@@ -759,12 +758,4 @@ $(document).ready(function() {
             $(this).css('display', 'block');
         }
     });
-
-
-
-    /******* Debug *******/
-    if (localStorageGet('debug')) {
-        $('#content').append('<div id="debug"></div>');
-    }
-
 });
