@@ -579,8 +579,6 @@ def customgraph(request):
     groups = request.GET.getlist("group")
     hosts = request.GET.getlist("host")
     services = request.GET.getlist("service")
-    timezone = request.GET.get("timezone", 0) 
-    dst = request.GET.get("dst", 0) 
 
     # Remove empty entries, i.e null strings in the list
     # Define as sets to remove duplicates easily, allow for some set notation later
@@ -597,8 +595,8 @@ def customgraph(request):
 
     all_hosts.update(hosts | group_hosts) if hosts | group_hosts else None
     service_list = [] # Will contain the service objects
-    end = int(time.time()) + (int(timezone) + int(dst) ) * 3600 # For graphing
-    start = end - DAY + (int(timezone) + int(dst)) * 3600 # For graphing
+    end = int(time.time())  # For graphing
+    start = end - DAY # For graphing
 
     # Given hosts and no services, we want to get all services for those hosts.
     if all_hosts and not services:

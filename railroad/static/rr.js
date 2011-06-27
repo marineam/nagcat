@@ -158,11 +158,11 @@ function createGraph(element, path, callback, zoom) {
                                        });
                 } else {
                     var time_offset = 0; // in hours
-                    if (localStorageGet('timezone') && localStorageGet('dst')) {
-                        time_offset = localStorageGet('timezone') + 1; // in hours
+                    if (localStorageGet('form_configurator')['timezone'] && localStorageGet('form_configurator')['dst']){
+                        time_offset = parseInt(localStorageGet('form_configurator')['timezone']) + 1; // in hours
                     }
                     if (localStorageGet('timezone') && ! localStorageGet('dst')) {
-                        time_offset = localStorageGet('timezone'); // in hours
+                        time_offset = parseInt(localStorageGet('timezone')['timezone']); // in hours
                     }
                     data = formatGraph(element, data);
                     // In order to support timezones on the graph, we want to change the time displayed
