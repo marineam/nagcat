@@ -56,7 +56,7 @@ def getColors(n):
     offset = random()
     for i in range(n):
         # Make a random color
-        h = 360 * (float(i) / n + offset)
+        h = 360 * ((float(i) / n + offset) % 1)
         s = 0.5 + 0.5 * random()
         l = 0.25 + 0.25 * random()
 
