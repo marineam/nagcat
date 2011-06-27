@@ -26,7 +26,7 @@ $.plot.formatDate = function(d, fmt, monthNames) {
         n = "" + n;
         return n.length == 1 ? "0" + n : n;
     };
-    
+
     var r = [];
     var escape = false, padNext = false;
     var hours = d.getUTCHours();
@@ -47,7 +47,7 @@ $.plot.formatDate = function(d, fmt, monthNames) {
     for (var i = 0; i < fmt.length; ++i) {
         var c = fmt.charAt(i);
             if (escape) {
-                if (localStorageGet('form_configurator')['localtime']) {        
+                if (localStorageGet('form_configurator')['localtime']) {
                     switch (c) {
                         case 'h': c = "" + hours; break;
                         case 'H': c = leftPad(hours); break;
@@ -372,6 +372,60 @@ function autoFetchData() {
         createGraph(element, path);
     });
     setTimeout(autoFetchData, 60 * 1000);
+}
+
+// Sort the graphs.
+var sorts = {
+    'service': function(a, b) {
+        val_a = $(a).find('td.status_text h2').last().text();
+        val_b = $(b).find('td.status_text h2').last().text();
+        return val_a > val_b;
+    },
+    'host': function(a,b) {
+        val_a = $(a).find('td.status_text h2').first().text();
+        val_b = $(b).find('td.status_text h2').first().text();
+        return val_a > val_b;
+    },
+    'status': function(a,b) {
+        a_td = $(a).find('td.status_text');
+        b_td = $(b).find('td.status_text');
+        var val_a;
+        var val_b;
+
+        if (a_td.hasClass('state_ok')) {
+            val_a = 0;
+        } else if (a_td.hasClass('state_warning')) {
+            val_a = 1;
+        } else if (a_td.hasClass('state_critical')) {
+            val_a = 2;
+        } else {
+            val_a = 3;
+        }
+        if (b_td.hasClass('state_ok')) {
+            val_b = 0;
+        } else if (b_td.hasClass('state_warning')) {
+            val_b = 1;
+        } else if (b_td.hasClass('state_critical')) {
+            val_b = 2;
+        } else {
+            val_b = 3;
+        }
+
+        return val_a < val_b;
+    }
+}
+function reverse(func) {
+    return function(a,b) {
+        return func(b,a);
+    }
+}
+function sortGraphs() {
+    var name = $('#sortby').val();
+    var sorter = sorts[name];
+    if ($('#reverse_sort').prop('checked')) {
+        sorter = reverse(sorter);
+    }
+    $('tr.service_row').sort(sorter).appendTo('#graphs');
 }
 
 /******* Local Storage Hooks *******/
@@ -820,4 +874,8 @@ $(document).ready(function() {
             $(this).css('display', 'block');
         }
     });
+
+    /******** Sorting *********/
+    $('#sortby').bind('change', sortGraphs);
+    $('#reverse_sort').bind('change', sortGraphs);
 });

@@ -233,8 +233,9 @@ td.graph_container { width: 540px; text-align: center; }
 }	
 
 /* Service listings */
-.service {
+.service_row {
 	padding-bottom: 10px;
+    overflow: hidden;
 }
 .services td {
 	padding: 5px;
