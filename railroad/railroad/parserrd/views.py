@@ -16,7 +16,7 @@ import json
 import os
 import types
 import time
-from random import random
+import random
 from math import floor
 
 import rrdtool
@@ -51,14 +51,18 @@ def labelize(data, index, base, unit):
         str(sigfigs(statistics['max'] / base)), unit,
         str(sigfigs(statistics['avg'] / base)), unit))
 
-def getColors(n):
+def getColors(names):
+    rng_state = random.getstate()
+
+    n = len(names)
     colors = []
-    offset = random()
+    offset = 0
     for i in range(n):
+        random.seed(names[i])
         # Make a random color
         h = 360 * ((float(i) / n + offset) % 1)
-        s = 0.5 + 0.5 * random()
-        l = 0.25 + 0.25 * random()
+        s = 0.6 + 0.4 * random.random()
+        l = 0.375 + 0.25 * random.random()
 
         # convert it from HSL to RGB
         c = (1 - abs(2*l-1)) * s;
@@ -72,6 +76,8 @@ def getColors(n):
 
         # Convert it to a hex color
         colors.append('#%02x%02x%02x' % (r,g,b))
+
+    random.setstate(rng_state)
 
     return colors
 
@@ -168,7 +174,6 @@ def index(request, host, service, start, end, resolution='150'):
     indices = range(length)
     dataset = {}
 
-    graph_options['colors'] = getColors(length);
 
     # flot_data and flot_data are of the format
     # [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
@@ -179,7 +184,9 @@ def index(request, host, service, start, end, resolution='150'):
 
     labels = map(lambda x: x[0], labels)
     state_data = []
-    
+
+    graph_options['colors'] = getColors(labels);
+
     # Reading graph options
     for index in indices:
         key = labels[index]
