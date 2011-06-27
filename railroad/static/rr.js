@@ -233,17 +233,6 @@ function createGraph(element, path, callback, zoom) {
     }
 }
 
-// Grabs the default state for the configurator
-function defaultState() {
-    // If we're on a configurator page, load the default state
-    if($('#configurator') != undefined) {
-        $.getJSON('/railroad/configurator/formstate', function(data) {
-            $('#configurator').data('state', data);
-        });
-        $('#configurator').show();
-    }
-}
-
 // Parse and setup graphs on the page
 function parseGraphs(index, element) {
 
@@ -404,9 +393,6 @@ String.prototype.format = function() {
 
 // Execute setup code when page loads
 $(document).ready(function() {
-    // Kick off grabbing the default state so hopefully it gets there before
-    // the user iteracts
-    defaultState();
 
     /**** GRAPH SETUP ****/
 
