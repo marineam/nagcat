@@ -21,7 +21,81 @@
 base = 0;
 
 /******* FLOT HELPER FUNCTIONS *******/
+$.plot.formatDate = function(d, fmt, monthNames) {
+    var leftPad = function(n) {
+        n = "" + n;
+        return n.length == 1 ? "0" + n : n;
+    };
+    
+    var r = [];
+    var escape = false, padNext = false;
+    var hours = d.getUTCHours();
+    if  (true) {
+        hours = d.getHours();
+    }
+    var isAM = hours < 12;
+    if (monthNames == null)
+        monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+    if (fmt.search(/%p|%P/) != -1) {
+        if (hours > 12) {
+            hours = hours - 12;
+        } else if (hours == 0) {
+            hours = 12;
+        }
+    }
+    for (var i = 0; i < fmt.length; ++i) {
+        var c = fmt.charAt(i);
+            if (escape) {
+                if (true) {        
+                    switch (c) {
+                        case 'h': c = "" + hours; break;
+                        case 'H': c = leftPad(hours); break;
+                        case 'M': c = leftPad(d.getMinutes()); break;
+                        case 'S': c = leftPad(d.getSeconds()); break;
+                        case 'd': c = "" + d.getDate(); break;
+                        case 'm': c = "" + (d.getMonth() + 1); break;
+                        case 'y': c = "" + d.getFullYear(); break;
+                        case 'b': c = "" + monthNames[d.getMonth()]; break;
+                        case 'p': c = (isAM) ? ("" + "am") : ("" + "pm"); break;
+                        case 'P': c = (isAM) ? ("" + "AM") : ("" + "PM"); break;
+                        case '0': c = ""; padNext = true; break;
+                    }
+                }
+        
+                else {        
+                    switch (c) {
+                        case 'h': c = "" + hours; break;
+                        case 'H': c = leftPad(hours); break;
+                        case 'M': c = leftPad(d.getUTCMinutes()); break;
+                        case 'S': c = leftPad(d.getUTCSeconds()); break;
+                        case 'd': c = "" + d.getUTCDate(); break;
+                        case 'm': c = "" + (d.getUTCMonth() + 1); break;
+                        case 'y': c = "" + d.getUTCFullYear(); break;
+                        case 'b': c = "" + monthNames[d.getUTCMonth()]; break;
+                        case 'p': c = (isAM) ? ("" + "am") : ("" + "pm"); break;
+                        case 'P': c = (isAM) ? ("" + "AM") : ("" + "PM"); break;
+                        case '0': c = ""; padNext = true; break;
+                    }
+                }
+                if (c && padNext) {
+                    c = leftPad(c);
+                    padNext = false;
+                }
+                r.push(c);
+                if (!padNext) {
+                    escape = false;
+                }
+        }
+        else {
+            if (c == "%")
+                escape = true;
+            else
+                r.push(c);
+        }
+    }
+    return r.join("");
+};
 // Choose a base for graph axis
 function chooseBase(max) {
     // Memoizes results!
@@ -157,26 +231,6 @@ function createGraph(element, path, callback, zoom) {
                                            $(this).remove();
                                        });
                 } else {
-                    var time_offset = 0; // in hours
-                    if (localStorageGet('form_configurator')['timezone'] && localStorageGet('form_configurator')['dst']){
-                        time_offset = parseInt(localStorageGet('form_configurator')['timezone']) + 1; // in hours
-                    }
-                    if (localStorageGet('timezone') && ! localStorageGet('dst')) {
-                        time_offset = parseInt(localStorageGet('timezone')['timezone']); // in hours
-                    }
-                    data = formatGraph(element, data);
-                    // In order to support timezones on the graph, we want to change the time displayed
-                    // locally on the users machine, since data is stored in UTC. We do this by modifying the
-                    // time based on the timezone and dst settings in local storage
-                    // data.data stores all the separate sets of values for the graph
-                    // data.data.data stores the data for each value
-                    // data.data[i].data[j][0] is the time for that data point
-                    for (var i=0; i< data.data.length; i++) { // for each value key
-                        for (var j=0; j<data.data[i].data.length; j++) { // for every data point
-                            data.data[i].data[j][0] = data.data[i].data[j][0] + (time_offset * 3600 * 1000);
-                            // modify time by time_offset, in milliseconds
-                        }
-                    }
                     $(element).data('plot',
                                     $.plot($(element),
                                     data.data,
