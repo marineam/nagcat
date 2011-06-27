@@ -50,7 +50,7 @@ function tickGenerator(range) {
     final_base = Math.pow(base, interval);
 
     var noTicks = 0.3 * Math.sqrt($(".graph").height());
-    
+
     var delta = ((range.max - range.min) / final_base) / noTicks,
         size, generator, unit, formatter, i, magn, norm;
 
@@ -494,6 +494,7 @@ $(document).ready(function() {
         localStorageClear();
     });
 
+
     /*** Persistent form settings ***/
     // Anything in #configurator with a class of "... persist ..." will get persistence.
     $('#configurator').change(function() {
@@ -502,6 +503,8 @@ $(document).ready(function() {
         $(this).find('.persist').each(function() {
             if ($(this).is('input')) {
                 if ($(this).attr('type') == 'checkbox') {
+                    value = $(this).prop('checked');
+                } else if ($(this).attr('type') == 'radio') {
                     value = $(this).prop('checked');
                 }
             } else if ($(this).is('select')) {

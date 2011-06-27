@@ -41,14 +41,8 @@
         </fieldset>
         <fieldset>
             <legend>Time Zone</legend>
-            <select name="timezone" id="timezone" class="persist">
-                <option value="0">UTC</option>
-                <option value="-5">EST</option>
-                <option value="-6">CST</option>
-                <option value="-7">MST</option>
-                <option value="-8">PST</option>
-            </select>
-            <input type="checkbox" name="dst" id="dst" value="1" class="persist">DST? </input>
+            <input type="radio" name="timezone" id="localtime" class="persist">Local Time</input>
+            <input type="radio" name="timezone" id="utc" class="persist">UTC</input>
         </fieldset>
         <fieldset>
             <legend>Sort By</legend>
