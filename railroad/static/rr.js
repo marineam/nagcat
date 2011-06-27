@@ -157,7 +157,26 @@ function createGraph(element, path, callback, zoom) {
                                            $(this).remove();
                                        });
                 } else {
+                    var time_offset = 0; // in hours
+                    if (localStorageGet('timezone') && localStorageGet('dst')) {
+                        time_offset = localStorageGet('timezone') + 1; // in hours
+                    }
+                    if (localStorageGet('timezone') && ! localStorageGet('dst')) {
+                        time_offset = localStorageGet('timezone'); // in hours
+                    }
                     data = formatGraph(element, data);
+                    // In order to support timezones on the graph, we want to change the time displayed
+                    // locally on the users machine, since data is stored in UTC. We do this by modifying the
+                    // time based on the timezone and dst settings in local storage
+                    // data.data stores all the separate sets of values for the graph
+                    // data.data.data stores the data for each value
+                    // data.data[i].data[j][0] is the time for that data point
+                    for (var i=0; i< data.data.length; i++) { // for each value key
+                        for (var j=0; j<data.data[i].data.length; j++) { // for every data point
+                            data.data[i].data[j][0] = data.data[i].data[j][0] + (time_offset * 3600 * 1000);
+                            // modify time by time_offset, in milliseconds
+                        }
+                    }
                     $(element).data('plot',
                                     $.plot($(element),
                                     data.data,
