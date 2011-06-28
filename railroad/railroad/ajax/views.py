@@ -40,7 +40,7 @@ def autocomplete(request, context):
         choices = set(views.servicenames(stat))
 
     for q in queries:
-        matching_names = [x for x in choices if x.lower().startswith(q)]
+        matching_names = [x for x in choices if x.lower().startswith(q.lower())]
         q_results.append(matching_names)
 
     # this craziness is to deal with this situation: let valid completions be
