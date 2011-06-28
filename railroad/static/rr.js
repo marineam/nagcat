@@ -231,6 +231,7 @@ function createGraph(element, path, callback, zoom) {
                                            $(this).remove();
                                        });
                 } else {
+                    data = formatGraph(element, data);
                     $(element).data('plot',
                                     $.plot($(element),
                                     data.data,
