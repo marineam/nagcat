@@ -31,16 +31,18 @@ ol { margin: 0; padding: 0px; }
     left: 160px;
     top: 20px;
     border: 1px solid black;
+    padding: 5px;
 }
 
 /* Page header */
 #header {
-	position: relative;
-	/* flot graphs get a high z-index, so to float above them we need to compensate */
-	z-index: 5;
+	position: absolute;
+    left: 0px; top: 0px;
 	background-color: #EEE;
     width: 100%;
     overflow: hidden;
+	/* flot graphs get a high z-index, so to float above them we need to compensate */
+	z-index: 5;
 }
 #header ul {
 	margin: 0;
@@ -94,7 +96,7 @@ ol { margin: 0; padding: 0px; }
 #sidebar {
 	padding: 18px 7px 10px 5px;
 	margin-right: 10px;
-	background-color: #EEE;
+	background-color: #FFF;
     border: 1px solid black;
     clear: both;
     float: left;
@@ -102,6 +104,7 @@ ol { margin: 0; padding: 0px; }
     position: absolute;
     left: 20px;
     top: 70px;
+	z-index: -1;
 }
 
 /* Status stoplight colors */
@@ -210,6 +213,7 @@ td.graph_container { text-align: center; padding-top: 10px; position: relative; 
 	margin-right: 5px;
 	background-color: #F0F0F0;
 	font-size: smaller;
+    border: 1px solid black;
 }
 .toggle, .update {
 	display: inline;
