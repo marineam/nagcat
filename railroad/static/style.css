@@ -27,7 +27,7 @@ ol { margin: 0; padding: 0px; }
     width: 900px;
     background-color: #fff;
     margin: 20px;
-    position: absolute;
+    position: relative;
     left: 160px;
     top: 20px;
     border: 1px solid black;
@@ -359,7 +359,4 @@ fieldset {
 
 #debug {
     font-size: 0.6em;
-    position: static;
-    left: 10px;
-    bottom: 10px;
 }
