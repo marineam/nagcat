@@ -278,13 +278,13 @@ pre {
 #configurator {
     overflow: hidden;
     float: left;
+    margin: 5px;
 }
 fieldset {
-    margin: 10px 3px;
+    margin: 10px 10px 10px 0px;
 }
 #service_selector, #service_options {
        float: left;
-       margin: 10px;
 }
 #configurator ol li {
        list-style: none outside none;
