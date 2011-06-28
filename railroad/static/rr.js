@@ -625,11 +625,14 @@ $(document).ready(function() {
         localStorageSet('form_configurator', store);
     });
 
+    // Restore persisted objects
     var form_store = localStorageGet('form_configurator');
     for (key in form_store) {
         element = $('#configurator').find('#' + key);
         if ($(element).is('input')) {
             if ($(element).attr('type') == 'checkbox') {
+                $(element).prop('checked', form_store[key]);
+            } else if ($(element).attr('type') == 'radio') {
                 $(element).prop('checked', form_store[key]);
             }
         } else if ($(element).is('select')) {
