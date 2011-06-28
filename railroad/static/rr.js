@@ -376,49 +376,45 @@ function autoFetchData() {
 }
 
 // Sort the graphs.
-var sorts = {
-    'service': function(a, b) {
-        val_a = $(a).find('td.status_text h2').last().text();
-        val_b = $(b).find('td.status_text h2').last().text();
-        return val_a > val_b;
-    },
-    'host': function(a,b) {
-        val_a = $(a).find('td.status_text h2').first().text();
-        val_b = $(b).find('td.status_text h2').first().text();
-        return val_a > val_b;
-    },
-    'status': function(a,b) {
-        a_td = $(a).find('td.status_text');
-        b_td = $(b).find('td.status_text');
-        var val_a;
-        var val_b;
-
-        if (a_td.hasClass('state_ok')) {
-            val_a = 0;
-        } else if (a_td.hasClass('state_warning')) {
-            val_a = 1;
-        } else if (a_td.hasClass('state_critical')) {
-            val_a = 2;
-        } else {
-            val_a = 3;
-        }
-        if (b_td.hasClass('state_ok')) {
-            val_b = 0;
-        } else if (b_td.hasClass('state_warning')) {
-            val_b = 1;
-        } else if (b_td.hasClass('state_critical')) {
-            val_b = 2;
-        } else {
-            val_b = 3;
-        }
-
-        return val_a < val_b;
-    }
-}
 function reverse(func) {
     return function(a,b) {
         return func(b,a);
     }
+}
+function makeComparer(val) {
+    return function(a,b) {
+        return val(a) > val(b);
+    }
+}
+var sorts = {
+    'service': makeComparer(function(e) {
+            return $(e).find('td.status_text h2').last().text();
+        }),
+    'host': makeComparer(function(e) {
+            return $(e).find('td.status_text h2').first().text();
+        }),
+    'status': reverse(makeComparer(function(e) {
+            e_td = $(e).find('td.status_text');
+            if (e_td.hasClass('state_ok')) {
+                return 0;
+            } else if (e_td.hasClass('state_warning')) {
+                return 1;
+            } else if (e_td.hasClass('state_critical')) {
+                return 2;
+            } else {
+                return 3;
+            }
+        })),
+    'value': makeComparer(function(e) {
+            try {
+                var plot = $(e).find('.graph').first().data('plot');
+                series = plot.getData()[0].data;
+                latest = parseInt(series[series.length-1][1]);
+                return latest;
+            } catch (e) {
+                return NaN;
+            }
+        })
 }
 function sortGraphs() {
     var name = $('#sortby').val();
