@@ -406,17 +406,17 @@ var sorts = {
             }
         })),
     'value': makeComparer(function(e) {
-            try {
-                var plot = $(e).find('.graph').first().data('plot');
-                series = plot.getData()[0].data;
-                latest = parseInt(series[series.length-1][1]);
-                return latest;
-            } catch (e) {
+            var plot = $(e).find('.graph').first().data('plot');
+            if (!plot) {
                 return NaN;
             }
+            series = plot.getData()[0].data;
+            latest = parseInt(series[series.length-1][1]);
+            return latest;
         })
 }
 function sortGraphs() {
+    console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
     var name = $('#sortby').val();
     var sorter = sorts[name];
     if ($('#reverse_sort').prop('checked')) {
@@ -670,6 +670,7 @@ $(document).ready(function() {
                 $('#graphs').append(data);
                 $('.graph:not(.setup)').each(parseGraphs);
                 $('#configurator').find('.throbber').remove();
+                sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 // TODO: Indicate error somehow, probably
