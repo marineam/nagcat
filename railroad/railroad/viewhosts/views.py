@@ -208,6 +208,43 @@ def servicenames_by_host(stat, host):
     return [service['service_description'] for service in all_services  \
                                 if service['host_name'] == host]
 
+def get_graphs(stat, obj, hosts='', groups='', services=''):
+    """Returns a list of services objects, marked graphable or not""" 
+    groups   = set([group.strip() for group in groups.split(',') if group.strip()])
+    hosts   = set([host.strip() for host in hosts.split(',') if host.strip()])
+    services   = set([service.strip() for service in services.split(',') if service.strip()])
+    group_hosts = set() # Hosts under the given groups
+    all_hosts = set()  # All hosts will contain all host names from host and group
+    end = int(time.time())  # For graphing
+    start = end - DAY # For graphing
+
+    if groups:
+        for group in groups:
+            group_hosts.update(set(hostnames_by_group(stat,obj,group)))
+    all_hosts.update(hosts | group_hosts) if hosts | group_hosts else None
+    service_list = [] # Will contain the service objects
+    # Given hosts and no services, we want to get all services for those hosts.
+    if all_hosts and not services:
+        for host in all_hosts:
+            for service in servicelist_by_host(stat,host):
+                service_list.append(service)
+    # Given no hosts and services, we want to get all hosts for those services.
+    # Given hosts and services, we want to start by getting all of the hosts with the services listed, and then will later filter out the hosts we don't want
+    if (not all_hosts and services) or (all_hosts and services):
+        for service in services:
+            for host in hostlist_by_service(stat,service):
+                service_list.append(servicedetail(stat,host['host_name'],service))
+    # Given hosts and services, we already have a list of all hosts for the listed services, we want to filter out hosts that weren't listed.
+    if all_hosts and services:
+        service_list = [service for service in service_list if (lambda x: x in all_hosts) (service['host_name'])]
+    # Find out whether each service object is graphable or not
+    for service in service_list:
+        service['is_graphable'] = is_graphable(service['host_name'], service['service_description'])
+        service['start']  = start
+        service['end']    = end
+        service['period'] = 'ajax'
+    return service_list
+
 def get_time_intervals():
     """Returns a list of (start,end) intervals for day, week, month, year"""
     #            day  , week  , month  , year
@@ -576,49 +613,13 @@ def customgraph(request):
     t = loader.get_template('graph.html')
 
     # Since we allow for multiple hosts, groups, services, getlist instead of get
-    groups = request.GET.getlist("group")
-    hosts = request.GET.getlist("host")
-    services = request.GET.getlist("service")
+    groups = request.GET.get("group")
+    hosts = request.GET.get("host")
+    services = request.GET.get("service")
 
-    # Remove empty entries, i.e null strings in the list
-    # Define as sets to remove duplicates easily, allow for some set notation later
-    groups   = set([group.strip() for val in groups for group in val.split(',') if group.strip()])
-    hosts   = set([host.strip() for val in hosts for host in val.split(',') if host.strip()])
-    services   = set([service.strip() for val in services for service in val.split(',') if service.strip()])
-    group_hosts = set() # Hosts under the given groups
-    all_hosts = set()  # All hosts will contain all host names from host and group
     
-    # Populate group_hosts with the hosts in the groups
-    if groups:
-        for group in groups:
-            group_hosts.update(set(hostnames_by_group(stat,obj,group)))
-
-    all_hosts.update(hosts | group_hosts) if hosts | group_hosts else None
-    service_list = [] # Will contain the service objects
-    end = int(time.time())  # For graphing
-    start = end - DAY # For graphing
-
-    # Given hosts and no services, we want to get all services for those hosts.
-    if all_hosts and not services:
-        for host in all_hosts:
-            for service in servicelist_by_host(stat,host):
-                service_list.append(service)
-    # Given no hosts and services, we want to get all hosts for those services.
-    # Given hosts and services, we want to start by getting all of the hosts with the services listed, and then will later filter out the hosts we don't want
-    if (not all_hosts and services) or (all_hosts and services):
-        for service in services:
-            for host in hostlist_by_service(stat,service):
-                service_list.append(servicedetail(stat,host['host_name'],service))
-    # Given hosts and services, we already have a list of all hosts for the listed services, we want to filter out hosts that weren't listed.
-    if all_hosts and services:
-        service_list = [service for service in service_list if (lambda x: x in all_hosts) (service['host_name'])]
-
-    # Find out whether each service object is graphable or not
-    for service in service_list:
-        service['is_graphable'] = is_graphable(service['host_name'], service['service_description'])
-        service['start']  = start
-        service['end']    = end
-        service['period'] = 'ajax'
+    service_list = get_graphs(stat, obj, hosts, groups, services)
+    
 
     context_data = {
         'loaded_graphs': service_list,
@@ -666,6 +667,19 @@ def directconfigurator(request):
     """Returns a blank configurator page"""
     stat, obj = parse()
     return configurator(stat, obj)
+
+def hostconfigurator(request, hosts):
+    """Returns a configurator page with graphs on it"""
+    stat, obj = parse()
+    service_list = get_graphs(stat, obj, hosts)
+    return configurator(stat, obj, 'Configurator', 'Configurator', service_list)
+
+def serviceconfigurator(request, service):
+    """Returns a configurator page with graphs on it"""
+    stat, obj = parse()
+    service_list = get_graphs(stat, obj, "", "", service)
+    return configurator(stat, obj, 'Configurator', 'Configurator', service_list)
+
 
 def configurator(stat, obj, htmltitle='Configurator',            \
                      pagetitle='Configurator', loaded_graphs=[], \

@@ -56,7 +56,7 @@
         {% else %}
             <li class="green">
         {% endifequal %}
-            <a href="{% url railroad.viewhosts.views.graphpage host.host_name %}">{{host.host_name}}</a>
+            <a href="{% url railroad.viewhosts.views.hostconfigurator host.host_name %}">{{host.host_name}}</a>
             {# maybe for later <ul><li>{{host.plugin_output}}</li></ul> #}
             </li>
     {% endfor %}

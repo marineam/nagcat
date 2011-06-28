@@ -44,6 +44,8 @@ urlpatterns = patterns('',
     (r'^configurator/graph$', 'railroad.viewhosts.views.customgraph'),
     (r'^configurator/formstate$', 'railroad.viewhosts.views.formstate'),
     (r'^configurator/generatelink$', 'railroad.viewhosts.views.generatelink'),
+    (r'^configurator/host/(?P<hosts>\w+)$', 'railroad.viewhosts.views.hostconfigurator'),
+    (r'^configurator/service/(?P<service>(\w+\s*)+)$', 'railroad.viewhosts.views.serviceconfigurator'),
 
     # Stuff for AJAX
     (r'^ajax/autocomplete/(?P<context>\w+)$', 'railroad.ajax.views.autocomplete'),
