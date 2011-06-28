@@ -41,31 +41,7 @@
 </span>
 </div>
 <div id="link"></div>
-{% block sidebar %}
-<div id="sidebar">
-{# TODO: Kill the extra ul, it makes no sense #}
-<div class="biglist">
-<ul>
-{% for elem in sidebar %}
-	</ul>
-		<div class="listheader"><a href="{% url railroad.viewhosts.views.group elem.0 %}">{{elem.0}}</a></div>
-		<ul>
-    {% for host in elem.1 %}
-        {% ifequal host.current_state 0 %}
-            <li class="red">
-        {% else %}
-            <li class="green">
-        {% endifequal %}
-            <a href="{% url railroad.viewhosts.views.hostconfigurator host.host_name %}">{{host.host_name}}</a>
-            {# maybe for later <ul><li>{{host.plugin_output}}</li></ul> #}
-            </li>
-    {% endfor %}
-{% endfor %}
-</ul>
-</div>
-
-</div>
-{% endblock %}
+{% include "sidebar.html" %}
 <div id="content">
 <h1>{% block header %}{% endblock %}</h1>
 {% block content %}{% endblock %}
