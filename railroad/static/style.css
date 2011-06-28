@@ -153,12 +153,16 @@ ol { margin: 0; padding: 0px; }
 
 td.controls { vertical-align: top }
 td.controls div { margin-top: 3px; }
-td.status_text { padding: 10px; }
+td.status_text {
+   padding: 5px;
+   width: 250px;
+}
 td.graph_container {
     font-size: 10pt;
     text-align: center;
     padding-top: 10px;
     position: relative;
+    width: 540px;
 }
 td.graph_container canvas {
     position: absolute;
@@ -183,9 +187,6 @@ td.graph_container canvas {
 .legend table td {
 	padding: 2px;
 	border: 0;
-}
-.graph_container {
-	position: relative;
 }
 .legend {
 	position: relative;
