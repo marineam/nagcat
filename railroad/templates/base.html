@@ -28,26 +28,29 @@
 
 <body>
 
-<div id="header">
-<ul>
-<li id="title">Railroad</li>
-<li><a href="{% url railroad.viewhosts.views.index %}">Home</a></li>
-<li><a href="{% url railroad.viewhosts.views.directconfigurator %}">Configurator</a></li>
-</ul>
-<span id="graph_options">
-<a href="#" id="live" title="generate a link to this page which stays live">live link</a> | 
-<a href="#" id="static" title="generate a link to this page which zooms to the currently selected time periods">static link</a>
-</span>
-</div>
-<div id="link"></div>
 {% include "sidebar.html" %}
-<div id="content">
-<h1>{% block header %}{% endblock %}</h1>
-{% block content %}{% endblock %}
+<div id="wrapper">
+    <div id="header">
+        <ul>
+            <li id="title">Railroad</li>
+            <li><a href="{% url railroad.viewhosts.views.index %}">Home</a></li>
+            <li><a href="{% url railroad.viewhosts.views.directconfigurator %}">Configurator</a></li>
+        </ul>
+        <span id="graph_options">
+        <a href="#" id="live" title="generate a link to this page which stays live">live link</a> | 
+        <a href="#" id="static" title="generate a link to this page which zooms to the currently selected time periods">static link</a>
+        | <input type="checkbox" name="sync" id="sync"><label for="sync" title="keep all the graphs on this page on the same time period">sync graphs</label>
+        </span>
+    </div>
+    <div id="content">
+        <h1>{% block header %}{% endblock %}</h1>
+        {% block content %}{% endblock %}
+    </div>
+    <div id="debug">
+        <input type="checkbox" name="debug" id="debug_check">Debug</input>
+        <ul></ul> 
+    </div>
 </div>
-<div id="debug">
-    <input type="checkbox" name="debug" id="debug_check">Debug</input>
-    <ul></ul> 
-</div>
+
 </body>
 </html>
