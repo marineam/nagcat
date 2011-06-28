@@ -18,7 +18,7 @@
 body {
 	font-family: Arial, Helvetica, sans-serif;
 	margin: 0;
-    background-color: #24587a;
+    background-color: #467a9c;
 }
 
 ol { margin: 0; padding: 0px; }
@@ -154,7 +154,16 @@ ol { margin: 0; padding: 0px; }
 td.controls { vertical-align: top }
 td.controls div { margin-top: 3px; }
 td.status_text { padding: 10px; }
-td.graph_container { text-align: center; padding-top: 10px; position: relative; }
+td.graph_container {
+    font-size: 10pt;
+    text-align: center;
+    padding-top: 10px;
+    position: relative;
+}
+td.graph_container canvas {
+    position: absolute;
+    left: 0; top 0;
+}
 
 /* Graph styling */
 .graph {
@@ -162,9 +171,6 @@ td.graph_container { text-align: center; padding-top: 10px; position: relative; 
 	height: 225px;
 	margin: 5px 15px 15px 25px;
 	font-size: 12pt;
-}
-.graph_container {
-	font-size: 10pt;
 }
 
 .legend {
