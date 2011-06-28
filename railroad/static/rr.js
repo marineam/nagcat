@@ -30,7 +30,8 @@ $.plot.formatDate = function(d, fmt, monthNames) {
     var r = [];
     var escape = false, padNext = false;
     var hours = d.getUTCHours();
-    if  (localStorageGet('form_configurator')['localtime']) {
+    var form_data = localStorageGet('form_configurator');
+    if  (form_data && form_data['localtime']) {
         hours = d.getHours();
     }
     var isAM = hours < 12;
@@ -47,7 +48,8 @@ $.plot.formatDate = function(d, fmt, monthNames) {
     for (var i = 0; i < fmt.length; ++i) {
         var c = fmt.charAt(i);
             if (escape) {
-                if (localStorageGet('form_configurator')['localtime']) {
+                var form_data = localStorageGet('form_configurator');
+                if  (form_data && form_data['localtime']) {
                     switch (c) {
                         case 'h': c = "" + hours; break;
                         case 'H': c = leftPad(hours); break;
