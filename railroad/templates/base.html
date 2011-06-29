@@ -14,7 +14,7 @@
 <script language="javascript" type="text/javascript"
     src="/railroad-static/jquery.form.js"></script>
 <script language="javascript" type="text/javascript"
-    src="/railroad-static/jquery.autocomplete.js"></script>
+    src="/railroad-static/jquery-ui-1.8.13.custom.min.js"></script>
 
 <!--[if IE]><script language="javascript" type="text/javascript" src="/railroad-static/flot/excanvas.js"></script><![endif]-->
 
@@ -22,6 +22,7 @@
     src="/railroad-static/rr.js"></script>
 
 <link rel="stylesheet" href="/railroad-static/style.css" type="text/css">
+<link rel="stylesheet" href="/railroad-static/jquery-ui.css" type="text/css">
 
 </head>
 
@@ -36,38 +37,17 @@
 <span id="graph_options">
 <a href="#" id="live" title="generate a link to this page which stays live">live link</a> | 
 <a href="#" id="static" title="generate a link to this page which zooms to the currently selected time periods">static link</a>
-| <input type="checkbox" name="sync" id="sync"><label for="sync" title="keep all the graphs on this page on the same time period">sync graphs</label>
 </span>
 </div>
 <div id="link"></div>
-{% block sidebar %}
-<div id="sidebar">
-{# TODO: Kill the extra ul, it makes no sense #}
-<div class="biglist">
-<ul>
-{% for elem in sidebar %}
-	</ul>
-		<div class="listheader"><a href="{% url railroad.viewhosts.views.group elem.0 %}">{{elem.0}}</a></div>
-		<ul>
-    {% for host in elem.1 %}
-        {% ifequal host.current_state 0 %}
-            <li class="red">
-        {% else %}
-            <li class="green">
-        {% endifequal %}
-            <a href="{% url railroad.viewhosts.views.graphpage host.host_name %}">{{host.host_name}}</a>
-            {# maybe for later <ul><li>{{host.plugin_output}}</li></ul> #}
-            </li>
-    {% endfor %}
-{% endfor %}
-</ul>
-</div>
-
-</div>
-{% endblock %}
+{% include "sidebar.html" %}
 <div id="content">
 <h1>{% block header %}{% endblock %}</h1>
 {% block content %}{% endblock %}
+</div>
+<div id="debug">
+    <input type="checkbox" name="debug" id="debug_check">Debug</input>
+    <ul></ul> 
 </div>
 </body>
 </html>

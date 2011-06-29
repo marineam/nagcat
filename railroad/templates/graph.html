@@ -1,7 +1,8 @@
 {% for graph in loaded_graphs %}
     <tr class="service_row">
     <td class="controls">
-        <div class="collapse"><img alt="Collapse" src="/railroad-static/img/collapse.png"/></div>
+        <div class="collapse_row"></div>
+        <div class="remove_row"></div>
         {# TODO: Kind of odd place for this? #}
         <a href="{{graph.host_name}}/{{graph.service_description}}" class="service_data"></a>
     </td>

@@ -16,6 +16,8 @@ import json
 import os
 import types
 import time
+import random
+from math import floor
 
 import rrdtool
 import coil
@@ -44,11 +46,41 @@ def labelize(data, index, base, unit):
     statistics = data[index]['statistics']
     cur = str(sigfigs(statistics['cur'] / base))    \
             if statistics['cur'] != None else 'Null'
-    return ' (cur: %s%s, min: %s%s, max: %s%s, avg: %s%s)' %        \
-        (cur, unit, str(sigfigs(statistics['min'] / base)), unit,   \
-        str(sigfigs(statistics['max'] / base)), unit,               \
-        str(sigfigs(statistics['avg'] / base)), unit)
-        
+    return (' (cur: %s%s, min: %s%s, max: %s%s, avg: %s%s)' %
+        (cur, unit, str(sigfigs(statistics['min'] / base)), unit,
+        str(sigfigs(statistics['max'] / base)), unit,
+        str(sigfigs(statistics['avg'] / base)), unit))
+
+def getColors(names):
+    rng_state = random.getstate()
+
+    n = len(names)
+    colors = []
+    offset = 0
+    for i in range(n):
+        random.seed(names[i])
+        # Make a random color
+        h = 360 * ((float(i) / n + offset) % 1)
+        s = 0.6 + 0.4 * random.random()
+        l = 0.375 + 0.25 * random.random()
+
+        # convert it from HSL to RGB
+        c = (1 - abs(2*l-1)) * s;
+        hp = floor(h / 60)
+        x = c * (1 - abs(hp % 2 - 1))
+        (rp,gp,bp) = {0: (c,x,0), 1: (x,c,0), 2: (0,c,x),
+                    3: (0,x,c), 4: (x,0,c), 5: (c,0,x)}[hp]
+
+        m = l - 0.5 * c
+        r,g,b = [x*256 for x in (rp + m, gp + m, bp + m)]
+
+        # Convert it to a hex color
+        colors.append('#%02x%02x%02x' % (r,g,b))
+
+    random.setstate(rng_state)
+
+    return colors
+
 def index(request, host, service, start, end, resolution='150'):
     """Reads the rrd and returns the data in flot-friendly format"""
     rra_path = settings.RRA_PATH
@@ -133,13 +165,12 @@ def index(request, host, service, start, end, resolution='150'):
             if not(query_label):
                 query_label = root_label
             labels.append(('query', query_label if query_label else 'Result'))
-        
 
     if '_result' in all_labels:
         labels.append(('_result', root_label if root_label else 'Result'))
 
     length = len(labels)
-        
+
     indices = range(length)
     dataset = {}
 
@@ -153,7 +184,9 @@ def index(request, host, service, start, end, resolution='150'):
 
     labels = map(lambda x: x[0], labels)
     state_data = []
-    
+
+    graph_options['colors'] = getColors(labels);
+
     # Reading graph options
     for index in indices:
         key = labels[index]
@@ -271,7 +304,7 @@ def index(request, host, service, start, end, resolution='150'):
             else:
                 flot_data[index]['label'] +=    \
                     ' (cur: N/A, min: N/A, max: N/A, avg: N/A)'
-                
+
 
     if max != None:
         graph_options['yaxis']['max'] = max * 1.1 + 1
@@ -280,12 +313,12 @@ def index(request, host, service, start, end, resolution='150'):
         axis_max = root_trend.get('axis_max', '')
         if axis_max and graph_options['yaxis']['max'] < axis_max:
             graph_options['yaxis']['max'] = axis_max * 1.1 + 1
-    
+
     if root_trend:
         axis_label = root_trend.get('axis_label', '')
         if axis_label:
             graph_options['yaxis']['label'] = axis_label
-        
+
     for index in indices:
         del(flot_data[index][railroad_conf])
 
@@ -317,9 +350,9 @@ def index(request, host, service, start, end, resolution='150'):
     # still draw (otherwise they don't get axes, ticks, etc)
     flot_data.append({'data': state_data, 'lines': {'show': False}})
 
-    result = {'options': graph_options, 'data': flot_data, 'base': base,    \
-                    'empty': empty_graph, 'current_time': current_time,     \
-                    'start': start, 'end': end,                             \
+    result = {'options': graph_options, 'data': flot_data, 'base': base,
+                    'empty': empty_graph, 'current_time': current_time,
+                    'start': start, 'end': end,
              }
 
     return HttpResponse(json.dumps(result))

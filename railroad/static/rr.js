@@ -21,7 +21,83 @@
 base = 0;
 
 /******* FLOT HELPER FUNCTIONS *******/
+$.plot.formatDate = function(d, fmt, monthNames) {
+    var leftPad = function(n) {
+        n = "" + n;
+        return n.length == 1 ? "0" + n : n;
+    };
 
+    var r = [];
+    var escape = false, padNext = false;
+    var hours = d.getUTCHours();
+    var form_data = localStorageGet('form_configurator');
+    if  (form_data && form_data['localtime']) {
+        hours = d.getHours();
+    }
+    var isAM = hours < 12;
+    if (monthNames == null)
+        monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    if (fmt.search(/%p|%P/) != -1) {
+        if (hours > 12) {
+            hours = hours - 12;
+        } else if (hours == 0) {
+            hours = 12;
+        }
+    }
+    for (var i = 0; i < fmt.length; ++i) {
+        var c = fmt.charAt(i);
+            if (escape) {
+                var form_data = localStorageGet('form_configurator');
+                if  (form_data && form_data['localtime']) {
+                    switch (c) {
+                        case 'h': c = "" + hours; break;
+                        case 'H': c = leftPad(hours); break;
+                        case 'M': c = leftPad(d.getMinutes()); break;
+                        case 'S': c = leftPad(d.getSeconds()); break;
+                        case 'd': c = "" + d.getDate(); break;
+                        case 'm': c = "" + (d.getMonth() + 1); break;
+                        case 'y': c = "" + d.getFullYear(); break;
+                        case 'b': c = "" + monthNames[d.getMonth()]; break;
+                        case 'p': c = (isAM) ? ("" + "am") : ("" + "pm"); break;
+                        case 'P': c = (isAM) ? ("" + "AM") : ("" + "PM"); break;
+                        case '0': c = ""; padNext = true; break;
+                    }
+                }
+        
+                else {        
+                    switch (c) {
+                        case 'h': c = "" + hours; break;
+                        case 'H': c = leftPad(hours); break;
+                        case 'M': c = leftPad(d.getUTCMinutes()); break;
+                        case 'S': c = leftPad(d.getUTCSeconds()); break;
+                        case 'd': c = "" + d.getUTCDate(); break;
+                        case 'm': c = "" + (d.getUTCMonth() + 1); break;
+                        case 'y': c = "" + d.getUTCFullYear(); break;
+                        case 'b': c = "" + monthNames[d.getUTCMonth()]; break;
+                        case 'p': c = (isAM) ? ("" + "am") : ("" + "pm"); break;
+                        case 'P': c = (isAM) ? ("" + "AM") : ("" + "PM"); break;
+                        case '0': c = ""; padNext = true; break;
+                    }
+                }
+                if (c && padNext) {
+                    c = leftPad(c);
+                    padNext = false;
+                }
+                r.push(c);
+                if (!padNext) {
+                    escape = false;
+                }
+        }
+        else {
+            if (c == "%")
+                escape = true;
+            else
+                r.push(c);
+        }
+    }
+    return r.join("");
+};
 // Choose a base for graph axis
 function chooseBase(max) {
     // Memoizes results!
@@ -50,7 +126,7 @@ function tickGenerator(range) {
     final_base = Math.pow(base, interval);
 
     var noTicks = 0.3 * Math.sqrt($(".graph").height());
-    
+
     var delta = ((range.max - range.min) / final_base) / noTicks,
         size, generator, unit, formatter, i, magn, norm;
 
@@ -177,9 +253,11 @@ function createGraph(element, path, callback, zoom) {
                         $(element).append('<div class="empty">no data</div>');
                     }
 
-                    update = $(element).closest('.graph_container')
-                                       .find('.update');
-                    update.html('updated: ' + data.current_time);
+                    update = $(element).closest('.graph_container') .find('.update')
+                                 .html('updated: ' + data.current_time);
+
+                    // get the graphs collapsed/expanded as they should be.
+                    $('#expansion_by_type').children().trigger('change');
 
                     if(callback != null) {
                         callback(data);
@@ -209,17 +287,6 @@ function createGraph(element, path, callback, zoom) {
         });
     // Release the graph
     $(element).data('busy', null);
-    }
-}
-
-// Grabs the default state for the configurator
-function defaultState() {
-    // If we're on a configurator page, load the default state
-    if($('#configurator') != undefined) {
-        $.getJSON('/railroad/configurator/formstate', function(data) {
-            $('#configurator').data('state', data);
-        });
-        $('#configurator').show();
     }
 }
 
@@ -310,13 +377,129 @@ function autoFetchData() {
     setTimeout(autoFetchData, 60 * 1000);
 }
 
+// Sort the graphs.
+function reverse(func) {
+    return function(a,b) {
+        return func(b,a);
+    }
+}
+function makeComparer(val) {
+    return function(a,b) {
+        return val(a) > val(b);
+    }
+}
+var sorts = {
+    'service': makeComparer(function(e) {
+            return $(e).find('td.status_text h2').last().text();
+        }),
+    'host': makeComparer(function(e) {
+            return $(e).find('td.status_text h2').first().text();
+        }),
+    'status': reverse(makeComparer(function(e) {
+            e_td = $(e).find('td.status_text');
+            if (e_td.hasClass('state_ok')) {
+                return 0;
+            } else if (e_td.hasClass('state_warning')) {
+                return 1;
+            } else if (e_td.hasClass('state_critical')) {
+                return 2;
+            } else {
+                return 3;
+            }
+        })),
+    'value': makeComparer(function(e) {
+            var plot = $(e).find('.graph').first().data('plot');
+            if (!plot) {
+                return NaN;
+            }
+            series = plot.getData()[0].data;
+            latest = parseInt(series[series.length-1][1]);
+            return latest;
+        })
+}
+function sortGraphs() {
+    console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
+    var name = $('#sortby').val();
+    var sorter = sorts[name];
+    if ($('#reverse_sort').prop('checked')) {
+        sorter = reverse(sorter);
+    }
+    $('tr.service_row').sort(sorter).appendTo('#graphs');
+}
+
+/******* Local Storage Hooks *******/
+function updateDebug() {
+    if (localStorageGet('debug')) {
+        $('#debug input').prop('checked', true);
+        $('#debug ul li').remove();
+        for (var prop in localStorage) {
+            var desc = localStorage[prop];
+            $('#debug ul').append('<li>({0}) {1}: {2}</li>'.format(typeof(desc), prop, desc));
+        }
+        $('#debug ul').append('<li><a href="#">Reset localStorage</a></li>');
+    } else {
+        $('#debug input').prop('checked', false);
+        $('#debug ul li').remove();
+    }
+}
+
+function localStorageSupport() {
+    try {
+        return 'localStorage' in window && window['localStorage'] !== null;
+    } catch (e) {
+        return false;
+    }
+}
+function localStorageSet(key, value) {
+    if (localStorageSupport()) {
+        var json = JSON.stringify(value)
+        localStorage[key] = json;
+        updateDebug();
+        return true;
+    }
+    // Should we try other methods of storing data?
+    return false;
+}
+function localStorageGet(key) {
+    if (localStorageSupport()) {
+        var ob;
+        try {
+            ob = JSON.parse(localStorage[key]);
+        } catch(e) {
+            ob = localStorage[key];
+        }
+        return ob;
+    }
+    // Should we try other methods of storing data?
+    return null;
+}
+function localStorageClear() {
+    if (localStorageSupport()) {
+        localStorage.clear();
+        updateDebug();
+        return true;
+    }
+    return false;
+}
+
+/******* Misc helper functions *******/
+// Give strings a format function.
+// Use it like this
+//    "Hello {0}, how are you this find {1}?".format(user_name, time_of_day);
+//    Returns "Hello Mike, how are you this fine morning?"
+String.prototype.format = function() {
+    var formatted = this;
+    for (var i = 0; i < arguments.length; i++) {
+        var regexp = new RegExp('\\{'+i+'\\}', 'gi');
+        formatted = formatted.replace(regexp, arguments[i]);
+    }
+    return formatted;
+};
+
 /******* DOM HOOK SETUP *******/
 
 // Execute setup code when page loads
 $(document).ready(function() {
-    // Kick off grabbing the default state so hopefully it gets there before
-    // the user iteracts
-    defaultState();
 
     /**** GRAPH SETUP ****/
 
@@ -405,21 +588,80 @@ $(document).ready(function() {
 
     /**** CONFIGURATOR SETUP ****/
 	// TODO: delete remnants (most of it) carefully!
-    $('.autocomplete').each(function () {
-        $(this).autocomplete("/railroad/ajax/autocomplete/" + $(this).attr('id'))
-    } )
+
+    $('#debug_check').prop('checked', localStorageGet('debug'));
+    updateDebug();
+
+    $('#debug_check').change(function () {
+        localStorageSet('debug', $('#debug_check').prop('checked'));
+        updateDebug();
+    });
+
+    $('#debug a').live('click', function() {
+        localStorageClear();
+    });
+
+
+    /*** Persistent form settings ***/
+    // Anything in #configurator with a class of "... persist ..." will get persistence.
+    $('#configurator').change(function() {
+        var store = {};
+        var value = null;
+        $(this).find('.persist').each(function() {
+            if ($(this).is('input')) {
+                if ($(this).attr('type') == 'checkbox') {
+                    value = $(this).prop('checked');
+                } else if ($(this).attr('type') == 'radio') {
+                    value = $(this).prop('checked');
+                }
+            } else if ($(this).is('select')) {
+                value = $(this).val();
+            }
+
+            if (value != null) {
+                store[$(this).attr('id')] = value;
+            }
+        });
+        localStorageSet('form_configurator', store);
+    });
+
+    // Restore persisted objects
+    var form_store = localStorageGet('form_configurator');
+    for (key in form_store) {
+        element = $('#configurator').find('#' + key);
+        if ($(element).is('input')) {
+            if ($(element).attr('type') == 'checkbox') {
+                $(element).prop('checked', form_store[key]);
+            } else if ($(element).attr('type') == 'radio') {
+                $(element).prop('checked', form_store[key]);
+            }
+        } else if ($(element).is('select')) {
+            $(element).val(form_store[key]);
+        }
+    }
+
+    // Autocomplete anything with class = "... autocomplete ..."
+    $('.autocomplete').each(function () { 
+        $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" + $(this).attr('name' ), minLength : 1, autoFocus: true})
+    });
 
     $('#cleargraphs').click(function () {
         $('.service_row').remove();
         $('#configurator').data('changed', true);
     });
+    
+    $('#clearform').bind('click', function () {
+        $('#host').val("");
+        $('#group').val("");
+        $('#service').val("");
+    });
+
     // Handle configurator form submissions
     $('#configurator').submit(function() {
         $(this).append('<div class="throbber"></div>');
         // Enable the fields again so they can be submitted
         $('[id^=type]').attr('disabled', null);
         $('[id^=value]').attr('disabled', null);
-
 
         fields = $('#configurator').formSerialize();
         $.ajax({
@@ -428,11 +670,12 @@ $(document).ready(function() {
             url: $('#configurator').attr('action'),
             success: function(data, textStatus, XMLHttpRequest) {
                 //reset_fields();
-                $('#configurator').trigger('reset');
+                $('#clearform').trigger('click');
                 // Add the new graph and setup the new graphs
                 $('#graphs').append(data);
                 $('.graph:not(.setup)').each(parseGraphs);
                 $('#configurator').find('.throbber').remove();
+                sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 // TODO: Indicate error somehow, probably
@@ -440,48 +683,71 @@ $(document).ready(function() {
             }
         });
         $('#configurator').data('changed', true);
-        // Delete extra cloned buttons
-        var cloned_hosts = $('.clonedHost').length;
-        var cloned_groups = $('.clonedGroup').length;
-        var cloned_services = $('.clonedService').length;
-
-        for (var i=cloned_hosts; i >1; i--) {
-            $('#hostdiv' + i).remove();
-        }
-
-        for (var i=cloned_groups; i > 1; i--) {
-            $('#groupdiv' + i).remove();
-        }
-
-        for (var i=cloned_services; i > 1; i--) {
-            $('#servicediv' + i).remove();
-        }
         // Prevent normal form submission
         return false;
     });
 
-
-    expand_img = '/railroad-static/img/expand.png';
-    collapse_img = '/railroad-static/img/collapse.png'
-    $('.collapse').live('click', function() {
+    // **********  Functions to manipulate rows **************
+    var animate_time = 250;
+    function collapse_row(row) {
         // Hide the graph and status text
-        $(this).parents().siblings('.graph_container').children().hide(200);
-        $(this).parents().siblings('.status_text').children('p').hide(200);
+        $(row).children('.graph_container').children().hide(animate_time);
+        $(row).children('.status_text').children('p').hide(animate_time);
+        $(row).children('.status_text').children('h2').css({'display': 'inline'});
 
         // change the button to expand
-        $(this).removeClass('collapse');
-        $(this).addClass('expand');
-        $(this).children('img').attr('src', expand_img);
-    });
-    $('.expand').live('click', function() {
-        // Show the graph and status text
-        $(this).parents().siblings('.graph_container').children().show(200);
-        $(this).parents().siblings('.status_text').children('p').show(200);
+        $(row).children('.controls').children('div').removeClass('collapse_row');
+        $(row).children('.controls').children('div').addClass('expand_row');
+    }
+    function expand_row(row) {
+        // Hide the graph and status text
+        $(row).children('.graph_container').children().show(animate_time);
+        $(row).children('.status_text').children('p').show(animate_time);
+        $(row).children('.status_text').children('h2').css({'display': 'block'});
 
-        // change the button to collapse
-        $(this).removeClass('expand');
-        $(this).addClass('collapse');
-        $(this).children('img').attr('src', collapse_img);
+        // change the button to expand
+        $(row).children('.controls').children('div').removeClass('expand_row');
+        $(row).children('.controls').children('div').addClass('collapse_row');
+    }
+
+    $('#expandall').click(function() {
+        $('tr.service_row').each(function(index, row) {
+            expand_row(row);
+        });
+    });
+    $('#collapseall').click(function() {
+        $('tr.service_row').each(function(index, row) {
+            collapse_row(row);
+        });
+    });
+
+    $('.collapse_row').live('click', function() {
+        collapse_row($(this).parents().parents().first());
+    });
+    $('.expand_row').live('click', function() {
+        expand_row($(this).parents().parents().first());
+    });
+    $('.remove_row').live('click', function() {
+        var tr = $(this).parents().parents().first();
+        tr.hide(animate_time, function() {
+            $(tr).remove();
+        });
+    });
+
+    // *************************** Auto collapse ***************************
+    // set up events on each checkbox to collapse/expand the service_rows to
+    // match the current state of the checkbox.
+    $('#expansion_by_type').children().bind('change', function() {
+        var checkbox = this;
+        $('.service_row').each(function(index, element) {
+            if ($(element).find('*').hasClass($(checkbox).attr('name'))) {
+                if ($(checkbox).prop('checked')) {
+                    expand_row(element);
+                } else {
+                    collapse_row(element);
+                }
+            }
+        });
     });
 
     // Handle configurator link generation
@@ -584,9 +850,35 @@ $(document).ready(function() {
         $('#link').empty();
     });
 
-    /**** MISC ***/
-
     // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 60 * 1000);
 
+    /******* Hint System *******/
+    $('.hint').append('<span class="hide_hint"></span>');
+
+    $('.hint .hide_hint').bind('click',
+        function() {
+            var hint_id = $(this).parent().attr('id');
+            var hints_hidden = localStorageGet('hints_hidden');
+            if (hints_hidden == null) {
+                hints_hidden = {};
+            }
+            hints_hidden[hint_id] = true;
+            localStorageSet('hints_hidden', hints_hidden);
+            $(this).parent().remove();
+        });
+
+    var hints_hidden = localStorageGet('hints_hidden');
+    if (hints_hidden == null) {
+        hints_hidden = {};
+    }
+    $('.hint').each(function() {
+        if (! hints_hidden[$(this).attr('id')]) {
+            $(this).css('display', 'block');
+        }
+    });
+
+    /******** Sorting *********/
+    $('#sortby').bind('change', sortGraphs);
+    $('#reverse_sort').bind('change', sortGraphs);
 });
