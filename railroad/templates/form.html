@@ -1,5 +1,5 @@
 <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
-    <div id="service_selector">
+    <div class="left">
         <fieldset>
             <legend>Add graphs</legend>
         <ol>
@@ -33,7 +33,7 @@
             <input type="checkbox" name="sync" id="sync" class="persist"><label for="sync" title="keep all the graphs on this page on the same time period">Keep all graphs in sync.</label>
         </fieldset>
     </div>
-    <div id="service_options">
+    <div class="right">
         <fieldset id="autocollapse">
             <legend>Expansion</legend>
             <div id="expansion_by_type">

@@ -24,7 +24,7 @@ body {
 ol { margin: 0; padding: 0px; }
 
 #wrapper {
-    width: 900px;
+    width: 835px;;
     background-color: #fff;
     margin: 20px;
     position: relative;
@@ -32,6 +32,7 @@ ol { margin: 0; padding: 0px; }
     top: 20px;
     border: 1px solid black;
     padding: 5px;
+    min-height: 600px;
 }
 
 /* Page header */
@@ -90,9 +91,6 @@ ol { margin: 0; padding: 0px; }
 	list-style: square;
 	font-size: 10pt;
 }
-.biglist ul ul {
-	font-size: 2pt;
-}
 #sidebar {
 	padding: 18px 7px 10px 5px;
 	margin-right: 10px;
@@ -104,7 +102,6 @@ ol { margin: 0; padding: 0px; }
     position: absolute;
     left: 20px;
     top: 70px;
-	z-index: -1;
 }
 
 /* Status stoplight colors */
@@ -292,10 +289,17 @@ pre {
     margin: 5px;
 }
 fieldset {
-    margin: 10px 10px 10px 0px;
+    margin: 10px 0;
 }
-#service_selector, #service_options {
+#configurator .left, #configurator .right {
        float: left;
+}
+#configurator .left {
+    width: 485px;
+    margin-right: 15px
+}
+#configurator .right {
+    width: 325px;
 }
 #configurator ol li {
        list-style: none outside none;

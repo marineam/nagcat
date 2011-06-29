@@ -587,7 +587,6 @@ $(document).ready(function() {
     $(".graph").each(parseGraphs);
 
     /**** CONFIGURATOR SETUP ****/
-	// TODO: delete remnants (most of it) carefully!
 
     $('#debug_check').prop('checked', localStorageGet('debug'));
     updateDebug();
@@ -600,7 +599,6 @@ $(document).ready(function() {
     $('#debug a').live('click', function() {
         localStorageClear();
     });
-
 
     /*** Persistent form settings ***/
     // Anything in #configurator with a class of "... persist ..." will get persistence.
