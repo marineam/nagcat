@@ -697,7 +697,7 @@ $(document).ready(function() {
     });
 
     // **********  Functions to manipulate rows **************
-    var animate_time = 250;
+    var animate_time = 0;
     function collapse_row(row) {
         // Hide the graph and status text
         $(row).children('.graph_container').children().hide(animate_time);
@@ -749,7 +749,7 @@ $(document).ready(function() {
     $('#expansion_by_type').children().bind('change', function() {
         var checkbox = this;
         $('.service_row').each(function(index, element) {
-            if ($(element).find('*').hasClass($(checkbox).attr('name'))) {
+            if ($(element).children('.status_text').hasClass($(checkbox).attr('name'))) {
                 if ($(checkbox).prop('checked')) {
                     expand_row(element);
                 } else {
