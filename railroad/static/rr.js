@@ -738,7 +738,7 @@ $(document).ready(function() {
     $('#expansion_by_type').children().bind('change', function() {
         var checkbox = this;
         $('.service_row').each(function(index, element) {
-            if ($(element).find('*').hasClass($(checkbox).attr('name'))) {
+            if ($(element).find('*').hasClass($(checkbox).attr('id'))) {
                 if ($(checkbox).prop('checked')) {
                     expand_row(element);
                 } else {

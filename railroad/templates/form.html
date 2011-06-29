@@ -2,73 +2,72 @@
     <div class="left">
         <fieldset>
             <legend>Add graphs</legend>
-        <ol>
-            <li>
-                <label for="host">Host</label>
-                <input class="autocomplete value" id="host" name="host" type="text">
-            </li>
+            <ol>
+                <li>
+                    <label for="host">Host</label>
+                    <input class="autocomplete value" id="host" name="host" type="text">
+                </li>
 
-            <li>
-                <label for="group">Groups</label>
-                <input class="autocomplete value" id="group" name="group" type="text">
-            </li>
+                <li>
+                    <label for="group">Groups</label>
+                    <input class="autocomplete value" id="group" name="group" type="text">
+                </li>
 
-            <li>
-                <label for="service">Services</label>
-                <input class="autocomplete value" id="service" name="service" type="text">
-            </li>
+                <li>
+                    <label for="service">Services</label>
+                    <input class="autocomplete value" id="service" name="service" type="text">
+                </li>
 
-            <li>
-                <label>&nbsp;</label>
-                <input type="submit" value="Add" id="submit"/>
-                <input type="button" value="Clear Forms" id="clearform"/>
-                <input type="button" value="Clear Graphs" id="cleargraphs">
-            </li>
+                <li>
+                    <label>&nbsp;</label>
+                    <input type="submit" value="Add" id="submit"/>
+                    <input type="button" value="Clear Forms" id="clearform"/>
+                    <input type="button" value="Clear Graphs" id="cleargraphs">
+                </li>
 
-            <li class="hint" id="csv">You can autocomplete multiple comma seperated values at a time.</li>
-        </ol>
-    </fieldset>
-        <fieldset>
-            <legend>Sync Graphs</legend>
-            <input type="checkbox" name="sync" id="sync" class="persist"><label for="sync" title="keep all the graphs on this page on the same time period">Keep all graphs in sync.</label>
+                <li class="hint" id="csv">You can autocomplete multiple comma seperated values at a time.</li>
+            </ol>
         </fieldset>
-    </div>
-    <div class="right">
         <fieldset id="autocollapse">
             <legend>Expansion</legend>
             <div id="expansion_by_type">
-                <input type="checkbox" class="persist" name="state_ok" id="state_ok">OK</input>
-                <input type="checkbox" class="persist" name="state_warning" id="state_warning">Warning</input>
-                <input type="checkbox" class="persist" name="state_critical" id="state_critical">Critical</input>
-                <input type="checkbox" class="persist" name="state_unknown" id="state_unknown">Unknown</input>
+                <input type="checkbox" class="persist" id="state_ok">OK</input>
+                <input type="checkbox" class="persist" id="state_warning">Warning</input>
+                <input type="checkbox" class="persist" id="state_critical">Critical</input>
+                <input type="checkbox" class="persist" id="state_unknown">Unknown</input>
             </div>
             <div id="expansion_mass">
                 <input type="button" value="Expand All" id="expandall" />
                 <input type="button" value="Collapse All" id="collapseall" />
             </div>
         </fieldset>
+    </div>
+    <div class="right">
         <fieldset>
             <legend>Time Zone</legend>
-            <input type="radio" name="timezone" id="localtime" class="persist">Local Time</input>
-            <input type="radio" name="timezone" id="utc" class="persist">UTC</input>
+            <input type="radio" id="localtime" class="persist">Local Time</input>
+            <input type="radio" id="utc" class="persist">UTC</input>
         </fieldset>
         <fieldset>
             <legend>Sort By</legend>
-            <select name="sortby" id="sortby" class="persist">
+            <select id="sortby" class="persist">
                 <option value="service">Service Name</option>
                 <option value="host">Host Name</option>
                 <option value="status">Status</option>
                 <option value="value">RRD Value</option>
             </select>
-            <input type="checkbox" name="reverse_sort" id="reverse_sort" class="persist">Reverse sort order</input>
+            <input type="checkbox" id="reverse_sort" class="persist">Reverse sort order</input>
         </fieldset>
         <fieldset>
-            <legend>Sync Graphs</legend>
-            <input type="checkbox" name="sync" id="sync" class="persist"><label for="sync" title="keep all the graphs on this page on the same time period">Keep all graphs in sync.</label>
-        </fieldset>
-        <fieldset>
-            <legend>Enable Autofetch</legend>
-            <input type="checkbox" name="enableautofetch" id="enableautofetch" class="persist"><label for="enableautofetch" title="Enable autofetch">Enable Autofetch.</label>
+            <legend>Misc</legend>
+            <ol>
+                <li>
+                    <input type="checkbox" id="sync" class="persist">Keep all graphs in sync</input>
+                </li>
+                <li>
+                    <input type="checkbox" id="autofetch" class="persist">Enable Autofetch.</input>
+                </li>
+            </ol>
         </fieldset>
     </div>
 </form>
