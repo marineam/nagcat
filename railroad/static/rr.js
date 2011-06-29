@@ -213,7 +213,12 @@ function createGraph(element, path, callback, zoom) {
         $(element).data('busy', true);
         $(element).append('<div class="throbber"></div>');
         $(element).remove('.empty');
-        $.ajax({
+        var ajaxmanager = $.manageAjax.create('createGraph', {
+            queue: true,
+            cacheResponse: true,
+            maxRequests: 4,
+        });
+        ajaxmanager.add({
             url: '/railroad/parserrd/' + path,
             dataType: 'json',
             success: function(data) {
@@ -664,7 +669,11 @@ $(document).ready(function() {
         $('[id^=value]').attr('disabled', null);
 
         fields = $('#configurator').formSerialize();
-        $.ajax({
+        var ajaxmanager = $.manageAjax.create('configurator', {
+            queue: true,
+            maxRequests: 3,
+        });
+        ajaxmanager.add({
             data: fields,
             dataType: 'html',
             url: $('#configurator').attr('action'),
@@ -771,7 +780,7 @@ $(document).ready(function() {
                 services[index] = [host, service, start, end];
             });
             data = {services: services};
-            $.ajax({
+            $.ajaxq("linkgenerator",{
                 data: data,
                 dataType: 'json',
                 type: 'POST',
@@ -820,7 +829,7 @@ $(document).ready(function() {
                 services[index] = [host, service, start, end];
             });
             data = {services: services};
-            $.ajax({
+            $.ajaxq("linkgenerator",{
                 data: data,
                 dataType: 'json',
                 type: 'POST',
