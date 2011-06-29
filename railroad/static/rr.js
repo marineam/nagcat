@@ -850,8 +850,13 @@ $(document).ready(function() {
         $('#link').empty();
     });
 
-    // Start the AJAX graph refreshes
-    setTimeout(autoFetchData, 60 * 1000);
+    // Start the AJAX graph refreshes if enableautofetch is true
+    if (localStorageGet('form_configurator') || $('#enableautofetch').prop('checked')) {
+        //Separate ifs in case form_configurator doesn't exist, null['autofetch'] won't error
+        if(localStorageGet('form_configurator')['enableautofetch'] || $('#enableautofetch').prop('checked')) {
+            setTimeout(autoFetchData, 60 * 1000);
+        }
+    }
 
     /******* Hint System *******/
     $('.hint').append('<span class="hide_hint"></span>');
