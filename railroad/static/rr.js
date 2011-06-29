@@ -860,7 +860,7 @@ $(document).ready(function() {
     });
 
     // Start the AJAX graph refreshes
-    setTimeout(autoFetchData, 60 * 1000);
+    setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
     $('.hint').append('<span class="hide_hint"></span>');
