@@ -18,7 +18,7 @@ graphs of your choice.
 <ul>
 {% for state in service_states reversed %}
     <li class="status_text state_{{ state.grouper|state_name|lower }}">
-        <span>{{ state.grouper|state_name }} - {{ state.list|length }} services</span>
+    <span>{{ state.grouper|state_name }} - {{ state.list|length }} service{{state.list|length|pluralize}}</span>
         <ul>
             {% for item in state.list %}
             <li><a href="/railroad/configurator/host/{{item.host_name}}#{{item.host_name}}/{{item.service_description }}">
