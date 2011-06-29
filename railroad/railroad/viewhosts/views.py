@@ -281,7 +281,10 @@ def index(request):
     """Returns the index page"""
     t = loader.get_template('index.html')
     stat, obj = parse()
-    context_data = {}
+
+    services = stat['service']
+
+    context_data = {'services': services}
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))
@@ -482,7 +485,7 @@ def group(request, group):
     stat, obj = parse()
     service_dict = {}
 
-    try:        
+    try:
         host_list = hostlist_by_group(stat, obj, group)
     except Exception:
         raise Http404

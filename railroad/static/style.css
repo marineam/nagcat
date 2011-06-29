@@ -128,10 +128,16 @@ body {
 	background-image: url("/railroad-static/img/remove.png");
 }
 
-.state_ok       { background-color: #BFB; }
-.state_warning  { background-color: #FFB; }
-.state_critical { background-color: #FF6347; }
-.state_unknown  { background-color: #CCC; }
+td.state_ok       { background-color: #BFB; }
+td.state_warning  { background-color: #FFB; }
+td.state_critical { background-color: #FF6347; }
+td.state_unknown  { background-color: #CCC; }
+
+li.status_text span { cursor: pointer; font-size: 1.2em; font-weight: bold; }
+li.state_ok span { background-color: #BFB; }
+li.state_warning span { background-color: #FFB; }
+li.state_critical span { background-color: #FF6347; }
+li.state_unknown span { background-color: #CCC; }
 
 #graphs { border-collapse: collapse; }
 

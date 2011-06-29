@@ -11,4 +11,22 @@ Railroad is a viewer for Nagcat trends and Nagios state information. To begin
 choose a host or group from the sidebar, or go to the configurator and add the
 graphs of your choice.
 
+<h2>Quicklook</h2>
+<div class="hint" style="width: 400px;" id="quicklook">Click on the status names to collapse/expand them, or on a service to jump to it's graph on that host. Services that are OK have been automatically hidden.</div>
+{% regroup services|dictsort:"current_state" by current_state as service_states %}
+
+<ul>
+{% for state in service_states reversed %}
+    <li class="status_text state_{{ state.grouper|state_name|lower }}">
+        <span>{{ state.grouper|state_name }} - {{ state.list|length }} services</span>
+        <ul>
+            {% for item in state.list %}
+            <li><a href="/railroad/configurator/host/{{item.host_name}}#{{item.host_name}}/{{item.service_description }}">
+                {{ item.service_description }} on {{ item.host_name }}
+            </a></li>
+            {% endfor %}
+        </ul>
+    </li>
+{% endfor %}
+
 {% endblock %}
