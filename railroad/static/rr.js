@@ -305,7 +305,7 @@ function parseGraphs(index, element) {
     $(element).data('end', splitPath[3]);
     $(element).data('res', splitPath[4]);
 
-    createGraph(element, path);
+    createGraph(element, path, sortGraphs);
 
     // Allow for zooming
     $(element).bind('plotselected', function (event, ranges) {
