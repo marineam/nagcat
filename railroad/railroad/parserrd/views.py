@@ -105,7 +105,6 @@ def index(request, host, service, start, end, resolution='150'):
     time_dict = {'h': time_struct.tm_hour, 'm': time_struct.tm_min, \
                  's': time_struct.tm_sec}
     current_time = '%(h)02d:%(m)02d:%(s)02d UTC' % time_dict
-    
 
     # Parse the data
     actual_start, actual_end, res = rrdslice[0]
@@ -157,7 +156,6 @@ def index(request, host, service, start, end, resolution='150'):
                         label = key
                     labels.append((key, label))
 
-
     if 'query' in all_labels:
         trend = query.get('trend', None)
         if trend:
@@ -173,7 +171,6 @@ def index(request, host, service, start, end, resolution='150'):
 
     indices = range(length)
     dataset = {}
-
 
     # flot_data and flot_data are of the format
     # [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
@@ -262,7 +259,7 @@ def index(request, host, service, start, end, resolution='150'):
                     flot_data[index][statistics]['min'] = data
 
             flot_data[index]['data'].append([x, data])
-    
+
         x += res
 
     empty_graph = True
@@ -296,15 +293,6 @@ def index(request, host, service, start, end, resolution='150'):
 
         final_base = pow(base, interval)
         unit = bases[interval]
-
-        for index in indices:
-            if flot_data[index][statistics]['num'] > 0:
-                flot_data[index]['label'] +=    \
-                        labelize(flot_data, index, final_base, unit)
-            else:
-                flot_data[index]['label'] +=    \
-                    ' (cur: N/A, min: N/A, max: N/A, avg: N/A)'
-
 
     if max != None:
         graph_options['yaxis']['max'] = max * 1.1 + 1
