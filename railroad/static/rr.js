@@ -206,6 +206,47 @@ function formatGraph(element, data) {
     return data;
 }
 
+function createGraphs(ajaxcalls) {
+    // If the graph isn't busy
+        var ajaxmanager = $.manageAjax.create('createGraph', {
+            queue: true,
+            cacheResponse: true,
+            maxRequests: 4,
+        });
+        ajaxmanager.add({
+            url: 'http://dlcooper01/railroad/parserrd/multi?q=' + ajaxcalls,
+            dataType: 'json',
+            success: function(data) {
+                $('.graph:not(.setup)').each(function (index, element) {
+                    //data = formatGraph(element, data);
+                    var name = $(element).attr('id');
+                    for (var i=0; i<data.length; i++) {
+                        if (name == data[i]['host']) {
+                            $(element).data('plot', $.plot($(element),data[i].data));
+                            $(element).data('start', data[i]['start']);
+                            $(element).data('end', data[i]['end']);
+                        }
+                    }
+                });
+                    // get the graphs collapsed/expanded as they should be.
+                    //$('#expansion_by_type').children().trigger('change');
+
+                    //if(callback != null) {
+                    //    callback(data);
+                    //}
+            },
+            // If there's an error, toss out a warning about it
+            error: function(request, status, error) {
+                plot = $(element).data('plot');
+                $(element).find('.throbber').remove();
+                $(element).append('<div class="error">error</div>');
+            }
+        });
+    // Release the graph
+    $(element).data('busy', null);
+    }
+
+
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
     // If the graph isn't busy
@@ -295,6 +336,83 @@ function createGraph(element, path, callback, zoom) {
     }
 }
 
+function parseAllGraphs(graphs) {
+    var ajaxcalls = [];
+
+    // Don't set up graphs already set up
+    graphs.each(function (index, element) {
+        var ajaxcall = {};
+        $(element).addClass('setup');
+        // Store the graph data for usage later
+        path = $(element).find('a').attr('href');
+        splitPath = path.split('/');
+        $(element).data('host', splitPath[0]);
+        $(element).data('service', splitPath[1]);
+        $(element).data('start', splitPath[2]);
+        $(element).data('end', splitPath[3]);
+        $(element).data('res', splitPath[4]);
+
+        ajaxcall['host'] = splitPath[0];
+        ajaxcall['service'] = splitPath[1];
+        ajaxcall['start'] = splitPath[2];
+        ajaxcall['end'] = splitPath[3];
+        ajaxcall['res'] = splitPath[4];
+
+        ajaxcalls.push(ajaxcall);
+    });
+
+    createGraphs(JSON.stringify(ajaxcalls));
+
+    // Allow for zooming
+    //$(element).bind('plotselected', function (event, ranges) {
+    //    // The graph isn't busy anymore, allow updates
+    //    $(element).data('busy', null); 
+
+    //    // If we are supposed to sync the graphs, loop over all graphs
+    //    if($('#sync').attr('checked')) {
+    //        graphs = $('.graph');
+    //        // Allow us to zoom even when it makes no sense if we are
+    //        // synced
+    //        zoom = false;
+    //    // Otherwise only loop over the graph associated with this button
+    //    } else {
+    //        graphs = $(element);
+    //        zoom = true;
+    //    }
+
+    //    graphs.each(function(index, element) {
+
+    //        serviceData = $(element).data();
+
+    //        path = [serviceData.host,
+    //                serviceData.service,
+    //                parseInt(ranges.xaxis.from / 1000),
+    //                parseInt(ranges.xaxis.to / 1000),
+    //                serviceData.res].join('/');
+
+    //        createGraph(element,
+    //                    path,
+    //                    function() {
+    //                        $(element).removeClass('ajax');
+    //                        zoomButton = $(element)
+    //                                        .closest('.graph_container')
+    //                                        .find('.zoom');
+    //                        selected = $(element)
+    //                                        .closest('.graph_container')
+    //                                        .find('.selected');
+    //                        selected.removeClass('selected');
+    //                        zoomButton.css('visibility', 'visible');
+    //                        zoomButton.addClass('selected');
+    //                    },
+    //                    zoom);
+    //    });
+    //});
+    //$(element).bind('plotselecting', function() {
+    //    // If we are selecting, mark the graph as busy so no AJAX fires
+    //    $(element).data('busy', true);
+    //});
+
+}
 // Parse and setup graphs on the page
 function parseGraphs(index, element) {
 
@@ -423,7 +541,7 @@ var sorts = {
         })
 }
 function sortGraphs() {
-    console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
+    //console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
     var name = $('#sortby').val();
     var sorter = sorts[name];
     if ($('#reverse_sort').prop('checked')) {
@@ -663,7 +781,6 @@ $(document).ready(function() {
 
     // Handle configurator form submissions
     $('#configurator').submit(function() {
-        $(this).append('<div class="throbber"></div>');
         // Enable the fields again so they can be submitted
         $('[id^=type]').attr('disabled', null);
         $('[id^=value]').attr('disabled', null);
@@ -682,7 +799,8 @@ $(document).ready(function() {
                 $('#clearform').trigger('click');
                 // Add the new graph and setup the new graphs
                 $('#graphs').append(data);
-                $('.graph:not(.setup)').each(parseGraphs);
+                parseAllGraphs($('.graph:not(.setup)'));
+                //$('.graph:not(.setup)').each(parseGraphs);
                 $('#configurator').find('.throbber').remove();
                 sortGraphs();
             },
