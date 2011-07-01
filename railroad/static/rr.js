@@ -206,46 +206,32 @@ function formatGraph(element, data) {
     return data;
 }
 
-function createGraphs(ajaxcalls) {
-    // If the graph isn't busy
-        var ajaxmanager = $.manageAjax.create('createGraph', {
-            queue: true,
-            cacheResponse: true,
-            maxRequests: 4,
-        });
-        ajaxmanager.add({
-            url: 'http://dlcooper01/railroad/parserrd/multi?q=' + ajaxcalls,
-            dataType: 'json',
-            success: function(data) {
-                $('.graph:not(.setup)').each(function (index, element) {
-                    //data = formatGraph(element, data);
-                    var name = $(element).attr('id');
-                    for (var i=0; i<data.length; i++) {
-                        if (name == data[i]['host']) {
-                            $(element).data('plot', $.plot($(element),data[i].data));
-                            $(element).data('start', data[i]['start']);
-                            $(element).data('end', data[i]['end']);
+function createGraphs(data) {
+    for (var i=0; i < data.length; i++) {
+                $('#graphs').append('<tr class="service_row"><td class="controls"><div class="collapse_row"></div><div class="remove_row"></div></td><td class="status_ok state_ok"> <h2>{0}</h2> <h2>{1}</h2> </td> <td class="graph_container"> <div id="{2}" style="height:225 px; width: 600 px;" class="graph ajax"> </div> <div class="legend"></div></td></tr>'.format(data[i]['host'], data[i]['service'], data[i]['slug']));
+                if (data[i].data) {
+                    data[i] = formatGraph($('#{0}'.format(data[i]['slug'])),data[i]);
+                    $('#{0}'.format(data[i]['slug'])).data('plot', $.plot($('#{0}'.format(data[i]['slug'])), data[i].data, data[i].options));
+                    $('#{0}'.format(data[i]['slug'])).data('start', data[i]['data'][0]['start']);
+                    $('#{0}'.format(data[i]['slug'])).data('end', data[i]['data'][0]['end']);
+                    if(data[i].options.yaxis.label) {
+                        // if there isn't already a ylabel
+                        if ($('#{0}'.format(data[i]['slug'])).siblings('.ylabel').length == 0) {
+                            $('#{0}'.format(data[i]['slug'])).before('<div class="ylabel">' +
+                                    data[i].options.yaxis.label + '</div>');
                         }
-                    }
-                });
-                    // get the graphs collapsed/expanded as they should be.
-                    //$('#expansion_by_type').children().trigger('change');
-
-                    //if(callback != null) {
-                    //    callback(data);
-                    //}
-            },
-            // If there's an error, toss out a warning about it
-            error: function(request, status, error) {
-                plot = $(element).data('plot');
-                $(element).find('.throbber').remove();
-                $(element).append('<div class="error">error</div>');
+                } if (!data[i].data) {
+                    $('#{0}'.format(data[i]['slug'])).append("<h2> No Graph </h2>");
+                }
+                
+                //function () {
+                //    divgraphname.data('plot', $.plot($(element),data[i].data));
+                //    divgraphname.data('start', data[i]['start']);
+                //    divgraphname.data('end', data[i]['end']);
+                //};
             }
-        });
-    // Release the graph
-    $(element).data('busy', null);
-    }
-
+}
+}
 
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
@@ -342,7 +328,7 @@ function parseAllGraphs(graphs) {
     // Don't set up graphs already set up
     graphs.each(function (index, element) {
         var ajaxcall = {};
-        $(element).addClass('setup');
+        //$(element).addClass('setup');
         // Store the graph data for usage later
         path = $(element).find('a').attr('href');
         splitPath = path.split('/');
@@ -781,32 +767,26 @@ $(document).ready(function() {
 
     // Handle configurator form submissions
     $('#configurator').submit(function() {
-        // Enable the fields again so they can be submitted
-        $('[id^=type]').attr('disabled', null);
-        $('[id^=value]').attr('disabled', null);
 
         fields = $('#configurator').formSerialize();
+        alert ($('#configurator').formSerialize());
         var ajaxmanager = $.manageAjax.create('configurator', {
             queue: true,
             maxRequests: 3,
         });
         ajaxmanager.add({
             data: fields,
-            dataType: 'html',
-            url: $('#configurator').attr('action'),
+            dataType: 'json',
+            url: '/railroad/graphs',
             success: function(data, textStatus, XMLHttpRequest) {
                 //reset_fields();
                 $('#clearform').trigger('click');
-                // Add the new graph and setup the new graphs
-                $('#graphs').append(data);
-                parseAllGraphs($('.graph:not(.setup)'));
+                createGraphs(data);
                 //$('.graph:not(.setup)').each(parseGraphs);
-                $('#configurator').find('.throbber').remove();
-                sortGraphs();
+                //sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 // TODO: Indicate error somehow, probably
-                $('#configurator').find('.throbber').remove();
             }
         });
         $('#configurator').data('changed', true);

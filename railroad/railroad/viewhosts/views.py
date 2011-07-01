@@ -31,7 +31,7 @@ from nagcat import nagios_objects
 from railroad.errors import RailroadError
 from railroad.viewhosts.models import URL
 
-DAY = 86400
+DAY = 86400 # 1 Day in seconds
 
 def is_graphable(host, service):
     """Checks if service of host is graphable (has state or trend)"""
@@ -210,9 +210,10 @@ def servicenames_by_host(stat, host):
 
 def get_graphs(stat, obj, hosts='', groups='', services=''):
     """Returns a list of services objects, marked graphable or not""" 
-    groups   = set([group.strip() for group in groups.split(',') if group.strip()])
-    hosts   = set([host.strip() for host in hosts.split(',') if host.strip()])
-    services   = set([service.strip() for service in services.split(',') if service.strip()])
+    groups = set([group.strip() for group in groups.split(',') if group.strip()])
+    hosts = set([host.strip() for host in hosts.split(',') if host.strip()])
+    services = set([service.strip() for service in services.split(',') if service.strip()])
+
     group_hosts = set() # Hosts under the given groups
     all_hosts = set()  # All hosts will contain all host names from host and group
     end = int(time.time())  # For graphing
@@ -292,7 +293,7 @@ def error404(request):
     stat, obj = parse()
     context_data = {}
     context_data = add_hostlist(stat, obj, context_data)
-    c = Context(context_data)
+
     return HttpResponse(t.render(c))
 
 def graphpage(request,host=None,service=None):
@@ -617,9 +618,7 @@ def customgraph(request):
     hosts = request.GET.get("host")
     services = request.GET.get("service")
 
-    
     service_list = get_graphs(stat, obj, hosts, groups, services)
-    
 
     context_data = {
         'loaded_graphs': service_list,

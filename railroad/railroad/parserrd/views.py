@@ -18,6 +18,9 @@ import types
 import time
 import random
 from math import floor
+import urllib
+import re
+from unicodedata import normalize
 
 import rrdtool
 import coil
@@ -25,6 +28,9 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from railroad.errors import RailroadError
+from railroad.viewhosts.views import parse as parseViews, get_graphs, is_graphable
+
+DAY = 60 * 60 * 24 # Seconds in a day
 
 def sigfigs(float):
     """Round float using desired sigfigs"""
@@ -81,8 +87,12 @@ def getColors(names):
 
     return colors
 
-def index(request, host, service, start, end, resolution='150'):
-    """Reads the rrd and returns the data in flot-friendly format"""
+def get_data(host, service, start=None, end=None, resolution='150'):
+    if not end:
+        end = int(time.time())
+    if not start:
+        start = end - DAY
+
     rra_path = settings.RRA_PATH
     rrd = '%s%s/%s.rrd' % (rra_path, host, service)
     coilfile = '%s%s/%s.coil' % (rra_path, host, service)
@@ -355,4 +365,67 @@ def index(request, host, service, start, end, resolution='150'):
                     'start': start, 'end': end,
              }
 
+    return result
+
+def index(request, host, service, start, end, resolution='150'):
+    """Reads the rrd and returns the data in flot-friendly format"""
+
+    result = get_data(host, service, start, end, resolution)
+
     return HttpResponse(json.dumps(result))
+
+def graphs(request):
+    stat, obj = parseViews()
+
+    hosts = request.GET.get('host', '')
+    services = request.GET.get('service', '')
+    groups = request.GET.get('group', '')
+
+    service_objs = get_graphs(stat, obj, hosts, groups, services)
+
+    response = []
+
+    for s in service_objs:
+        host = s['host_name']
+        service = s['service_description']
+
+        one_response = {
+            'host': host,
+            'service': service,
+            'current_time': time.strftime('%H:%M:%S %Z', time.gmtime()),
+            'slug': slugify(host + service),
+        }
+
+        if is_graphable(host, service):
+            all_data = get_data(host, service)
+            data = all_data['data']
+            for d in data:
+                d.update({
+                    'start': all_data['start'],
+                    'end': all_data['end'],
+                    'base': all_data['base'],
+                })
+            one_response.update({
+                'data': data,
+                'options': all_data['options'],
+                'empty': all_data['empty'],
+            })
+
+        response.append(one_response)
+
+    return HttpResponse(json.dumps(response))
+
+# From http://flask.pocoo.org/snippets/5/
+_punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
+def slugify(text, delim=u''):
+    """
+    Generates a slug that will only use ASCII, be all lowercase, have no
+    spaces, and otherwise be nice for filenames, identifiers, and urls.
+    """
+    result = []
+    for word in _punct_re.split(text.lower()):
+        word = normalize('NFKD', unicode(word)).encode('ascii', 'ignore')
+        if word:
+            result.append(word)
+    return unicode(delim.join(result))
+
