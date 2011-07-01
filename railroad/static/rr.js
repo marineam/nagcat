@@ -768,6 +768,7 @@ $(document).ready(function() {
     // Handle configurator form submissions
     $('#configurator').submit(function() {
 
+        $('#cleargraphs').after('<img id="loading" src="/railroad-static/img/loading.gif" />');
         fields = $('#configurator').formSerialize();
         alert ($('#configurator').formSerialize());
         var ajaxmanager = $.manageAjax.create('configurator', {
@@ -782,6 +783,7 @@ $(document).ready(function() {
                 //reset_fields();
                 $('#clearform').trigger('click');
                 createGraphs(data);
+                $('#loading').remove();
                 //$('.graph:not(.setup)').each(parseGraphs);
                 //sortGraphs();
             },
