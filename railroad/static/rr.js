@@ -770,7 +770,6 @@ $(document).ready(function() {
 
         $('#cleargraphs').after('<img id="loading" src="/railroad-static/img/loading.gif" />');
         fields = $('#configurator').formSerialize();
-        alert ($('#configurator').formSerialize());
         var ajaxmanager = $.manageAjax.create('configurator', {
             queue: true,
             maxRequests: 3,
