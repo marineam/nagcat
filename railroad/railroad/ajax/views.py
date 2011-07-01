@@ -3,11 +3,14 @@ from railroad.viewhosts import views
 import itertools
 import json
 
-# This function is kind of crazy. It should give different results if called
-# twice with the same inputs. It's purpose is to suggest the right set of auto
-# complete possibilities when a user enters a common substring of two possible
-# auto complete suggestions.
 def transpose_combo(li, n, memo):
+    """
+    Give the right set of auto complete suggestions for repeated start strings.
+
+    Note that if called with the same inputs multiple times different values
+    will be returned, quite on purpose.
+    """
+
     key = repr(li)
     if key in memo:
         return memo[key].next()
@@ -19,6 +22,11 @@ def transpose_combo(li, n, memo):
     return memo[key].next()
 
 def autocomplete(request, context):
+    """
+    Given a query in a GET parameter, give a list of auto complete suggestions.
+    Supports having multiple incomplete values in a comma seperated list.
+    """
+
     query = request.GET.get('term', '')
     limit = int(request.GET.get('limit', 10))
 
@@ -40,7 +48,7 @@ def autocomplete(request, context):
         choices = set(views.servicenames(stat))
 
     for q in queries:
-        matching_names = [x for x in choices if x.lower().startswith(q.lower())]
+        matching_names = [x for x in choices[:limit] if q.lower() in x.lower()]
         q_results.append(matching_names)
 
     # this craziness is to deal with this situation: let valid completions be
@@ -66,7 +74,7 @@ def autocomplete(request, context):
     # end craziness
 
     results = itertools.product(*product_foder)
-    results = [','.join(result) for result in results]
+    results = [','.join(result) for result in itertools.islice(results, limit)]
     result = [ { "value" : r } for r in results ]
 
     return HttpResponse(json.dumps(result))
