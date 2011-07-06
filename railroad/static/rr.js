@@ -210,6 +210,8 @@ function createGraphs(data) {
     for (var i=0; i < data.length; i++) {
         $('#graphs').append('<tr class="service_row"><td class="controls"><div class="collapse_row"></div><div class="remove_row"></div></td><td class="status_ok state_ok"> <h2>{0}</h2> <h2>{1}</h2> </td> <td class="graph_container"> <div id="{2}" style="height:225 px; width: 600 px;" class="graph ajax"> </div> <div class="legend"></div></td></tr>'.format(data[i]['host'], data[i]['service'], data[i]['slug']));
         var element = $('#{0}'.format(data[i]['slug']));
+        element.data('host', data[i]['host']);
+        element.data('service', data[i]['service']);
         if (data[i].data) {
             drawGraph(element, data[i]);
 
@@ -220,10 +222,11 @@ function createGraphs(data) {
 function drawGraph (element, data) {
                 data = formatGraph(element, data);
                 element.data('plot', $.plot(element, data.data, data.options));
-                element.data('start', data['data']['start']);
-                element.data('end', data['data']['end']);
+                element.data('start', data['start']);
+                element.data('end', data['end']);
                 element.data('host', data['host']);
                 element.data('service', data['service']);
+                element.data('data', data)
                 if(data.options.yaxis.label) {
                 // if there isn't already a ylabel
                     if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
@@ -239,6 +242,7 @@ function drawGraph (element, data) {
                 }
                 graphs_to_update = [];
                 graphs.each(function(index, element) {
+                    graph = {};
                     // Count the number of data points, if they aren't enough, we need to fetch more data
                     var count=0;
                     for (var j=0; j < data.data[0].data.length; j++) {
@@ -247,24 +251,28 @@ function drawGraph (element, data) {
                         }
                     }
                     graph = {
-                        "host" : data['host'],
-                        "service" : data['service'],
+                        "host" : $(element).data('host'),
+                        "service" : $(element).data('service'),
                         "start" : parseInt(ranges.xaxis.from / 1000),
                         "end" : parseInt(ranges.xaxis.to / 1000),
-                    }
+                    };
                     // If there aren't enought data points, get MOAR DATA!
                     if ( count < 50 ) {
                         graphs_to_update.push(graph);
                     } else {
                     // else zoom in    
-                        $(element).data('plot', $.plot(element, data.data, $.extend(true, {}, data.options, {
-                                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
-                                })));
-                        $(element).data('start', data.start);
-                        $(element).data('end', data.end);
+                        // If data, graph data! Otherwise, cry?
+                        if ($(element).data('data')) {
+                            data = $(element).data('data')
+                            $(element).data('plot', $.plot(element, data.data, $.extend(true, {}, data.options, {
+                                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+                                    })));
+                            $(element).data('start', data.start);
+                            $(element).data('end', data.end);
+                        }
                     }
                 });
-        // If there are graphs we need new data[i] for, fetch new data!
+        // If there are graphs we need new data for, fetch new data!
             if ( graphs_to_update.length > 0 ) {
                 ajaxcall = JSON.stringify(graphs_to_update);
                 $.ajax ({
@@ -272,9 +280,28 @@ function drawGraph (element, data) {
                     dataType: 'json',
                     success: function (data, textStatus, XMLHttpRequest) {
                         for (var i=0; i < data.length; i++) {
-                            drawGraph($('#{0}'.format(data[i]['slug'])), data[i]);
+                            if (data[i].data) {
+                                element = $('#{0}'.format(data[i]['slug']));
+                                data[i] = formatGraph(element, data[i]);
+                                element.data('plot', $.plot(element, data[i].data, data[i].options));
+                                element.data('start', data[i]['start']);
+                                element.data('end', data[i]['end']);
+                                element.data('host', data[i]['host']);
+                                element.data('service', data[i]['service']);
+                                element.data('data', data[i])
+                                if(data[i].options.yaxis.label) {
+                                // if there isn't already a ylabel
+                                    if ($('#{0}'.format(data[i]['slug'])).siblings('.ylabel').length == 0) {
+                                        $('#{0}'.format(data[i]['slug'])).before('<div class="ylabel">' +
+                                            data[i].options.yaxis.label + '</div>');
+                                    }
+                                }
+                            }
                         }
                     },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        alert ("Broken!");
+                    }
                 });
             }
         });
