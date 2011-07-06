@@ -208,31 +208,78 @@ function formatGraph(element, data) {
 
 function createGraphs(data) {
     for (var i=0; i < data.length; i++) {
-                $('#graphs').append('<tr class="service_row"><td class="controls"><div class="collapse_row"></div><div class="remove_row"></div></td><td class="status_ok state_ok"> <h2>{0}</h2> <h2>{1}</h2> </td> <td class="graph_container"> <div id="{2}" style="height:225 px; width: 600 px;" class="graph ajax"> </div> <div class="legend"></div></td></tr>'.format(data[i]['host'], data[i]['service'], data[i]['slug']));
-                if (data[i].data) {
-                    data[i] = formatGraph($('#{0}'.format(data[i]['slug'])),data[i]);
-                    $('#{0}'.format(data[i]['slug'])).data('plot', $.plot($('#{0}'.format(data[i]['slug'])), data[i].data, data[i].options));
-                    $('#{0}'.format(data[i]['slug'])).data('start', data[i]['data'][0]['start']);
-                    $('#{0}'.format(data[i]['slug'])).data('end', data[i]['data'][0]['end']);
-                    if(data[i].options.yaxis.label) {
-                        // if there isn't already a ylabel
-                        if ($('#{0}'.format(data[i]['slug'])).siblings('.ylabel').length == 0) {
-                            $('#{0}'.format(data[i]['slug'])).before('<div class="ylabel">' +
-                                    data[i].options.yaxis.label + '</div>');
-                        }
-                } if (!data[i].data) {
-                    $('#{0}'.format(data[i]['slug'])).append("<h2> No Graph </h2>");
-                }
-                
-                //function () {
-                //    divgraphname.data('plot', $.plot($(element),data[i].data));
-                //    divgraphname.data('start', data[i]['start']);
-                //    divgraphname.data('end', data[i]['end']);
-                //};
-            }
-}
-}
+        $('#graphs').append('<tr class="service_row"><td class="controls"><div class="collapse_row"></div><div class="remove_row"></div></td><td class="status_ok state_ok"> <h2>{0}</h2> <h2>{1}</h2> </td> <td class="graph_container"> <div id="{2}" style="height:225 px; width: 600 px;" class="graph ajax"> </div> <div class="legend"></div></td></tr>'.format(data[i]['host'], data[i]['service'], data[i]['slug']));
+        var element = $('#{0}'.format(data[i]['slug']));
+        if (data[i].data) {
+            drawGraph(element, data[i]);
 
+        }
+    }
+}
+// Plots the data in the given element
+function drawGraph (element, data) {
+                data = formatGraph(element, data);
+                element.data('plot', $.plot(element, data.data, data.options));
+                element.data('start', data['data']['start']);
+                element.data('end', data['data']['end']);
+                element.data('host', data['host']);
+                element.data('service', data['service']);
+                if(data.options.yaxis.label) {
+                // if there isn't already a ylabel
+                if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
+                    $('#{0}'.format(data['slug'])).before('<div class="ylabel">' +
+                        data.options.yaxis.label + '</div>');
+                }
+        $(element).bind('plotselected', function (event, ranges) {
+                if ($('#sync').prop('checked')) {
+                    graphs = $('.graph');
+                } else {
+                    graphs = $(element);
+                }
+                graphs_to_update = [];
+                graphs.each(function(index, element) {
+                    // Count the number of data points, if they aren't enough, we need to fetch more data
+                    var count=0;
+                    for (var j=0; j < data.data[0].data.length; j++) {
+                        if ( data.data[0].data[j][0] > ranges.xaxis.from && data.data[0].data[j][0] < ranges.xaxis.to ) {
+                            count++;
+                        }
+                    }
+                    graph = {
+                        "host" : data['host'],
+                        "service" : data['service'],
+                        "start" : parseInt(ranges.xaxis.from / 1000),
+                        "end" : parseInt(ranges.xaxis.to / 1000),
+                    }
+                    // If there aren't enought data points, get MOAR DATA!
+                    if ( count < 50 ) {
+                        graphs_to_update.push(graph);
+                    } else {
+                    // else zoom in    
+                        $(element).data('plot', $.plot(element, data.data, $.extend(true, {}, data.options, {
+                                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+                                })));
+                        $(element).data('start', data.start);
+                        $(element).data('end', data.end);
+                    }
+                });
+        // If there are graphs we need new data[i] for, fetch new data!
+            if ( graphs_to_update.length > 0 ) {
+                ajaxcall = JSON.stringify(graphs_to_update);
+                $.ajax ({
+                    url: '/railroad/graphs?graphs=' + ajaxcall,
+                    dataType: 'json',
+                    success: function (data, textStatus, XMLHttpRequest) {
+                        for (var i=0; i < data.length; i++) {
+                            drawGraph($('#{0}'.format(data[i]['slug'])), data[i]);
+                        }
+                    },
+                });
+            }
+        });
+
+
+}
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
     // If the graph isn't busy
@@ -466,6 +513,15 @@ function parseGraphs(index, element) {
     });
 
 }
+
+//function autoFetchDataNew() {
+//    graphs = {}
+//    $('.graph.ajax').each(function (index, element) {
+//        host = $(element).data('host');
+//        service = $(element).data('service');
+//        graphs[host] = service;
+//    });
+
 
 // Function to automatically update any graphs which are set to ajax load
 function autoFetchData() {
@@ -783,7 +839,6 @@ $(document).ready(function() {
                 $('#clearform').trigger('click');
                 createGraphs(data);
                 $('#loading').remove();
-                //$('.graph:not(.setup)').each(parseGraphs);
                 //sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
@@ -959,7 +1014,7 @@ $(document).ready(function() {
     });
 
     // Start the AJAX graph refreshes
-    setTimeout(autoFetchData, 600 * 1000);
+    //setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
     $('.hint').append('<span class="hide_hint"></span>');
