@@ -21,7 +21,7 @@ graphs of your choice.
     <span>{{ state.grouper|state_name }} - {{ state.list|length }} service{{state.list|length|pluralize}}</span>
         <ul>
             {% for item in state.list %}
-            <li><a href="/railroad/configurator/host/{{item.host_name}}#{{item.host_name}}/{{item.service_description }}">
+            <li><a href="/railroad/viewhost/{{item.host_name}}/{{item.service_description }}">
                 {{ item.service_description }} on {{ item.host_name }}
             </a></li>
             {% endfor %}
