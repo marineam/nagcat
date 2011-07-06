@@ -33,7 +33,7 @@ urlpatterns = patterns('',
     (r'^test$', 'railroad.viewhosts.views.form'),
 
     # Viewers
-    (r'^graphs/?$', 'railroad.parserrd.views.graphs'),
+    (r'^graphs/?$', 'railroad.viewhosts.views.graphs'),
     (r'^oldgraphs$', 'railroad.viewhosts.views.graphpage'),
     (r'^viewhost/(?P<host>\w+)$', 'railroad.viewhosts.views.graphpage'),
     (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$', 'railroad.viewhosts.views.service'),

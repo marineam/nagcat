@@ -19,8 +19,6 @@ import time
 import random
 from math import floor
 import urllib
-import re
-from unicodedata import normalize
 
 import rrdtool
 import coil
@@ -28,8 +26,6 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from railroad.errors import RailroadError
-from railroad.viewhosts.views import parse as parseViews, get_graphs
-from railroad.viewhosts.views import is_graphable, servicedetail
 
 DAY = 60 * 60 * 24 # Seconds in a day
 
@@ -373,67 +369,3 @@ def index(request, host, service, start, end, resolution='150'):
     result = get_data(host, service, start, end, resolution)
 
     return HttpResponse(json.dumps(result))
-
-def graphs(request):
-    stat, obj = parseViews()
-
-    graphs = request.GET.get('graphs', None)
-    hosts = request.GET.get('host', '')
-    services = request.GET.get('service', '')
-    groups = request.GET.get('group', '')
-    get_start = request.GET.get('start', None)
-    get_end = request.GET.get('end', None)
-    res = request.GET.get('res', None)
-
-    if graphs:
-        graphs = json.loads(graphs)
-        service_objs = []
-        for graph in graphs:
-            so = servicedetail(stat, graph['host'], graph['service'])
-            if not so:
-                return HttpResponse('no data')
-                continue
-            so['start'] = graph.get('start', get_start)
-            so['end'] = graph.get('end', get_end)
-            service_objs.append(so)
-    else:
-        service_objs = get_graphs(stat, obj, hosts, groups, services, get_start, get_end)
-
-    HttpResponse(repr(service_objs))
-
-    response = []
-
-    for s in service_objs:
-        host = s['host_name']
-        service = s['service_description']
-        start = s.get('start')
-        end = s.get('end')
-
-        one_response = {
-            'host': host,
-            'service': service,
-            'current_time': time.strftime('%H:%M:%S %Z', time.gmtime()),
-            'slug': slugify(host + service),
-        }
-
-        if is_graphable(host, service):
-            one_response.update(get_data(host, service, start, end))
-
-        response.append(one_response)
-
-    return HttpResponse(json.dumps(response))
-
-# From http://flask.pocoo.org/snippets/5/
-_punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
-def slugify(text, delim=u''):
-    """
-    Generates a slug that will only use ASCII, be all lowercase, have no
-    spaces, and otherwise be nice for filenames, identifiers, and urls.
-    """
-    result = []
-    for word in _punct_re.split(text.lower()):
-        word = normalize('NFKD', unicode(word)).encode('ascii', 'ignore')
-        if word:
-            result.append(word)
-    return unicode(delim.join(result))
-
