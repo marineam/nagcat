@@ -64,8 +64,8 @@ $.plot.formatDate = function(d, fmt, monthNames) {
                         case '0': c = ""; padNext = true; break;
                     }
                 }
-        
-                else {        
+
+                else {
                     switch (c) {
                         case 'h': c = "" + hours; break;
                         case 'H': c = leftPad(hours); break;
@@ -135,7 +135,7 @@ function tickGenerator(range) {
 
     magn = Math.pow(10, -dec);
     norm = delta / magn; // norm is between 1.0 and 10.0
-    
+
     if (norm < 1.5)
         size = 1;
     else if (norm < 3) {
@@ -207,16 +207,36 @@ function formatGraph(element, data) {
 }
 
 function createGraphs(data) {
-    for (var i=0; i < data.length; i++) {
-        $('#graphs').append('<tr class="service_row"><td class="controls"><div class="collapse_row"></div><div class="remove_row"></div></td><td class="status_ok state_ok"> <h2>{0}</h2> <h2>{1}</h2> </td> <td class="graph_container"> <div id="{2}" style="height:225 px; width: 600 px;" class="graph ajax"> </div> <div class="legend"></div></td></tr>'.format(data[i]['host'], data[i]['service'], data[i]['slug']));
-        var element = $('#{0}'.format(data[i]['slug']));
-        element.data('host', data[i]['host']);
-        element.data('service', data[i]['service']);
-        if (data[i].data) {
-            drawGraph(element, data[i]);
-
-        }
+    var params = [];
+    for (var i=0; i<data.length; i++) {
+        params.push({
+            'host': data[i]['host'],
+            'service': data[i]['service'],
+        });
     }
+    params = {"graphs": JSON.stringify(params)}
+
+    $.ajax({
+        data: params,
+        url: '/railroad/configurator/graph',
+        dataType: 'html',
+        success: function (html, textStatus, XMLHttpRequest) {
+            $(html).appendTo('#graphs');
+
+            for (var i=0; i < data.length; i++) {
+                var element = $('#{0}'.format(data[i]['slug']));
+                element.data('host', data[i]['host']);
+                element.data('service', data[i]['service']);
+                if (data[i].data) {
+                    drawGraph(element, data[i]);
+                }
+            }
+        },
+        error: function() {
+            console.log('fail');
+        }
+    });
+
 }
 // Plots the data in the given element
 function drawGraph (element, data) {
