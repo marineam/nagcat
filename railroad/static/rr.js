@@ -230,6 +230,7 @@ function drawGraph (element, data) {
                     $('#{0}'.format(data['slug'])).before('<div class="ylabel">' +
                         data.options.yaxis.label + '</div>');
                 }
+                }
         $(element).bind('plotselected', function (event, ranges) {
                 if ($('#sync').prop('checked')) {
                     graphs = $('.graph');
@@ -278,7 +279,7 @@ function drawGraph (element, data) {
             }
         });
 
-
+    
 }
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
