@@ -208,7 +208,7 @@ def servicenames_by_host(stat, host):
     return [service['service_description'] for service in all_services  \
                                 if service['host_name'] == host]
 
-def get_graphs(stat, obj, hosts='', groups='', services=''):
+def get_graphs(stat, obj, hosts='', groups='', services='', start=None, end=None):
     """Returns a list of services objects, marked graphable or not""" 
     groups = set([group.strip() for group in groups.split(',') if group.strip()])
     hosts = set([host.strip() for host in hosts.split(',') if host.strip()])
@@ -216,8 +216,11 @@ def get_graphs(stat, obj, hosts='', groups='', services=''):
 
     group_hosts = set() # Hosts under the given groups
     all_hosts = set()  # All hosts will contain all host names from host and group
-    end = int(time.time())  # For graphing
-    start = end - DAY # For graphing
+
+    if not end:
+        end = int(time.time())
+    if not start:
+        start = end - DAY
 
     if groups:
         for group in groups:

@@ -28,7 +28,8 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from railroad.errors import RailroadError
-from railroad.viewhosts.views import parse as parseViews, get_graphs, is_graphable
+from railroad.viewhosts.views import parse as parseViews, get_graphs
+from railroad.viewhosts.views import is_graphable, servicedetail
 
 DAY = 60 * 60 * 24 # Seconds in a day
 
@@ -115,7 +116,6 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     time_dict = {'h': time_struct.tm_hour, 'm': time_struct.tm_min, \
                  's': time_struct.tm_sec}
     current_time = '%(h)02d:%(m)02d:%(s)02d UTC' % time_dict
-    
 
     # Parse the data
     actual_start, actual_end, res = rrdslice[0]
@@ -377,17 +377,37 @@ def index(request, host, service, start, end, resolution='150'):
 def graphs(request):
     stat, obj = parseViews()
 
+    graphs = request.GET.get('graphs', None)
     hosts = request.GET.get('host', '')
     services = request.GET.get('service', '')
     groups = request.GET.get('group', '')
+    get_start = request.GET.get('start', None)
+    get_end = request.GET.get('end', None)
+    res = request.GET.get('res', None)
 
-    service_objs = get_graphs(stat, obj, hosts, groups, services)
+    if graphs:
+        graphs = json.loads(graphs)
+        service_objs = []
+        for graph in graphs:
+            so = servicedetail(stat, graph['host'], graph['service'])
+            if not so:
+                return HttpResponse('no data')
+                continue
+            so['start'] = graph.get('start', get_start)
+            so['end'] = graph.get('end', get_end)
+            service_objs.append(so)
+    else:
+        service_objs = get_graphs(stat, obj, hosts, groups, services, get_start, get_end)
+
+    HttpResponse(repr(service_objs))
 
     response = []
 
     for s in service_objs:
         host = s['host_name']
         service = s['service_description']
+        start = s.get('start')
+        end = s.get('end')
 
         one_response = {
             'host': host,
@@ -397,19 +417,7 @@ def graphs(request):
         }
 
         if is_graphable(host, service):
-            all_data = get_data(host, service)
-            data = all_data['data']
-            for d in data:
-                d.update({
-                    'start': all_data['start'],
-                    'end': all_data['end'],
-                    'base': all_data['base'],
-                })
-            one_response.update({
-                'data': data,
-                'options': all_data['options'],
-                'empty': all_data['empty'],
-            })
+            one_response.update(get_data(host, service, start, end))
 
         response.append(one_response)
 
