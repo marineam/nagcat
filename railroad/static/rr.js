@@ -226,10 +226,10 @@ function drawGraph (element, data) {
                 element.data('service', data['service']);
                 if(data.options.yaxis.label) {
                 // if there isn't already a ylabel
-                if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
-                    $('#{0}'.format(data['slug'])).before('<div class="ylabel">' +
-                        data.options.yaxis.label + '</div>');
-                }
+                    if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
+                        $('#{0}'.format(data['slug'])).before('<div class="ylabel">' +
+                            data.options.yaxis.label + '</div>');
+                    }
                 }
         $(element).bind('plotselected', function (event, ranges) {
                 if ($('#sync').prop('checked')) {
