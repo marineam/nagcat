@@ -230,7 +230,7 @@ td.graph_container { width: 540px; text-align: center; }
 .error {
 	top: 120px;
 	color: red;
-}	
+}
 
 /* Service listings */
 .service_row {
@@ -275,10 +275,21 @@ fieldset {
        float: left;
        margin: 10px;
 }
+#configurator ul {
+    padding: 0px;
+    margin: 0px;
+    margin-top: 5px;
+    margin-left: 20px;
+}
+#configurator ul li {
+    list-style: none outside none;
+    margin: 0px;
+    overflow: hidden;
+}
 #configurator ol li {
-       list-style: none outside none;
-       margin: 5px;
-       overflow: hidden;
+    list-style: none outside none;
+    margin: 5px;
+    overflow: hidden;
 }
 #configurator ol li label {
        width: 75px;

@@ -237,7 +237,7 @@ function createGraphs(data) {
         }
     });
     // get the graphs collapsed/expanded as they should be.
-    $('#expansion_by_type').children().trigger('change');
+    auto_expansion();
 }
 
 // Plots the data in the given element
@@ -249,7 +249,7 @@ function drawGraph (element, data) {
                 element.data('host', data['host']);
                 element.data('service', data['service']);
                 element.data('data', data)
-                $('#expansion_by_type').children().trigger('change');
+
                 if(data.options.yaxis.label) {
                 // if there isn't already a ylabel
                     if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
@@ -388,7 +388,7 @@ function createGraph(element, path, callback, zoom) {
                                  .html('updated: ' + data.current_time);
 
                     // get the graphs collapsed/expanded as they should be.
-                    $('#expansion_by_type').children().trigger('change');
+                    auto_expansion();
 
                     if(callback != null) {
                         callback(data);
@@ -567,7 +567,7 @@ function parseGraphs(index, element) {
 }
 
 function autoFetchDataNew() {
-    graphs = [] 
+    graphs = [];
     $('.graph.ajax').each(function (index, element) {
         host = $(element).data('host');
         service = $(element).data('service');
@@ -578,7 +578,7 @@ function autoFetchDataNew() {
         graphs.push(graph);
     });
     ajaxcall = JSON.stringify(graphs);
-    $.ajax({ 
+    $.ajax({
         dataType: 'json',
         url: '/railroad/graphs?graphs=' + ajaxcall,
         success: function (data, textStatus, XMLHttpRequest) {
@@ -738,6 +738,48 @@ String.prototype.format = function() {
     return formatted;
 };
 
+/**** Expand/Collapse the graph rows ****/
+function auto_expansion() {
+    console.log('auto');
+    states = {}
+    $('#expansion_by_type input').each(function(index, elem) {
+        states[elem.id] = $(elem).prop('checked');
+    });
+    console.log(states);
+    $('.service_row').each(function(index, elem) {
+        for (var s in states) {
+            if ($(elem).children('td.status_text').hasClass(s)) {
+                if (states[s]) {
+                    expand_row(elem);
+                } else {
+                    collapse_row(elem);
+                }
+            }
+        }
+    });
+}
+function collapse_row(row) {
+    // Hide the graph and status text
+    $(row).children('.graph_container').children().hide();
+    $(row).children('.status_text').children('p').hide();
+    $(row).children('.status_text').children('h2').css({'display': 'inline'});
+
+    // change the button to expand
+    $(row).children('.controls').children('div').removeClass('collapse_row');
+    $(row).children('.controls').children('div').addClass('expand_row');
+}
+function expand_row(row) {
+    // Hide the graph and status text
+    $(row).children('.graph_container').children().show();
+    $(row).children('.status_text').children('p').show();
+    $(row).children('.status_text').children('h2').css({'display': 'block'});
+
+    // change the button to expand
+    $(row).children('.controls').children('div').removeClass('expand_row');
+    $(row).children('.controls').children('div').addClass('collapse_row');
+}
+
+
 /******* DOM HOOK SETUP *******/
 
 // Execute setup code when page loads
@@ -778,7 +820,7 @@ $(document).ready(function() {
             } else {
                 $(graph).removeClass('ajax');
             }
-           
+
             if(clicked.hasClass('day') || clicked.hasClass('reset')) {
                 start = parseInt(end - 60 * 60 * 24);
             } else if(clicked.hasClass('week')) {
@@ -927,66 +969,36 @@ $(document).ready(function() {
         return false;
     });
 
-    // **********  Functions to manipulate rows **************
-    var animate_time = 0;
-    function collapse_row(row) {
-        // Hide the graph and status text
-        $(row).children('.graph_container').children().hide(animate_time);
-        $(row).children('.status_text').children('p').hide(animate_time);
-        $(row).children('.status_text').children('h2').css({'display': 'inline'});
-
-        // change the button to expand
-        $(row).children('.controls').children('div').removeClass('collapse_row');
-        $(row).children('.controls').children('div').addClass('expand_row');
-    }
-    function expand_row(row) {
-        // Hide the graph and status text
-        $(row).children('.graph_container').children().show(animate_time);
-        $(row).children('.status_text').children('p').show(animate_time);
-        $(row).children('.status_text').children('h2').css({'display': 'block'});
-
-        // change the button to expand
-        $(row).children('.controls').children('div').removeClass('expand_row');
-        $(row).children('.controls').children('div').addClass('collapse_row');
-    }
-
-    $('#expandall').click(function() {
-        $('tr.service_row').each(function(index, row) {
-            expand_row(row);
-        });
-    });
-    $('#collapseall').click(function() {
-        $('tr.service_row').each(function(index, row) {
-            collapse_row(row);
-        });
+    // *************************** Row manip ***************************
+    // Expand all/of type buttons
+    $('#expansion_by_type').find('input').bind('change', function() {
+        auto_expansion();
+        if (! $(this).prop('checked')) {
+            $('#expandall').prop('checked', false);
+        } else if ($(this).parent().siblings().children('input').not(':checked').length == 0) {
+            // If all inputs are checked
+            $('#expandall').prop('checked', true);
+        }
     });
 
+    $('#expandall').change(function() {
+        var state = $(this).prop('checked');
+        $('#expansion_by_type input').prop('checked', state);
+        auto_expansion();
+    });
+
+    // expand one buttons
     $('.collapse_row').live('click', function() {
         collapse_row($(this).parents().parents().first());
     });
     $('.expand_row').live('click', function() {
         expand_row($(this).parents().parents().first());
     });
+    // remove 1 buttons
     $('.remove_row').live('click', function() {
         var tr = $(this).parents().parents().first();
         tr.hide(animate_time, function() {
             $(tr).remove();
-        });
-    });
-
-    // *************************** Auto collapse ***************************
-    // set up events on each checkbox to collapse/expand the service_rows to
-    // match the current state of the checkbox.
-    $('#expansion_by_type').children().bind('change', function() {
-        var checkbox = this;
-        $('.service_row').each(function(index, element) {
-            if ($(element).children('.status_text').hasClass($(checkbox).attr('name'))) {
-                if ($(checkbox).prop('checked')) {
-                    expand_row(element);
-                } else {
-                    collapse_row(element);
-                }
-            }
         });
     });
 
@@ -1076,18 +1088,6 @@ $(document).ready(function() {
         } else {
             paint_link(window.location);
         }
-    });
-
-
-    // Automatically focus the link when someone clicks
-    $('#link input').live('click', function() {
-        $(this).focus()
-               .select();
-    });
-
-    // Automatically delete the link if we defocus
-    $('#link input').live('blur', function() {
-        $('#link').empty();
     });
 
     // Start the AJAX graph refreshes

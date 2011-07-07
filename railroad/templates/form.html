@@ -26,18 +26,15 @@
         </ol>
     </div>
     <div id="service_options">
-        <fieldset id="autocollapse">
+        <fieldset id="expansion">
             <legend>Expansion</legend>
-            <div id="expansion_by_type">
-                <input type="checkbox" class="persist" name="state_ok" id="state_ok">OK</input>
-                <input type="checkbox" class="persist" name="state_warning" id="state_warning">Warning</input>
-                <input type="checkbox" class="persist" name="state_critical" id="state_critical">Critical</input>
-                <input type="checkbox" class="persist" name="state_unknown" id="state_unknown">Unknown</input>
-            </div>
-            <div id="expansion_mass">
-                <input type="button" value="Expand All" id="expandall" />
-                <input type="button" value="Collapse All" id="collapseall" />
-            </div>
+            <input type="checkbox" class="persist" id="expandall">Expand All</input>
+            <ul id="expansion_by_type">
+                <li><input type="checkbox" class="persist" id="state_ok">OK</input></li>
+                <li><input type="checkbox" class="persist" id="state_warning">Warning</input></li>
+                <li><input type="checkbox" class="persist" id="state_critical">Critical</input></li>
+                <li><input type="checkbox" class="persist" id="state_unknown">Unknown</input></li>
+            </ul>
         </fieldset>
         <fieldset>
             <legend>Time Zone</legend>
