@@ -138,7 +138,7 @@ body {
 td.controls { vertical-align: top }
 td.controls div { margin-top: 3px; }
 td.status_text { width: 500px; }
-td.graph_container { width: 540px; text-align: center; }
+td.graph_container { width: 540px; }
 
 /* Graph styling */
 .graph {

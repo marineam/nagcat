@@ -187,8 +187,18 @@ function tickFormatter(val, axis) {
 
 // Format a label, passed to Flot
 function labelFormatter(label, series) {
-    var button = '<input type="button" id="'+label+'" value="'+label+'" class="removeSeries"></input>';
-    return button;
+    //return '<input type="button" id="'+label+'" value="'+label+'" class="removeSeries"></input>';
+
+    var checked = "";
+    if (series.lines.show) {
+        var checked = " checked";
+    }
+    var label = '<input type="checkbox" id="{0}" class="removeSeries"{1}>{0}</input>'.format(label, checked);
+    label += ' (Cur: {0}, Max: {1}, Min: {2}, Avg: {3})'.format(
+        series.statistics.cur.toPrecision(4), series.statistics.max.toPrecision(4),
+        series.statistics.min.toPrecision(4), series.statistics.avg.toPrecision(4));
+
+    return label;
 }
 
 /******* GRAPH GENERATION/MANIPULTION *******/
@@ -333,19 +343,12 @@ function drawGraph (elemGraph, data) {
             var elemGraph = $(this).closest('.legend').siblings('.graph');
             if (elemGraph.data('data')) {
                 data = elemGraph.data('data');
-                if (elemGraph.data($(this).val())) {
-                    for (var i=0; i < data.data.length; i++) {
-                        if ( data.data[i].label == $(this).val()) {
-                            data.data[i].data = (elemGraph.data($(this).val()));
-                            elemGraph.removeData($(this).val());
+                for (var i=0; i < data.data.length; i++) {
+                    if (data.data[i].label == $(this).attr('id')) {
+                        if (!data.data[i]['lines']) {
+                            data.data[i]['lines'] = {'show': true};
                         }
-                    }
-                } else {
-                    for (var i=0; i < data.data.length; i++) {
-                        if (data.data[i].label == $(this).val()) {
-                            elemGraph.data($(this).val(), data.data[i].data);
-                            data.data[i].data = [[null,null]];
-                        }
+                        data.data[i]['lines']['show'] ^= true; // toggle
                     }
                 }
             }
