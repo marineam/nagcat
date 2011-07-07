@@ -849,7 +849,6 @@ $(document).ready(function() {
             } else {
                 $(graph).removeClass('ajax');
             }
-
             if(clicked.hasClass('day') || clicked.hasClass('reset')) {
                 start = parseInt(end - 60 * 60 * 24);
             } else if(clicked.hasClass('week')) {
@@ -897,7 +896,29 @@ $(document).ready(function() {
     });
 
     // Initialize the data for any graphs already on the page
-    $(".graph").each(parseGraphs);
+    ajaxcall = [];
+    $('.graph').each(function (index, element) {
+        var hostname = $($(element).children('.graph_hostname')).attr('id');
+        var servicename = $($(element).children('.graph_service_name')).attr('id');
+        ajaxcall.push({
+            "host" : hostname,
+            "service" : servicename,
+        });
+    });
+    ajaxcall = JSON.stringify(ajaxcall);
+    $.ajax({
+        dataType: 'json',
+        url: '/railroad/graphs?graphs=' + ajaxcall,
+        success: function (data, textStatus, XMLHttpRequest) {
+            for (var i=0; i < data.length; i++) {
+                var element = $('#{0}'.format(data[i]['slug']));
+                drawGraph(element, data[i]);
+            }
+        },
+        error: function (XMLHttpRequest, textStatus, error) {
+            alert ("There was an error preloading the graphs");
+        }
+    });
 
     /**** CONFIGURATOR SETUP ****/
 	// TODO: delete remnants (most of it) carefully!

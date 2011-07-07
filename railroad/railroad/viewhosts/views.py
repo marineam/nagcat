@@ -251,6 +251,7 @@ def get_graphs(stat, obj, hosts='', groups='', services='', start=None, end=None
         service['start']  = start
         service['end']    = end
         service['period'] = 'ajax'
+        service['slug'] = slugify(service['host_name']+service['service_description'])
     return service_list
 
 def get_time_intervals():
