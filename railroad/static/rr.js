@@ -174,12 +174,12 @@ function tickFormatter(val, axis) {
     // tickDecimals accordingly
     if (final_base != 1) {
         tickDecimals = axis.tickDecimals;
-        while (tickDecimals <= 3 && 
+        while (tickDecimals <= 3 &&
 			(val / final_base).toFixed(tickDecimals) != val / final_base)
             tickDecimals++;
 
 		if (tickDecimals <= 3)
-			axis.tickDecimals = tickDecimals; 
+			axis.tickDecimals = tickDecimals;
     }
 
     return (val / final_base).toFixed(axis.tickDecimals) + bases[interval];
@@ -187,7 +187,8 @@ function tickFormatter(val, axis) {
 
 // Format a label, passed to Flot
 function labelFormatter(label, series) {
-    return label.replace(/_/g, ' ');
+    var button = '<input type="button" id="'+label+'" value="'+label+'" class="removeSeries"></input>';
+    return button;
 }
 
 /******* GRAPH GENERATION/MANIPULTION *******/
@@ -241,24 +242,23 @@ function createGraphs(data) {
 }
 
 // Plots the data in the given element
-function drawGraph (element, data) {
-                data = formatGraph(element, data);
-                element.data('plot', $.plot(element, data.data, data.options));
-                element.data('start', data['start']);
-                element.data('end', data['end']);
-                element.data('host', data['host']);
-                element.data('service', data['service']);
-                element.data('data', data)
-
+function drawGraph (elemGraph, data) {
+                data = formatGraph(elemGraph, data);
+                elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
+                elemGraph.data('start', data['start']);
+                elemGraph.data('end', data['end']);
+                elemGraph.data('host', data['host']);
+                elemGraph.data('service', data['service']);
+                elemGraph.data('data', data)
                 if(data.options.yaxis.label) {
                 // if there isn't already a ylabel
-                    if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
-                        $('#{0}'.format(data['slug'])).before('<div class="ylabel">' +
+                    if (elemGraph.siblings('.ylabel').length == 0) {
+                        $(elemGraph).before('<div class="ylabel">' +
                             data.options.yaxis.label + '</div>');
                     }
                 }
-        $(element).bind('plotselected', function (event, ranges) {
-                element.removeClass('ajax');
+        $(elemGraph).bind('plotselected', function (event, ranges) {
+                elemGraph.removeClass('ajax');
                 if ($('#sync').prop('checked')) {
                     graphs = $('.graph');
                 } else {
@@ -284,7 +284,7 @@ function drawGraph (element, data) {
                         };
                         graphs_to_update.push(graph);
                     } else {
-                    // else zoom in    
+                    // else zoom in
                         // If there is data to graph, graph data! Otherwise, do nothing.
                         if ($(element).data('data')) {
                             data = $(element).data('data')
@@ -306,17 +306,17 @@ function drawGraph (element, data) {
                         for (var i=0; i < data.length; i++) {
                             if (data[i].data) {
                                 element = $('#{0}'.format(data[i]['slug']));
-                                data[i] = formatGraph(element, data[i]);
-                                element.data('plot', $.plot(element, data[i].data, data[i].options));
-                                element.data('start', data[i]['start']);
-                                element.data('end', data[i]['end']);
-                                element.data('host', data[i]['host']);
-                                element.data('service', data[i]['service']);
-                                element.data('data', data[i])
+                                data[i] = formatGraph(elemGraph, data[i]);
+                                elemGraph.data('plot', $.plot(elemGraph, data[i].data, data[i].options));
+                                elemGraph.data('start', data[i]['start']);
+                                elemGraph.data('end', data[i]['end']);
+                                elemGraph.data('host', data[i]['host']);
+                                elemGraph.data('service', data[i]['service']);
+                                elemGraph.data('data', data[i])
                                 if(data[i].options.yaxis.label) {
                                 // if there isn't already a ylabel
-                                    if (element.siblings('.ylabel').length == 0) {
-                                        element.before('<div class="ylabel">' +
+                                    if (elemGraph.siblings('.ylabel').length == 0) {
+                                        elemGraph.before('<div class="ylabel">' +
                                             data[i].options.yaxis.label + '</div>');
                                     }
                                 }
@@ -329,8 +329,30 @@ function drawGraph (element, data) {
                 });
             }
         });
+        $('.removeSeries').live('click', function () {
+            var elemGraph = $(this).closest('.legend').siblings('.graph');
+            if (elemGraph.data('data')) {
+                data = elemGraph.data('data');
+                if (elemGraph.data($(this).val())) {
+                    for (var i=0; i < data.data.length; i++) {
+                        if ( data.data[i].label == $(this).val()) {
+                            data.data[i].data = (elemGraph.data($(this).val()));
+                            elemGraph.removeData($(this).val());
+                        }
+                    }
+                } else {
+                    for (var i=0; i < data.data.length; i++) {
+                        if (data.data[i].label == $(this).val()) {
+                            elemGraph.data($(this).val(), data.data[i].data);
+                            data.data[i].data = [[null,null]];
+                        }
+                    }
+                }
+            }
+            elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
+            elemGraph.data('data', data);
+        });
 
-    
 }
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
@@ -690,6 +712,13 @@ function localStorageSupport() {
         return 'localStorage' in window && window['localStorage'] !== null;
     } catch (e) {
         return false;
+    }
+}
+function localStorageDelete(key) {
+    if (localStorageSupport()) {
+        if (localStorageGet(key)) {
+            delete localStorage[key];
+        }
     }
 }
 function localStorageSet(key, value) {
