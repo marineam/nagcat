@@ -64,8 +64,8 @@ $.plot.formatDate = function(d, fmt, monthNames) {
                         case '0': c = ""; padNext = true; break;
                     }
                 }
-        
-                else {        
+
+                else {
                     switch (c) {
                         case 'h': c = "" + hours; break;
                         case 'H': c = leftPad(hours); break;
@@ -135,7 +135,7 @@ function tickGenerator(range) {
 
     magn = Math.pow(10, -dec);
     norm = delta / magn; // norm is between 1.0 and 10.0
-    
+
     if (norm < 1.5)
         size = 1;
     else if (norm < 3) {
@@ -206,6 +206,132 @@ function formatGraph(element, data) {
     return data;
 }
 
+function createGraphs(data) {
+    var params = [];
+    for (var i=0; i<data.length; i++) {
+        params.push({
+            'host': data[i]['host'],
+            'service': data[i]['service'],
+        });
+    }
+    params = {"graphs": JSON.stringify(params)}
+
+    $.ajax({
+        data: params,
+        url: '/railroad/configurator/graph',
+        dataType: 'html',
+        success: function (html, textStatus, XMLHttpRequest) {
+            $(html).appendTo('#graphs');
+
+            for (var i=0; i < data.length; i++) {
+                var element = $('#{0}'.format(data[i]['slug']));
+                element.data('host', data[i]['host']);
+                element.data('service', data[i]['service']);
+                if (data[i].data) {
+                    drawGraph(element, data[i]);
+                }
+            }
+        },
+        error: function() {
+            console.log('fail');
+        }
+    });
+    // get the graphs collapsed/expanded as they should be.
+    $('#expansion_by_type').children().trigger('change');
+}
+
+// Plots the data in the given element
+function drawGraph (element, data) {
+                data = formatGraph(element, data);
+                element.data('plot', $.plot(element, data.data, data.options));
+                element.data('start', data['start']);
+                element.data('end', data['end']);
+                element.data('host', data['host']);
+                element.data('service', data['service']);
+                element.data('data', data)
+                $('#expansion_by_type').children().trigger('change');
+                if(data.options.yaxis.label) {
+                // if there isn't already a ylabel
+                    if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
+                        $('#{0}'.format(data['slug'])).before('<div class="ylabel">' +
+                            data.options.yaxis.label + '</div>');
+                    }
+                }
+        $(element).bind('plotselected', function (event, ranges) {
+                element.removeClass('ajax');
+                if ($('#sync').prop('checked')) {
+                    graphs = $('.graph');
+                } else {
+                    graphs = $(element);
+                }
+                graphs_to_update = [];
+                graphs.each(function(index, element) {
+                    graph = {};
+                    // Count the number of data points, if they aren't enough, we need to fetch more data
+                    var count=0;
+                    for (var j=0; j < data.data[0].data.length; j++) {
+                        if ( data.data[0].data[j][0] > ranges.xaxis.from && data.data[0].data[j][0] < ranges.xaxis.to ) {
+                            count++;
+                        }
+                    }
+                    // If there aren't enought data points, get MOAR DATA!
+                    if ( count < 50 ) {
+                        graph = {
+                            "host" : $(element).data('host'),
+                            "service" : $(element).data('service'),
+                            "start" : parseInt(ranges.xaxis.from / 1000),
+                            "end" : parseInt(ranges.xaxis.to / 1000),
+                        };
+                        graphs_to_update.push(graph);
+                    } else {
+                    // else zoom in    
+                        // If there is data to graph, graph data! Otherwise, do nothing.
+                        if ($(element).data('data')) {
+                            data = $(element).data('data')
+                            $(element).data('plot', $.plot(element, data.data, $.extend(true, {}, data.options, {
+                                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+                                    })));
+                            $(element).data('start', data.start);
+                            $(element).data('end', data.end);
+                        }
+                    }
+                });
+        // If there are graphs we need new data for, fetch new data!
+            if ( graphs_to_update.length > 0 ) {
+                ajaxcall = JSON.stringify(graphs_to_update);
+                $.ajax ({
+                    url: '/railroad/graphs?graphs=' + ajaxcall,
+                    dataType: 'json',
+                    success: function (data, textStatus, XMLHttpRequest) {
+                        for (var i=0; i < data.length; i++) {
+                            if (data[i].data) {
+                                element = $('#{0}'.format(data[i]['slug']));
+                                data[i] = formatGraph(element, data[i]);
+                                element.data('plot', $.plot(element, data[i].data, data[i].options));
+                                element.data('start', data[i]['start']);
+                                element.data('end', data[i]['end']);
+                                element.data('host', data[i]['host']);
+                                element.data('service', data[i]['service']);
+                                element.data('data', data[i])
+                                if(data[i].options.yaxis.label) {
+                                // if there isn't already a ylabel
+                                    if (element.siblings('.ylabel').length == 0) {
+                                        element.before('<div class="ylabel">' +
+                                            data[i].options.yaxis.label + '</div>');
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    error: function (XMLHttpRequest, textStatus, errorThrown) {
+                        alert ("Something went wrong in getting new data");
+                    }
+                });
+            }
+        });
+
+    
+}
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
     // If the graph isn't busy
@@ -213,7 +339,12 @@ function createGraph(element, path, callback, zoom) {
         $(element).data('busy', true);
         $(element).append('<div class="throbber"></div>');
         $(element).remove('.empty');
-        $.ajax({
+        var ajaxmanager = $.manageAjax.create('createGraph', {
+            queue: true,
+            cacheResponse: true,
+            maxRequests: 4,
+        });
+        ajaxmanager.add({
             url: '/railroad/parserrd/' + path,
             dataType: 'json',
             success: function(data) {
@@ -290,6 +421,83 @@ function createGraph(element, path, callback, zoom) {
     }
 }
 
+function parseAllGraphs(graphs) {
+    var ajaxcalls = [];
+
+    // Don't set up graphs already set up
+    graphs.each(function (index, element) {
+        var ajaxcall = {};
+        //$(element).addClass('setup');
+        // Store the graph data for usage later
+        path = $(element).find('a').attr('href');
+        splitPath = path.split('/');
+        $(element).data('host', splitPath[0]);
+        $(element).data('service', splitPath[1]);
+        $(element).data('start', splitPath[2]);
+        $(element).data('end', splitPath[3]);
+        $(element).data('res', splitPath[4]);
+
+        ajaxcall['host'] = splitPath[0];
+        ajaxcall['service'] = splitPath[1];
+        ajaxcall['start'] = splitPath[2];
+        ajaxcall['end'] = splitPath[3];
+        ajaxcall['res'] = splitPath[4];
+
+        ajaxcalls.push(ajaxcall);
+    });
+
+    createGraphs(JSON.stringify(ajaxcalls));
+
+    // Allow for zooming
+    //$(element).bind('plotselected', function (event, ranges) {
+    //    // The graph isn't busy anymore, allow updates
+    //    $(element).data('busy', null); 
+
+    //    // If we are supposed to sync the graphs, loop over all graphs
+    //    if($('#sync').attr('checked')) {
+    //        graphs = $('.graph');
+    //        // Allow us to zoom even when it makes no sense if we are
+    //        // synced
+    //        zoom = false;
+    //    // Otherwise only loop over the graph associated with this button
+    //    } else {
+    //        graphs = $(element);
+    //        zoom = true;
+    //    }
+
+    //    graphs.each(function(index, element) {
+
+    //        serviceData = $(element).data();
+
+    //        path = [serviceData.host,
+    //                serviceData.service,
+    //                parseInt(ranges.xaxis.from / 1000),
+    //                parseInt(ranges.xaxis.to / 1000),
+    //                serviceData.res].join('/');
+
+    //        createGraph(element,
+    //                    path,
+    //                    function() {
+    //                        $(element).removeClass('ajax');
+    //                        zoomButton = $(element)
+    //                                        .closest('.graph_container')
+    //                                        .find('.zoom');
+    //                        selected = $(element)
+    //                                        .closest('.graph_container')
+    //                                        .find('.selected');
+    //                        selected.removeClass('selected');
+    //                        zoomButton.css('visibility', 'visible');
+    //                        zoomButton.addClass('selected');
+    //                    },
+    //                    zoom);
+    //    });
+    //});
+    //$(element).bind('plotselecting', function() {
+    //    // If we are selecting, mark the graph as busy so no AJAX fires
+    //    $(element).data('busy', true);
+    //});
+
+}
 // Parse and setup graphs on the page
 function parseGraphs(index, element) {
 
@@ -358,6 +566,40 @@ function parseGraphs(index, element) {
 
 }
 
+function autoFetchDataNew() {
+    graphs = [] 
+    $('.graph.ajax').each(function (index, element) {
+        host = $(element).data('host');
+        service = $(element).data('service');
+        graph = {
+            "host" : host,
+            "service": service,
+        };
+        graphs.push(graph);
+    });
+    ajaxcall = JSON.stringify(graphs);
+    $.ajax({ 
+        dataType: 'json',
+        url: '/railroad/graphs?graphs=' + ajaxcall,
+        success: function (data, textStatus, XMLHttpRequest) {
+            for (var i=0; i < data.length; i++){
+                var element = $('#{0}'.format(data[i]['slug']));
+                if (data[i].data) {
+                    drawGraph(element, data[i]);
+                }
+            }
+        },
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            alert ("Auto Fetch data failed");
+        }
+    });
+    setTimeout(autoFetchDataNew, 600 * 1000);
+}
+
+
+
+
+
 // Function to automatically update any graphs which are set to ajax load
 function autoFetchData() {
     $('.graph.ajax').each(function(index, element) {
@@ -418,7 +660,7 @@ var sorts = {
         })
 }
 function sortGraphs() {
-    console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
+    //console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
     var name = $('#sortby').val();
     var sorter = sorts[name];
     if ($('#reverse_sort').prop('checked')) {
@@ -658,28 +900,26 @@ $(document).ready(function() {
 
     // Handle configurator form submissions
     $('#configurator').submit(function() {
-        $(this).append('<div class="throbber"></div>');
-        // Enable the fields again so they can be submitted
-        $('[id^=type]').attr('disabled', null);
-        $('[id^=value]').attr('disabled', null);
 
+        $('#cleargraphs').after('<img id="loading" src="/railroad-static/img/loading.gif" />');
         fields = $('#configurator').formSerialize();
-        $.ajax({
+        var ajaxmanager = $.manageAjax.create('configurator', {
+            queue: true,
+            maxRequests: 3,
+        });
+        ajaxmanager.add({
             data: fields,
-            dataType: 'html',
-            url: $('#configurator').attr('action'),
+            dataType: 'json',
+            url: '/railroad/graphs',
             success: function(data, textStatus, XMLHttpRequest) {
                 //reset_fields();
                 $('#clearform').trigger('click');
-                // Add the new graph and setup the new graphs
-                $('#graphs').append(data);
-                $('.graph:not(.setup)').each(parseGraphs);
-                $('#configurator').find('.throbber').remove();
-                sortGraphs();
+                createGraphs(data);
+                $('#loading').remove();
+                //sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 // TODO: Indicate error somehow, probably
-                $('#configurator').find('.throbber').remove();
             }
         });
         $('#configurator').data('changed', true);
@@ -688,7 +928,7 @@ $(document).ready(function() {
     });
 
     // **********  Functions to manipulate rows **************
-    var animate_time = 250;
+    var animate_time = 0;
     function collapse_row(row) {
         // Hide the graph and status text
         $(row).children('.graph_container').children().hide(animate_time);
@@ -740,7 +980,7 @@ $(document).ready(function() {
     $('#expansion_by_type').children().bind('change', function() {
         var checkbox = this;
         $('.service_row').each(function(index, element) {
-            if ($(element).find('*').hasClass($(checkbox).attr('name'))) {
+            if ($(element).children('.status_text').hasClass($(checkbox).attr('name'))) {
                 if ($(checkbox).prop('checked')) {
                     expand_row(element);
                 } else {
@@ -771,7 +1011,7 @@ $(document).ready(function() {
                 services[index] = [host, service, start, end];
             });
             data = {services: services};
-            $.ajax({
+            $.ajaxq("linkgenerator",{
                 data: data,
                 dataType: 'json',
                 type: 'POST',
@@ -820,7 +1060,7 @@ $(document).ready(function() {
                 services[index] = [host, service, start, end];
             });
             data = {services: services};
-            $.ajax({
+            $.ajaxq("linkgenerator",{
                 data: data,
                 dataType: 'json',
                 type: 'POST',
@@ -851,7 +1091,7 @@ $(document).ready(function() {
     });
 
     // Start the AJAX graph refreshes
-    setTimeout(autoFetchData, 60 * 1000);
+    setTimeout(autoFetchDataNew, 600 * 1000);
 
     /******* Hint System *******/
     $('.hint').append('<span class="hide_hint"></span>');

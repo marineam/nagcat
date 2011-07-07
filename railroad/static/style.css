@@ -114,7 +114,7 @@ body {
 	background-color: tomato;
 }
 
-.collapse_row, .expand_row {
+.collapse_row, .expand_row, .remove_row {
 	width: 16px;
 	height: 16px;
 }

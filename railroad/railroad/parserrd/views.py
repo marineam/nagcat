@@ -18,6 +18,7 @@ import types
 import time
 import random
 from math import floor
+import urllib
 
 import rrdtool
 import coil
@@ -25,6 +26,8 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from railroad.errors import RailroadError
+
+DAY = 60 * 60 * 24 # Seconds in a day
 
 def sigfigs(float):
     """Round float using desired sigfigs"""
@@ -81,8 +84,12 @@ def getColors(names):
 
     return colors
 
-def index(request, host, service, start, end, resolution='150'):
-    """Reads the rrd and returns the data in flot-friendly format"""
+def get_data(host, service, start=None, end=None, resolution='150'):
+    if not end:
+        end = int(time.time())
+    if not start:
+        start = end - DAY
+
     rra_path = settings.RRA_PATH
     rrd = '%s%s/%s.rrd' % (rra_path, host, service)
     coilfile = '%s%s/%s.coil' % (rra_path, host, service)
@@ -342,5 +349,12 @@ def index(request, host, service, start, end, resolution='150'):
                     'empty': empty_graph, 'current_time': current_time,
                     'start': start, 'end': end,
              }
+
+    return result
+
+def index(request, host, service, start, end, resolution='150'):
+    """Reads the rrd and returns the data in flot-friendly format"""
+
+    result = get_data(host, service, start, end, resolution)
 
     return HttpResponse(json.dumps(result))
