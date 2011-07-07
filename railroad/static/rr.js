@@ -236,6 +236,8 @@ function createGraphs(data) {
             console.log('fail');
         }
     });
+    // get the graphs collapsed/expanded as they should be.
+    $('#expansion_by_type').children().trigger('change');
 }
 
 // Plots the data in the given element
