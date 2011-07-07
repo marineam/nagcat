@@ -2,8 +2,8 @@
 {% for graph in loaded_graphs %}
     <tr class="service_row">
         <td class="controls">
-            <div class="collapse_row"/>
-            <div class="remove_row"/>
+            <div class="collapse_row"></div>
+            <div class="remove_row"></div>
         </td>
         <td class="status_text state_{{ graph.current_state|state_name|lower }}">
             <h2><a href="{% url railroad.viewhosts.views.graphpage graph.host_name %}">{{graph.host_name}}</a></h2>
@@ -33,7 +33,7 @@
                     </ul>
                 </div>
                 <div class="ajax_info">
-                    <div class="update"/>
+                    <div class="update"></div>
                 </div>
 
                 {% ifequal graph.period 'ajax'%}
