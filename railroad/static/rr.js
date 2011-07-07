@@ -236,8 +236,8 @@ function createGraphs(data) {
             console.log('fail');
         }
     });
-
 }
+
 // Plots the data in the given element
 function drawGraph (element, data) {
                 data = formatGraph(element, data);
@@ -247,6 +247,7 @@ function drawGraph (element, data) {
                 element.data('host', data['host']);
                 element.data('service', data['service']);
                 element.data('data', data)
+                $('#expansion_by_type').children().trigger('change');
                 if(data.options.yaxis.label) {
                 // if there isn't already a ylabel
                     if ($('#{0}'.format(data['slug'])).siblings('.ylabel').length == 0) {
