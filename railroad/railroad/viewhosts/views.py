@@ -695,7 +695,6 @@ def serviceconfigurator(request, service):
     service_list = get_graphs(stat, obj, "", "", service)
     return configurator(stat, obj, 'Configurator', 'Configurator', service_list)
 
-
 def configurator(stat, obj, htmltitle='Configurator',            \
                      pagetitle='Configurator', loaded_graphs=[], \
                      page_state=''):

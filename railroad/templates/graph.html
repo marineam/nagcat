@@ -6,8 +6,8 @@
             <div class="remove_row"></div>
         </td>
         <td class="status_text state_{{ graph.current_state|state_name|lower }}">
-            <h2><a href="{% url railroad.viewhosts.views.graphpage graph.host_name %}">{{graph.host_name}}</a></h2>
-            <h2><a href="{% url railroad.viewhosts.views.service graph.host_name graph.service_description %}">{{graph.service_description}}</a></h2>
+            <h2><a href="/railroad/configurator/host/{{graph.host_name}}">{{graph.host_name}}</a></h2>
+            <h2><a href="/railroad/viewhost/{{graph.host_name}}/{{graph.service_description}}">{{graph.service_description}}</a></h2>
             <p>{{graph.plugin_output}}</p>
         </td>
 
@@ -27,7 +27,7 @@
                         <li class="year">year</li>
                         {% ifequal graph.period 'zoomed'%}
                             <li class="zoom selected">zoomed</li>
-                        {% else  %}
+                        {% else  }
                             <li class="zoom" style="visibility: hidden">zoomed</li>
                         {% endifequal %}
                     </ul>
