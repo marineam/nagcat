@@ -291,6 +291,15 @@ function createGraphs(data) {
 
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
+    for (var i=0; i < data.data.length; i++) {
+        if ( data.data[i].label) {
+            if ( data.data[i].lines ) {
+                data.data[i].lines.show = true;
+            } else {
+                data.data[i].lines = { "show" : true };
+            }
+        }
+    }
     data = formatGraph(elemGraph, data);
     elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
     elemGraph.data('start', data['start']);
@@ -354,7 +363,7 @@ function drawGraph (elemGraph, data) {
                         }
                     }
                 },
-                error: function (XMLHttpRequest, textStatus, errorThrown) {
+               error: function (XMLHttpRequest, textStatus, errorThrown) {
                     alert ("Something went wrong in getting new data");
                 }
             });
