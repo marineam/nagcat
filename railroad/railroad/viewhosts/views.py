@@ -615,6 +615,7 @@ def customgraph(request):
     Host & Service - service of host
     Group & Service - all instances of service in group
     Host & Group & Service - All chosen services of all chosen hosts
+    uniq - A unique identifier the client may set for this graph.
 
     Graphs - A list of dictionaries containing host and service keys
     """
@@ -624,14 +625,17 @@ def customgraph(request):
     graphs = request.GET.get("graphs", None)
     if graphs:
         graphs = json.loads(graphs)
-        service_list = [servicedetail(stat, g['host'], g['service']) for g in graphs]
-        filter(None, service_list)
-
-        for service in service_list:
-            service['is_graphable'] = is_graphable(service['host_name'],
-                    service['service_description'])
-            service['slug'] = slugify(service['host_name'] +
-                                      service['service_description'])
+        service_list = []
+        for graph in graphs:
+            s = servicedetail(stat, graph['host'], graph['service'])
+            if not s:
+                continue
+            s['is_graphable'] = is_graphable(s['host_name'],
+                    s['service_description'])
+            s['slug'] = slugify(s['host_name'] + s['service_description'])
+            if 'uniq' in graph:
+                service['uniq'] = graph['uniq']
+            service_list.append(s)
     else:
         groups = request.GET.get("group")
         hosts = request.GET.get("host")
@@ -863,6 +867,7 @@ def graphs(request):
     get_start = request.GET.get('start', None)
     get_end = request.GET.get('end', None)
     res = request.GET.get('res', None)
+    uniq = request.GET.get('uniq', None)
 
     if graphs:
         graphs = json.loads(graphs)
@@ -873,19 +878,19 @@ def graphs(request):
                 continue
             so['start'] = graph.get('start', get_start)
             so['end'] = graph.get('end', get_end)
+            if 'uniq' in graph:
+                so['uniq'] = graph['uniq']
             service_objs.append(so)
     else:
         service_objs = get_graphs(stat, obj, hosts, groups, services, get_start, get_end)
-
-    HttpResponse(repr(service_objs))
 
     response = []
 
     for s in service_objs:
         host = s['host_name']
         service = s['service_description']
-        start = s.get('start')
-        end = s.get('end')
+        start = s['start']
+        end = s['end']
 
         one_response = {
             'host': host,
@@ -893,6 +898,9 @@ def graphs(request):
             'current_time': time.strftime('%H:%M:%S %Z', time.gmtime()),
             'slug': slugify(host + service),
         }
+
+        if 'uniq' in s:
+            one_response['uniq'] = s['uniq']
 
         if is_graphable(host, service):
             one_response.update(get_data(host, service, start, end))

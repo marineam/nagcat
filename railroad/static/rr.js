@@ -256,6 +256,7 @@ function createGraphs(data) {
         success: function (html, textStatus, XMLHttpRequest) {
             $(html).appendTo('#graphs');
 
+            // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
                 var element = $('#{0}'.format(data[i]['slug']));
                 element.data('host', data[i]['host']);
