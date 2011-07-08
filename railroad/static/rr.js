@@ -207,9 +207,31 @@ function labelFormatter(label, series) {
 function formatGraph(element, data) {
     base = data.base;
 
-    data.options.yaxis.ticks = tickGenerator;
-    data.options.yaxis.tickFormatter = tickFormatter;
+    var first = true;
+    var max = null;
+    for (var i=0; i < data.data.length; i++) {
+        if ( data.data[i].lines) {
+            if (data.data[i].lines.show) {
+                for (var j=0; j < data.data[i].data.length; j++) {
+                    var val = data.data[i].data[j][1];
+                    if (( val > max && val != null) || first ) {
+                        max = val;
+                        first = false;
+                    }
+                }
+            }
+        }
+    }
 
+    data.options.yaxis.max = max * 1.2;
+    if ( max ) {
+        data.options.yaxis.show = true;
+        data.options.yaxis.ticks = tickGenerator;
+        data.options.yaxis.tickFormatter = tickFormatter;
+    }
+    else {
+        data.options.yaxis.ticks = [];
+    }
     // TODO: Cleanup legend and axis label creation
     data.options.legend = {}
     data.options.legend.container = $(element).next('.legend');
@@ -239,6 +261,15 @@ function createGraphs(data) {
                 element.data('host', data[i]['host']);
                 element.data('service', data[i]['service']);
                 if (data[i].data) {
+                    for (var j=0; j< data[i].data.length; j++) {
+                        if ( data[i].data[j].label) {
+                            if (data[i].data[j].lines) {
+                                data[i].data[j].lines.show = true;
+                            } else {
+                                data[i].data[j].lines = { "show" : true };
+                            }
+                        }
+                    }
                     drawGraph(element, data[i]);
                 }
             }
@@ -351,9 +382,10 @@ function drawGraph (elemGraph, data) {
                         data.data[i]['lines']['show'] ^= true; // toggle
                     }
                 }
-            }
+            data = formatGraph(elemGraph, data);
             elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
             elemGraph.data('data', data);
+            }
         });
 
 }
