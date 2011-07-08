@@ -274,6 +274,7 @@ function createGraphs(data) {
                     drawGraph(element, data[i]);
                 }
             }
+            $('.loading').remove();
         },
         error: function() {
             console.log('fail');
@@ -1029,7 +1030,7 @@ $(document).ready(function() {
     // Handle configurator form submissions
     $('#configurator').submit(function() {
 
-        $('#cleargraphs').after('<img id="loading" src="/railroad-static/img/loading.gif" />');
+        $('#cleargraphs').after('<img class="loading" src="/railroad-static/img/loading.gif" />');
         fields = $('#configurator').formSerialize();
         var ajaxmanager = $.manageAjax.create('configurator', {
             queue: true,
@@ -1043,7 +1044,6 @@ $(document).ready(function() {
                 //reset_fields();
                 $('#clearform').trigger('click');
                 createGraphs(data);
-                $('#loading').remove();
                 //sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
