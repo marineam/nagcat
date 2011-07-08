@@ -258,7 +258,12 @@ function createGraphs(data) {
 
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
-                var element = $('#{0}'.format(data[i]['slug']));
+                var element;
+                if ( $('.{0}'.format(data[i]['slug'])).length > 1) {
+                    element = $('.{0}#{1}'.format(data[i]['slug'], data[i]['uniq']))
+                } else {
+                    element = $('.{0}'.format(data[i]['slug']));
+                }
                 element.data('host', data[i]['host']);
                 element.data('service', data[i]['service']);
                 if (data[i].data) {
@@ -310,34 +315,17 @@ function drawGraph (elemGraph, data) {
         graphs_to_update = [];
         graphs.each(function(index, element) {
             graph = {};
-            // Count the number of data points, if they aren't enough, we need to fetch more data
-            var count=0;
-            for (var j=0; j < data.data[0].data.length; j++) {
-                if ( data.data[0].data[j][0] > ranges.xaxis.from && data.data[0].data[j][0] < ranges.xaxis.to ) {
-                    count++;
-                }
-            }
             // If there aren't enought data points, get MOAR DATA!
-            if (true) {
-                graph = {
-                    "host" : $(element).data('host'),
-                    "service" : $(element).data('service'),
-                    "start" : parseInt(ranges.xaxis.from / 1000),
-                    "end" : parseInt(ranges.xaxis.to / 1000),
-                };
-                graphs_to_update.push(graph);
-            } else {
+            graph = {
+                "host" : $(element).data('host'),
+                "service" : $(element).data('service'),
+                "start" : parseInt(ranges.xaxis.from / 1000),
+                "end" : parseInt(ranges.xaxis.to / 1000),
+                "uniq": parseInt($(element).attr('id')),
+            };
+            graphs_to_update.push(graph);
             // else zoom in
                 // If there is data to graph, graph data! Otherwise, do nothing.
-                if ($(element).data('data')) {
-                    data = $(element).data('data')
-                    $(element).data('plot', $.plot(element, data.data, $.extend(true, {}, data.options, {
-                            xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
-                            })));
-                    $(element).data('start', data.start);
-                    $(element).data('end', data.end);
-                }
-            }
         });
         // If there are graphs we need new data for, fetch new data!
         if ( graphs_to_update.length > 0 ) {
@@ -348,7 +336,7 @@ function drawGraph (elemGraph, data) {
                 success: function (data, textStatus, XMLHttpRequest) {
                     for (var i=0; i < data.length; i++) {
                         if (data[i].data) {
-                            element = $('#{0}'.format(data[i]['slug']));
+                            element = $('.{0}'.format(data[i]['slug']));
                             data[i] = formatGraph(elemGraph, data[i]);
                             elemGraph.data('plot', $.plot(elemGraph, data[i].data, data[i].options));
                             elemGraph.data('start', data[i]['start']);
@@ -657,7 +645,7 @@ function autoFetchDataNew() {
         url: '/railroad/graphs?graphs=' + ajaxcall,
         success: function (data, textStatus, XMLHttpRequest) {
             for (var i=0; i < data.length; i++){
-                var element = $('#{0}'.format(data[i]['slug']));
+                var element = $('.{0}'.format(data[i]['slug']));
                 if (data[i].data) {
                     drawGraph(element, data[i]);
                 }
@@ -897,11 +885,21 @@ $(document).ready(function() {
     // Initialize the data for any graphs already on the page
     ajaxcall = [];
     $('.graph').each(function (index, element) {
+        var slug = $(element).attr('name');
+        graphs = $('.{0}'.format(slug)).each(function (index, element) {
+            $(element).attr('id', index);
+        });
         var hostname = $($(element).children('.graph_hostname')).attr('id');
         var servicename = $($(element).children('.graph_service_name')).attr('id');
+        var start = $($(element).children('.graph_start')).attr('id');
+        var end = $($(element).children('.graph_end')).attr('id');
+        var uniq = $(element).attr('id');
         ajaxcall.push({
             "host" : hostname,
             "service" : servicename,
+            "uniq" : uniq,
+            "start" : start,
+            "end" : end,
         });
     });
     ajaxcall = JSON.stringify(ajaxcall);
@@ -910,7 +908,12 @@ $(document).ready(function() {
         url: '/railroad/graphs?graphs=' + ajaxcall,
         success: function (data, textStatus, XMLHttpRequest) {
             for (var i=0; i < data.length; i++) {
-                var element = $('#{0}'.format(data[i]['slug']));
+                var element;
+                if (data[i]['uniq']) {
+                    element = $('.{0}#{1}'.format(data[i]['slug'],data[i]['uniq']));
+                } else {
+                    element = $('.{0}'.format(data[i]['slug']));
+                }
                 drawGraph(element, data[i]);
             }
         },
@@ -974,7 +977,7 @@ $(document).ready(function() {
     }
 
     // Autocomplete anything with class = "... autocomplete ..."
-    $('.autocomplete').each(function () { 
+    $('.autocomplete').each(function () {
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" + $(this).attr('name' ), minLength : 1, autoFocus: true})
     });
 
@@ -982,7 +985,7 @@ $(document).ready(function() {
         $('.service_row').remove();
         $('#configurator').data('changed', true);
     });
-    
+
     $('#clearform').bind('click', function () {
         $('#host').val("");
         $('#group').val("");

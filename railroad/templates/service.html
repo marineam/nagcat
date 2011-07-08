@@ -42,7 +42,11 @@
 							<li class="zoom" style="visibility: hidden">zoomed</li>
 						</ul>
 					</div>
-				<div id="{{service_name|slugify}}" class="graph"><a href="{{host_name}}/{{service_name}}/{{time_interval.1.0}}/{{time_interval.1.1}}/100"></a>
+				<div id="" class="{{slug}} graph" name="{{slug}}">
+                    <div id="{{host_name}}" class="graph_hostname"></div>
+                    <div id="{{service_name}}" class="graph_service_name"></div>
+                    <div id="{{time_interval.1.0}}" class="graph_start"></div>
+                    <div id="{{time_interval.1.1}}" class="graph_end"></div>
 				</div>
 				<div class="legend"></div>
 				</div>

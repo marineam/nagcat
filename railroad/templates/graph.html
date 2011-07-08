@@ -29,11 +29,11 @@
                 </div>
 
                 {% ifequal graph.period 'ajax'%}
-                    <div id="{{ graph.slug }}" class="graph ajax">
+                    <div id="" class="{{graph.slug}} graph ajax">
                     <div id="{{ graph.host_name }}" class="graph_hostname"></div>
                     <div id="{{ graph.service_description }}" class="graph_service_name"></div>
                 {% else %}
-                    <div id="{{graph.slug}}" class="graph">
+                    <div id="" class="{{graph.slug}} graph">
                 {% endifequal %}
                     <a href="{{graph.host_name}}/{{graph.service_description}}/{{graph.start}}/{{graph.end}}/100"></a>
                 </div>

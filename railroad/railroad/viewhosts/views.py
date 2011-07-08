@@ -467,10 +467,11 @@ def service(request, host, service):
     coilstring = ''
     if os.path.exists(coilfile):
         coilstring = open(coilfile).read()
-    
+
     time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
+        'slug' : slugify(host + service),
         'host_state': host_detail.get('current_state', ''),
         'service_name': service,
         'service_output': long_output,
@@ -625,6 +626,7 @@ def customgraph(request):
     graphs = request.GET.get("graphs", None)
     if graphs:
         graphs = json.loads(graphs)
+        return HttpResponse(repr(graphs))
         service_list = []
         for graph in graphs:
             s = servicedetail(stat, graph['host'], graph['service'])
@@ -634,7 +636,7 @@ def customgraph(request):
                     s['service_description'])
             s['slug'] = slugify(s['host_name'] + s['service_description'])
             if 'uniq' in graph:
-                service['uniq'] = graph['uniq']
+                s['uniq'] = graph['uniq']
             service_list.append(s)
     else:
         groups = request.GET.get("group")
@@ -869,6 +871,8 @@ def graphs(request):
     res = request.GET.get('res', None)
     uniq = request.GET.get('uniq', None)
 
+    string = ""
+
     if graphs:
         graphs = json.loads(graphs)
         service_objs = []
@@ -876,6 +880,7 @@ def graphs(request):
             so = servicedetail(stat, graph['host'], graph['service'])
             if not so:
                 continue
+            so = so.copy()
             so['start'] = graph.get('start', get_start)
             so['end'] = graph.get('end', get_end)
             if 'uniq' in graph:
@@ -883,6 +888,9 @@ def graphs(request):
             service_objs.append(so)
     else:
         service_objs = get_graphs(stat, obj, hosts, groups, services, get_start, get_end)
+
+
+
 
     response = []
 
