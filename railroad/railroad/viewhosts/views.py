@@ -626,7 +626,6 @@ def customgraph(request):
     graphs = request.GET.get("graphs", None)
     if graphs:
         graphs = json.loads(graphs)
-        return HttpResponse(repr(graphs))
         service_list = []
         for graph in graphs:
             s = servicedetail(stat, graph['host'], graph['service'])
