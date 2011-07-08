@@ -304,7 +304,7 @@ function drawGraph (elemGraph, data) {
                 if ($('#sync').prop('checked')) {
                     graphs = $('.graph');
                 } else {
-                    graphs = $(element);
+                    graphs = $(elemGraph);
                 }
                 graphs_to_update = [];
                 graphs.each(function(index, element) {
