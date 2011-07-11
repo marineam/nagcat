@@ -326,15 +326,13 @@ function drawGraph (elemGraph, data) {
             graph = {};
             // If there aren't enought data points, get MOAR DATA!
             graph = {
-                "host" : $(element).data('host'),
-                "service" : $(element).data('service'),
+                "host" : $(elemGraph).data('host'),
+                "service" : $(elemGraph).data('service'),
                 "start" : parseInt(ranges.xaxis.from / 1000),
                 "end" : parseInt(ranges.xaxis.to / 1000),
-                "uniq": parseInt($(element).attr('id')),
+                "uniq": parseInt($(elemGraph).attr('id')),
             };
             graphs_to_update.push(graph);
-            // else zoom in
-                // If there is data to graph, graph data! Otherwise, do nothing.
         });
         // If there are graphs we need new data for, fetch new data!
         if ( graphs_to_update.length > 0 ) {
@@ -344,8 +342,17 @@ function drawGraph (elemGraph, data) {
                 dataType: 'json',
                 success: function (data, textStatus, XMLHttpRequest) {
                     for (var i=0; i < data.length; i++) {
+                        for (var j=0; j < data[i].data.length; j++) {
+                            if ( data[i].data[j].label ) {
+                                if ( data[i].data[j].lines ) {
+                                    data[i].data[j].lines.show = true;
+                                } else { 
+                                    data[i].data[j].lines = { "show": true };
+                                }
+                            }
+                        }
                         if (data[i].data) {
-                            element = $('.{0}'.format(data[i]['slug']));
+                            elemGraph = $('.{0}'.format(data[i]['slug']));
                             data[i] = formatGraph(elemGraph, data[i]);
                             elemGraph.data('plot', $.plot(elemGraph, data[i].data, data[i].options));
                             elemGraph.data('start', data[i]['start']);
