@@ -307,6 +307,7 @@ function drawGraph (elemGraph, data) {
         }
     }
     redrawGraph(elemGraph, data)
+    collapse_or_expand($(elemGraph).closest('.service_row'));
     if(data.options.yaxis.label) {
     // if there isn't already a ylabel
         if (elemGraph.siblings('.ylabel').length == 0) {
@@ -633,6 +634,23 @@ function auto_expansion() {
             }
         }
     });
+}
+function collapse_or_expand(row) {
+    states = {};
+    $('#expansion_by_type input').each(function(index, element) {
+        :x
+        :x
+        :q
+    });
+    for (var s in states) {
+        if ($(row).children('td.status_text').hasClass(s)) {
+            if (states[s]) {
+                expand_row(row);
+            } else {
+                collapse_row(row);
+            }
+        }
+    }
 }
 function collapse_row(row) {
     // Hide the graph and status text
