@@ -19,6 +19,10 @@ body {
 	font-family: Arial, Helvetica, sans-serif;
 	margin: 0;
 }
+ul, ol {
+    margin: 0;
+    padding: 0;
+}
 
 /* Page header */
 #header {
@@ -70,7 +74,7 @@ body {
 .listheader {
 	font-size: 12pt;
 }
-.pagination { 
+.pagination {
         text-align: center;
 }
 /* TODO: Finish this styling */
@@ -114,7 +118,7 @@ body {
 	background-color: tomato;
 }
 
-.collapse_row, .expand_row {
+.collapse_row, .expand_row, .remove_row {
 	width: 16px;
 	height: 16px;
 }
@@ -138,7 +142,7 @@ body {
 td.controls { vertical-align: top }
 td.controls div { margin-top: 3px; }
 td.status_text { width: 500px; }
-td.graph_container { width: 540px; text-align: center; }
+td.graph_container { width: 540px; }
 
 /* Graph styling */
 .graph {
@@ -206,16 +210,6 @@ td.graph_container { width: 540px; text-align: center; }
 .toggle, .options ul li {
 	cursor: pointer;
 }
-.options ul {
-	padding: 0;
-	margin: 0;
-}
-.options ul li {
-	display: inline;
-}
-.options .selected {
-	font-weight: bold;
-}
 .hidden {
 	visibility: hidden;
 }
@@ -230,7 +224,7 @@ td.graph_container { width: 540px; text-align: center; }
 .error {
 	top: 120px;
 	color: red;
-}	
+}
 
 /* Service listings */
 .service_row {
@@ -275,10 +269,21 @@ fieldset {
        float: left;
        margin: 10px;
 }
+#configurator ul {
+    padding: 0px;
+    margin: 0px;
+    margin-top: 5px;
+    margin-left: 20px;
+}
+#configurator ul li {
+    list-style: none outside none;
+    margin: 0px;
+    overflow: hidden;
+}
 #configurator ol li {
-       list-style: none outside none;
-       margin: 5px;
-       overflow: hidden;
+    list-style: none outside none;
+    margin: 5px;
+    overflow: hidden;
 }
 #configurator ol li label {
        width: 75px;
@@ -297,6 +302,7 @@ fieldset {
     color: #444;
     font-size: .7em;
     position: relative;
+    width: 250px;
 }
 .hint:before { content: "Hint: ";}
 
@@ -319,20 +325,20 @@ fieldset {
 	text-transform: capitalize;
 }
 
-.filterform th { 
+.filterform th {
         text-align: right;
         border-spacing: 1px 5px;
 }
 
-.filterform { 
+.filterform {
         border-spacing: 60px 5px;
 }
 
-.filters h3 { 
+.filters h3 {
         text-align: center;
 }
 
-.submit { 
+.submit {
         text-align: center;
 }
 

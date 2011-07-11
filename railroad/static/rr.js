@@ -64,8 +64,8 @@ $.plot.formatDate = function(d, fmt, monthNames) {
                         case '0': c = ""; padNext = true; break;
                     }
                 }
-        
-                else {        
+
+                else {
                     switch (c) {
                         case 'h': c = "" + hours; break;
                         case 'H': c = leftPad(hours); break;
@@ -135,7 +135,7 @@ function tickGenerator(range) {
 
     magn = Math.pow(10, -dec);
     norm = delta / magn; // norm is between 1.0 and 10.0
-    
+
     if (norm < 1.5)
         size = 1;
     else if (norm < 3) {
@@ -174,12 +174,12 @@ function tickFormatter(val, axis) {
     // tickDecimals accordingly
     if (final_base != 1) {
         tickDecimals = axis.tickDecimals;
-        while (tickDecimals <= 3 && 
+        while (tickDecimals <= 3 &&
 			(val / final_base).toFixed(tickDecimals) != val / final_base)
             tickDecimals++;
 
 		if (tickDecimals <= 3)
-			axis.tickDecimals = tickDecimals; 
+			axis.tickDecimals = tickDecimals;
     }
 
     return (val / final_base).toFixed(axis.tickDecimals) + bases[interval];
@@ -187,7 +187,25 @@ function tickFormatter(val, axis) {
 
 // Format a label, passed to Flot
 function labelFormatter(label, series) {
-    return label.replace(/_/g, ' ');
+    //return '<input type="button" id="'+label+'" value="'+label+'" class="removeSeries"></input>';
+
+    var checked = "";
+    if (series.lines.show) {
+        checked = " checked";
+    }
+
+    var stats = "";
+    try {
+        stats = ' (Cur: {0}, Max: {1}, Min: {2}, Avg: {3})'.format(
+            series.statistics.cur.toPrecision(4), series.statistics.max.toPrecision(4),
+            series.statistics.min.toPrecision(4), series.statistics.avg.toPrecision(4));
+    } catch(e) {
+        // graph doesn't have cur,max,min,avg, so skip them.
+    }
+
+    var out = '<input type="checkbox" id="{0}" class="removeSeries"{1}>{0}{2}</input>'.format(label, checked, stats);
+
+    return out;
 }
 
 /******* GRAPH GENERATION/MANIPULTION *******/
@@ -196,9 +214,31 @@ function labelFormatter(label, series) {
 function formatGraph(element, data) {
     base = data.base;
 
-    data.options.yaxis.ticks = tickGenerator;
-    data.options.yaxis.tickFormatter = tickFormatter;
+    var first = true;
+    var max = null;
+    for (var i=0; i < data.data.length; i++) {
+        if ( data.data[i].lines) {
+            if (data.data[i].lines.show) {
+                for (var j=0; j < data.data[i].data.length; j++) {
+                    var val = data.data[i].data[j][1];
+                    if (( val > max && val != null) || first ) {
+                        max = val;
+                        first = false;
+                    }
+                }
+            }
+        }
+    }
 
+    data.options.yaxis.max = max * 1.2;
+    if ( max ) {
+        data.options.yaxis.show = true;
+        data.options.yaxis.ticks = tickGenerator;
+        data.options.yaxis.tickFormatter = tickFormatter;
+    }
+    else {
+        data.options.yaxis.ticks = [];
+    }
     // TODO: Cleanup legend and axis label creation
     data.options.legend = {}
     data.options.legend.container = $(element).next('.legend');
@@ -206,180 +246,245 @@ function formatGraph(element, data) {
     return data;
 }
 
-// Creates a graph
-function createGraph(element, path, callback, zoom) {
-    // If the graph isn't busy
-    if(!$(element).data('busy')) {
-        $(element).data('busy', true);
-        $(element).append('<div class="throbber"></div>');
-        $(element).remove('.empty');
-        var ajaxmanager = $.manageAjax.create('createGraph', {
-            queue: true,
-            cacheResponse: true,
-            maxRequests: 4,
+function createGraphs(data) {
+    var params = [];
+    for (var i=0; i<data.length; i++) {
+        params.push({
+            'host': data[i]['host'],
+            'service': data[i]['service'],
         });
-        ajaxmanager.add({
-            url: '/railroad/parserrd/' + path,
-            dataType: 'json',
-            success: function(data) {
-                // If we are zooming and there's no data, just bail with an
-                // error
-                if(zoom && data.empty) {
-                    plot = $(element).data('plot');
-                    plot.clearSelection();
-                    $(element).append('<div class="error">no data to ' +
-                                      'zoom</div>');
-                    // Nice fadeOut won't let us remove the element, so use a
-                    // callback
-                    $(element).find('.error')
-                              .delay(500)
-                              .fadeOut(500,
-                                       function() {
-                                           $(this).remove();
-                                       });
+    }
+    params = {"graphs": JSON.stringify(params)}
+
+    $.ajax({
+        data: params,
+        url: '/railroad/configurator/graph',
+        dataType: 'html',
+        success: function (html, textStatus, XMLHttpRequest) {
+            $(html).appendTo('#graphs');
+
+            // Now fill in the graphs.
+            for (var i=0; i < data.length; i++) {
+                var element;
+                if ( $('.{0}'.format(data[i]['slug'])).length > 1) {
+                    element = $('.{0}#{1}'.format(data[i]['slug'], data[i]['uniq']))
                 } else {
-                    data = formatGraph(element, data);
-                    $(element).data('plot',
-                                    $.plot($(element),
-                                    data.data,
-                                    data.options));
-                    $(element).data('start',
-                                    data.start);
-                    $(element).data('end',
-                                    data.end);
-                    if(data.options.yaxis.label) {
-                        // if there isn't already a ylabel
-                        if ($(element).siblings('.ylabel').length == 0) {
-                            $(element).before('<div class="ylabel">' +
-                                              data.options.yaxis.label + '</div>');
+                    element = $('.{0}'.format(data[i]['slug']));
+                }
+                element.data('host', data[i]['host']);
+                element.data('service', data[i]['service']);
+                if (data[i].data) {
+                    for (var j=0; j< data[i].data.length; j++) {
+                        if ( data[i].data[j].label) {
+                            if (data[i].data[j].lines) {
+                                data[i].data[j].lines.show = true;
+                            } else {
+                                data[i].data[j].lines = { "show" : true };
+                            }
                         }
                     }
-                    if(data.empty == true) {
-                        $(element).append('<div class="empty">no data</div>');
-                    }
-
-                    update = $(element).closest('.graph_container') .find('.update')
-                                 .html('updated: ' + data.current_time);
-
-                    // get the graphs collapsed/expanded as they should be.
-                    $('#expansion_by_type').children().trigger('change');
-
-                    if(callback != null) {
-                        callback(data);
-                    }
-                }
-                $(element).find('.throbber').remove();
-            },
-            // If there's an error, toss out a warning about it
-            error: function(request, status, error) {
-                plot = $(element).data('plot');
-                if(zoom) {
-                    plot.clearSelection();
-                }
-                $(element).find('.throbber').remove();
-                $(element).append('<div class="error">error</div>');
-                if(zoom) {
-                    // Nice fadeOut won't let us remove the element, so use a
-                    // callback
-                    $(element).find('.error')
-                              .delay(500)
-                              .fadeOut(500,
-                                       function() {
-                                           $(this).remove();
-                                       });
+                    drawGraph(element, data[i]);
                 }
             }
-        });
-    // Release the graph
-    $(element).data('busy', null);
-    }
+            // get the graphs collapsed/expanded as they should be.
+            auto_expansion();
+        },
+        error: function() {
+            console.error('failed to get graph html');
+        }
+    });
 }
 
-// Parse and setup graphs on the page
-function parseGraphs(index, element) {
+// Plots the data in the given element
+function drawGraph (elemGraph, data) {
+    for (var i=0; i < data.data.length; i++) {
+        if ( data.data[i].label) {
+            if ( data.data[i].lines ) {
+                data.data[i].lines.show = true;
+            } else {
+                data.data[i].lines = { "show" : true };
+            }
+        }
+    }
+    redrawGraph(elemGraph, data)
+    collapse_or_expand($(elemGraph).closest('.service_row'));
+    if(data.options.yaxis.label) {
+    // if there isn't already a ylabel
+        if (elemGraph.siblings('.ylabel').length == 0) {
+            $(elemGraph).before('<div class="ylabel">' +
+                data.options.yaxis.label + '</div>');
+        }
+    }
+    $(elemGraph).bind('plotselected', function (event, ranges) {
+        elemGraph.removeClass('ajax');
+        if ($('#sync').prop('checked')) {
+            graphs = $('.graph');
+        } else {
+            graphs = $(elemGraph);
+        }
+        graphs_to_update = [];
+        graphs.each(function(index, element) {
+            graph = {};
+            // If there aren't enought data points, get MOAR DATA!
+            graph = {
+                "host" : $(element).data('host'),
+                "service" : $(element).data('service'),
+                "start" : parseInt(ranges.xaxis.from / 1000),
+                "end" : parseInt(ranges.xaxis.to / 1000),
+                "uniq": parseInt($(element).attr('id')),
+            };
+            graphs_to_update.push(graph);
+        });
+        // If there are graphs we need new data for, fetch new data!
+        if ( graphs_to_update.length > 0 ) {
+            ajaxcall = JSON.stringify(graphs_to_update);
+            $.ajax ({
+                url: '/railroad/graphs?graphs=' + ajaxcall,
+                dataType: 'json',
+                success: function (data, textStatus, XMLHttpRequest) {
+                    for (var i=0; i < data.length; i++) {
+                        for (var j=0; j < data[i].data.length; j++) {
+                            if ( data[i].data[j].label ) {
+                                if ( data[i].data[j].lines ) {
+                                    data[i].data[j].lines.show = true;
+                                } else {
+                                    data[i].data[j].lines = { "show": true };
+                                }
+                            }
+                        }
+                        if (data[i].data) {
+                            elemGraph = $('.{0}'.format(data[i]['slug']));
+                            redrawGraph(elemGraph, data[i]);
+                            if(data[i].options.yaxis.label) {
+                            // if there isn't already a ylabel
+                                if (elemGraph.siblings('.ylabel').length == 0) {
+                                    elemGraph.before('<div class="ylabel">' +
+                                        data[i].options.yaxis.label + '</div>');
+                                }
+                            }
+                        }
+                    }
+                },
+               error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert ("Something went wrong in getting new data");
+                }
+            });
+        }
+    });
+    $('.removeSeries').live('click', function () {
+        var elemGraph = $(this).closest('.legend').siblings('.graph');
+        if (elemGraph.data('data')) {
+            data = elemGraph.data('data');
+            for (var i=0; i < data.data.length; i++) {
+                if (data.data[i].label == $(this).attr('id')) {
+                    if (!data.data[i]['lines']) {
+                        data.data[i]['lines'] = {'show': true};
+                    }
+                    data.data[i]['lines']['show'] ^= true; // toggle
+                }
+            }
+            redrawGraph(elemGraph, data);
+        }
+    });
+
+    var datePickers = $(elemGraph).siblings('.daterange').children('input').datepicker({
+        onClose: function(selectedDate) {
+            updateZoom(datePickers[0], datePickers[1]);
+        },
+        changeMonth: true,
+        changeYear: true,
+        maxDate : "+0d",
+        minDate : "-5y",
+        onSelect: function ( selectedDate ) {
+           var option = this.name == "from" ? "minDate" : "MaxDate",
+           instance = $(this).data('datepicker'),
+           date = $.datepicker.parseDate(
+                               instance.settings.dateFormat ||
+                               $.datepicker._defaults.dateFormat,
+                               selectedDate, instance.settings );
+           datePickers.not(this).datepicker("option", option, date);
+        },
+    });
+    $(datePickers[0]).datepicker('setDate', elemGraph.data('start'));
+    $(datePickers[1]).datepicker('setDate', elemGraph.data('end'));
+}
+
+function redrawGraph(element, data) {
+    data = formatGraph(element, data);
+    $(element).data('plot', $.plot($(element), data.data, data.options));
+    $(element).data('data', data);
+    $(element).data('start', data.start);
+    $(element).data('end', data.end);
+    $(element).data('host', data.host);
+    $(element).data('service', data.service);
+}
+
+function updateZoom(from, to) {
+    var start = $(from).datepicker('getDate').getTime();
+    var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 100);
+
+    var graph = $(from).parent().siblings('.graph').first();
+    $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
+}
+
+function parseAllGraphs(graphs) {
+    var ajaxcalls = [];
 
     // Don't set up graphs already set up
-    $(element).addClass('setup');
+    graphs.each(function (index, element) {
+        var ajaxcall = {};
+        //$(element).addClass('setup');
+        // Store the graph data for usage later
+        path = $(element).find('a').attr('href');
+        splitPath = path.split('/');
+        $(element).data('host', splitPath[0]);
+        $(element).data('service', splitPath[1]);
+        $(element).data('start', splitPath[2]);
+        $(element).data('end', splitPath[3]);
+        $(element).data('res', splitPath[4]);
 
-    // Store the graph data for usage later
-    path = $(element).find('a').attr('href');
-    splitPath = path.split('/');
-    $(element).data('host', splitPath[0]);
-    $(element).data('service', splitPath[1]);
-    $(element).data('start', splitPath[2]);
-    $(element).data('end', splitPath[3]);
-    $(element).data('res', splitPath[4]);
+        ajaxcall['host'] = splitPath[0];
+        ajaxcall['service'] = splitPath[1];
+        ajaxcall['start'] = splitPath[2];
+        ajaxcall['end'] = splitPath[3];
+        ajaxcall['res'] = splitPath[4];
 
-    createGraph(element, path);
-
-    // Allow for zooming
-    $(element).bind('plotselected', function (event, ranges) {
-        // The graph isn't busy anymore, allow updates
-        $(element).data('busy', null); 
-
-        // If we are supposed to sync the graphs, loop over all graphs
-        if($('#sync').attr('checked')) {
-            graphs = $('.graph');
-            // Allow us to zoom even when it makes no sense if we are
-            // synced
-            zoom = false;
-        // Otherwise only loop over the graph associated with this button
-        } else {
-            graphs = $(element);
-            zoom = true;
-        }
-
-        graphs.each(function(index, element) {
-
-            serviceData = $(element).data();
-
-            path = [serviceData.host,
-                    serviceData.service,
-                    parseInt(ranges.xaxis.from / 1000),
-                    parseInt(ranges.xaxis.to / 1000),
-                    serviceData.res].join('/');
-
-            createGraph(element,
-                        path,
-                        function() {
-                            $(element).removeClass('ajax');
-                            zoomButton = $(element)
-                                            .closest('.graph_container')
-                                            .find('.zoom');
-                            selected = $(element)
-                                            .closest('.graph_container')
-                                            .find('.selected');
-                            selected.removeClass('selected');
-                            zoomButton.css('visibility', 'visible');
-                            zoomButton.addClass('selected');
-                        },
-                        zoom);
-        });
+        ajaxcalls.push(ajaxcall);
     });
-    $(element).bind('plotselecting', function() {
-        // If we are selecting, mark the graph as busy so no AJAX fires
-        $(element).data('busy', true);
-    });
+
+    createGraphs(JSON.stringify(ajaxcalls));
 
 }
 
-// Function to automatically update any graphs which are set to ajax load
+// Automatically fetch new data for graphs that have the class 'ajax'
 function autoFetchData() {
-    $('.graph.ajax').each(function(index, element) {
-        serviceData = $(element).data();
-        time = new Date();
-        end = parseInt(time.getTime() / 1000);
-        start = parseInt(end - 60 * 60 * 24);
-
-        path = [serviceData.host,
-                serviceData.service,
-                start,
-                end,
-                serviceData.res].join('/');
-
-        createGraph(element, path);
+    graphs = [];
+    $('.graph.ajax').each(function (index, element) {
+        host = $(element).data('host');
+        service = $(element).data('service');
+        graph = {
+            "host" : host,
+            "service": service,
+        };
+        graphs.push(graph);
     });
-    setTimeout(autoFetchData, 60 * 1000);
+    ajaxcall = JSON.stringify(graphs);
+    $.ajax({
+        dataType: 'json',
+        url: '/railroad/graphs?graphs=' + ajaxcall,
+        success: function (data, textStatus, XMLHttpRequest) {
+            for (var i=0; i < data.length; i++){
+                var element = $('.{0}'.format(data[i]['slug']));
+                if (data[i].data) {
+                    drawGraph(element, data[i]);
+                }
+            }
+        },
+        error: function (XMLHttpRequest, textStatus, errorThrown) {
+            alert ("Auto Fetch data failed");
+        }
+    });
+    setTimeout(autoFetchData, 600 * 1000);
 }
 
 // Sort the graphs.
@@ -422,8 +527,8 @@ var sorts = {
             return latest;
         })
 }
+
 function sortGraphs() {
-    console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
     var name = $('#sortby').val();
     var sorter = sorts[name];
     if ($('#reverse_sort').prop('checked')) {
@@ -455,6 +560,15 @@ function localStorageSupport() {
         return false;
     }
 }
+
+function localStorageDelete(key) {
+    if (localStorageSupport()) {
+        if (localStorageGet(key)) {
+            delete localStorage[key];
+        }
+    }
+}
+
 function localStorageSet(key, value) {
     if (localStorageSupport()) {
         var json = JSON.stringify(value)
@@ -465,6 +579,7 @@ function localStorageSet(key, value) {
     // Should we try other methods of storing data?
     return false;
 }
+
 function localStorageGet(key) {
     if (localStorageSupport()) {
         var ob;
@@ -478,6 +593,7 @@ function localStorageGet(key) {
     // Should we try other methods of storing data?
     return null;
 }
+
 function localStorageClear() {
     if (localStorageSupport()) {
         localStorage.clear();
@@ -490,7 +606,7 @@ function localStorageClear() {
 /******* Misc helper functions *******/
 // Give strings a format function.
 // Use it like this
-//    "Hello {0}, how are you this find {1}?".format(user_name, time_of_day);
+//    "Hello {0}, how are you this fine {1}?".format(user_name, time_of_day);
 //    Returns "Hello Mike, how are you this fine morning?"
 String.prototype.format = function() {
     var formatted = this;
@@ -501,95 +617,154 @@ String.prototype.format = function() {
     return formatted;
 };
 
-/******* DOM HOOK SETUP *******/
+/**** Expand/Collapse the graph rows ****/
+function auto_expansion() {
+    states = {}
+    $('#expansion_by_type input').each(function(index, elem) {
+        states[elem.id] = $(elem).prop('checked');
+    });
+    $('.service_row').each(function(index, elem) {
+        for (var s in states) {
+            if ($(elem).children('td.status_text').hasClass(s)) {
+                if (states[s]) {
+                    expand_row(elem);
+                } else {
+                    collapse_row(elem);
+                }
+            }
+        }
+    });
+}
+function collapse_or_expand(row) {
+    states = {};
+    $('#expansion_by_type input').each(function(index, element) {
+    });
+    for (var s in states) {
+        if ($(row).children('td.status_text').hasClass(s)) {
+            if (states[s]) {
+                expand_row(row);
+            } else {
+                collapse_row(row);
+            }
+        }
+    }
+}
+function collapse_row(row) {
+    // Hide the graph and status text
+    var container = $(row).children('.graph_container').first();
+    container.children().hide();
+    if (container.children('.graph').length > 0) {
+        container.append('<p class="graphcollapsed">Graph Collapsed</p>');
+    }
+    $(row).children('.status_text').children('p').hide();
+    $(row).children('.status_text').children('h2').css({'display': 'inline'});
+
+    // change the button to expand
+    $(row).children('.controls').children('div.collapse_row').addClass('expand_row');
+    $(row).children('.controls').children('div.collapse_row').removeClass('collapse_row');
+}
+function expand_row(row) {
+    // Hide the graph and status text
+    $(row).children('.graph_container').children('.graphcollapsed').remove();
+    $(row).children('.graph_container').children().show();
+    $(row).children('.status_text').children('p').show();
+    $(row).children('.status_text').children('h2').css({'display': 'block'});
+
+    // change the button to expand
+    $(row).children('.controls').children('div.expand_row').addClass('collapse_row');
+    $(row).children('.controls').children('div.expand_row').removeClass('expand_row');
+}
+
+
 
 // Execute setup code when page loads
 $(document).ready(function() {
+    /******* AJAX Helpers ******/
+    $('body').ajaxStart(function() {
+        console.log('found an ajax!');
+        if ($('#cursor').length == 0) {
+            $('body').append('<img id="cursor" src="/railroad-static/img/loading.gif" style="position: absolute;"/>');
+            $('body').mousemove(function(e) {
+                $('#cursor').css('top', e.clientY).css('left', e.clientX+7);
+            });
+            $('body').trigger('mousemove');
+        }
+    });
+
+    $('body').ajaxStop(function() {
+        $('#cursor').remove();
+    });
 
     /**** GRAPH SETUP ****/
 
     // Bind the graph time range selection buttons
-    $('.options ul li').live('click', function() {
-        clicked = $(this);
-        // If we are supposed to sync the graphs, loop over all graphs
-        if($('#sync').attr('checked')) {
-            graphs = $('.graph');
-        // Otherwise only loop over the graph associated with this button
+    $('.options input[type=button]').live('click', function() {
+        var dates = $(this).parent().siblings('.daterange');
+
+        if ($('#sync').prop('checked')) {
+            var from = $('input[name=from]');
+            var to = $('input[name=to]');
         } else {
-            graphs = $(this).closest('.graph_container')
-                             .find('.graph');
+            var from = $(dates).children('[name=from]');
+            var to = $(dates).children('[name=to]');
         }
-        graphs.each(function(index, graph) {
-            button = $(graph).closest('.graph_container')
-                             .find('.year');
-            time = new Date();
-            end = parseInt(time.getTime() / 1000);
 
-            // Depending on which button is hit, change the behavior
-            // TODO: Look at possibilities at cleaning this up
+        to.datepicker('setDate', new Date());
+        from.datepicker('setDate', new Date());
 
-            if(clicked.hasClass('zoom')) {
-                return;
-            }
+        if ($(this).attr('name') == 'week') {
+            from.datepicker('setDate', '-1w');
+        } else if ($(this).attr('name') == 'month') {
+            from.datepicker('setDate', '-1m');
+        } else if ($(this).attr('name') == 'year') {
+            from.datepicker('setDate', '-1y');
+        }
 
-            $(graph).closest('.graph_container')
-                    .find('.zoom')
-                    .css('visibility', 'hidden');
-
-            if(clicked.hasClass('reset')) {
-                $(graph).addClass('ajax');
-            } else {
-                $(graph).removeClass('ajax');
-            }
-           
-            if(clicked.hasClass('day') || clicked.hasClass('reset')) {
-                start = parseInt(end - 60 * 60 * 24);
-            } else if(clicked.hasClass('week')) {
-                start = parseInt(end - 60 * 60 * 24 * 7);
-            } else if(clicked.hasClass('month')) {
-                start = parseInt(end - 60 * 60 * 24 * 30);
-            } else if(clicked.hasClass('year')) {
-                start = parseInt(end - 60 * 60 * 24 * 365);
-            }
-
-            serviceData = $(graph).data();
-
-            path = [serviceData.host,
-                    serviceData.service,
-                    start,
-                    end,
-                    serviceData.res].join('/');
-
-            createGraph(graph,
-                        path,
-                        function() {
-                            $(graph).closest('.graph_container')
-                                    .find('.options .selected')
-                                    .removeClass('selected');
-                            // This is pretty horrible, perhaps there is a
-                            // better way
-                            if(clicked.hasClass('reset')) {
-                                buttonClass = '.reset';
-                            } else if(clicked.hasClass('day')) {
-                                buttonClass = '.day';
-                            } else if(clicked.hasClass('week')) {
-                                buttonClass = '.week';
-                            } else if(clicked.hasClass('month')) {
-                                buttonClass = '.month';
-                            } else if(clicked.hasClass('year')) {
-                                buttonClass = '.year';
-                            } else if(clicked.hasClass('zoom')) {
-                                buttonClass = '.zoom';
-                            }
-                            $(graph).closest('.graph_container')
-                                    .find(buttonClass)
-                                    .addClass('selected');
-                        });
-        });
+        to.datepicker('refresh')
+        from.datepicker('refresh')
+        updateZoom(from,to);
     });
 
     // Initialize the data for any graphs already on the page
-    $(".graph").each(parseGraphs);
+    ajaxcall = [];
+    $('.graph').each(function (index, element) {
+        var slug = $(element).attr('name');
+        graphs = $('.{0}'.format(slug)).each(function (index, element) {
+            $(element).attr('id', index);
+        });
+        var hostname = $($(element).children('.graph_hostname')).attr('id');
+        var servicename = $($(element).children('.graph_service_name')).attr('id');
+        var start = $($(element).children('.graph_start')).attr('id');
+        var end = $($(element).children('.graph_end')).attr('id');
+        var uniq = $(element).attr('id');
+        ajaxcall.push({
+            "host" : hostname,
+            "service" : servicename,
+            "uniq" : uniq, // This is used to identify graphs if there are multiples of the same
+                           // host and service combination (like on the service page).
+            "start" : start,
+            "end" : end,
+        });
+    });
+    ajaxcall = JSON.stringify(ajaxcall);
+    $.ajax({
+        dataType: 'json',
+        url: '/railroad/graphs?graphs=' + ajaxcall,
+        success: function (data, textStatus, XMLHttpRequest) {
+            for (var i=0; i < data.length; i++) {
+                var element;
+                if (data[i]['uniq']) {
+                    element = $('.{0}#{1}'.format(data[i]['slug'],data[i]['uniq']));
+                } else {
+                    element = $('.{0}'.format(data[i]['slug']));
+                }
+                drawGraph(element, data[i]);
+            }
+        },
+        error: function (XMLHttpRequest, textStatus, error) {
+            alert ("There was an error preloading the graphs");
+        }
+    });
 
     /**** CONFIGURATOR SETUP ****/
 	// TODO: delete remnants (most of it) carefully!
@@ -646,7 +821,7 @@ $(document).ready(function() {
     }
 
     // Autocomplete anything with class = "... autocomplete ..."
-    $('.autocomplete').each(function () { 
+    $('.autocomplete').each(function () {
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" + $(this).attr('name' ), minLength : 1, autoFocus: true})
     });
 
@@ -654,108 +829,74 @@ $(document).ready(function() {
         $('.service_row').remove();
         $('#configurator').data('changed', true);
     });
-    
+
     $('#clearform').bind('click', function () {
         $('#host').val("");
         $('#group').val("");
         $('#service').val("");
     });
 
+    $('#localtime, #utc').bind('change', function() {
+        graphs = $('.graph');
+        graphs.each(function(index, element) {
+            if (element.data('data')) {
+                redrawGraph(element, $(element).data('data'));
+            }
+        });
+    });
+
     // Handle configurator form submissions
     $('#configurator').submit(function() {
-        $(this).append('<div class="throbber"></div>');
-        // Enable the fields again so they can be submitted
-        $('[id^=type]').attr('disabled', null);
-        $('[id^=value]').attr('disabled', null);
 
         fields = $('#configurator').formSerialize();
-        var ajaxmanager = $.manageAjax.create('configurator', {
-            queue: true,
-            maxRequests: 3,
-        });
-        ajaxmanager.add({
+        $.ajax({
             data: fields,
-            dataType: 'html',
-            url: $('#configurator').attr('action'),
+            dataType: 'json',
+            url: '/railroad/graphs',
             success: function(data, textStatus, XMLHttpRequest) {
                 //reset_fields();
                 $('#clearform').trigger('click');
-                // Add the new graph and setup the new graphs
-                $('#graphs').append(data);
-                $('.graph:not(.setup)').each(parseGraphs);
-                $('#configurator').find('.throbber').remove();
-                sortGraphs();
+                createGraphs(data);
+                //sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 // TODO: Indicate error somehow, probably
-                $('#configurator').find('.throbber').remove();
             }
         });
         $('#configurator').data('changed', true);
-        // Prevent normal form submission
         return false;
     });
 
-    // **********  Functions to manipulate rows **************
-    var animate_time = 250;
-    function collapse_row(row) {
-        // Hide the graph and status text
-        $(row).children('.graph_container').children().hide(animate_time);
-        $(row).children('.status_text').children('p').hide(animate_time);
-        $(row).children('.status_text').children('h2').css({'display': 'inline'});
-
-        // change the button to expand
-        $(row).children('.controls').children('div').removeClass('collapse_row');
-        $(row).children('.controls').children('div').addClass('expand_row');
-    }
-    function expand_row(row) {
-        // Hide the graph and status text
-        $(row).children('.graph_container').children().show(animate_time);
-        $(row).children('.status_text').children('p').show(animate_time);
-        $(row).children('.status_text').children('h2').css({'display': 'block'});
-
-        // change the button to expand
-        $(row).children('.controls').children('div').removeClass('expand_row');
-        $(row).children('.controls').children('div').addClass('collapse_row');
-    }
-
-    $('#expandall').click(function() {
-        $('tr.service_row').each(function(index, row) {
-            expand_row(row);
-        });
-    });
-    $('#collapseall').click(function() {
-        $('tr.service_row').each(function(index, row) {
-            collapse_row(row);
-        });
+    // *************************** Row manip ***************************
+    // Expand all/of type buttons
+    $('#expansion_by_type').find('input').bind('change', function() {
+        auto_expansion();
+        if (! $(this).prop('checked')) {
+            $('#expandall').prop('checked', false);
+        } else if ($(this).parent().siblings().children('input').not(':checked').length == 0) {
+            // If all inputs are checked
+            $('#expandall').prop('checked', true);
+        }
     });
 
+    $('#expandall').change(function() {
+        var state = $(this).prop('checked');
+        $('#expansion_by_type input').prop('checked', state);
+        auto_expansion();
+    });
+
+    // expand one buttons
     $('.collapse_row').live('click', function() {
         collapse_row($(this).parents().parents().first());
     });
     $('.expand_row').live('click', function() {
         expand_row($(this).parents().parents().first());
     });
+    // remove 1 buttons
     $('.remove_row').live('click', function() {
         var tr = $(this).parents().parents().first();
-        tr.hide(animate_time, function() {
+        tr.hide(0, function() {
             $(tr).remove();
-        });
-    });
-
-    // *************************** Auto collapse ***************************
-    // set up events on each checkbox to collapse/expand the service_rows to
-    // match the current state of the checkbox.
-    $('#expansion_by_type').children().bind('change', function() {
-        var checkbox = this;
-        $('.service_row').each(function(index, element) {
-            if ($(element).find('*').hasClass($(checkbox).attr('name'))) {
-                if ($(checkbox).prop('checked')) {
-                    expand_row(element);
-                } else {
-                    collapse_row(element);
-                }
-            }
         });
     });
 
@@ -847,20 +988,8 @@ $(document).ready(function() {
         }
     });
 
-
-    // Automatically focus the link when someone clicks
-    $('#link input').live('click', function() {
-        $(this).focus()
-               .select();
-    });
-
-    // Automatically delete the link if we defocus
-    $('#link input').live('blur', function() {
-        $('#link').empty();
-    });
-
     // Start the AJAX graph refreshes
-    setTimeout(autoFetchData, 60 * 1000);
+    setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
     $('.hint').append('<span class="hide_hint"></span>');
@@ -890,4 +1019,5 @@ $(document).ready(function() {
     /******** Sorting *********/
     $('#sortby').bind('change', sortGraphs);
     $('#reverse_sort').bind('change', sortGraphs);
+
 });

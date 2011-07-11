@@ -1,48 +1,53 @@
+<div class="hint" id="persist">This form will remember what you have entered, across browser sessions and page views.</div>
 <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
     <div id="service_selector">
-        <ol>
-            <li>
-                <label for="host">Host</label>
-                <input class="autocomplete value" id="host" name="host" type="text">
-            </li>
+        <fieldset>
+            <ol>
+                <li>
+                    <label for="host">Host</label>
+                    <input class="autocomplete value" id="host" name="host" type="text">
+                </li>
 
-            <li>
-                <label for="group">Groups</label>
-                <input class="autocomplete value" id="group" name="group" type="text">
-            </li>
+                <li>
+                    <label for="group">Groups</label>
+                    <input class="autocomplete value" id="group" name="group" type="text">
+                </li>
 
-            <li>
-                <label for="service">Services</label>
-                <input class="autocomplete value" id="service" name="service" type="text">
-            </li>
+                <li>
+                    <label for="service">Services</label>
+                    <input class="autocomplete value" id="service" name="service" type="text">
+                </li>
 
-            <li>
-                <input type="submit" value="Add" id="submit"/>
-                <input type="button" value="Clear Forms" id="clearform"/>
-                <input type="button" value="Clear Graphs" id="cleargraphs">
-            </li>
+                <li>
+                    <input type="submit" value="Add" id="submit"/>
+                    <input type="button" value="Clear Forms" id="clearform"/>
+                    <input type="button" value="Clear Graphs" id="cleargraphs">
+                </li>
 
-            <li class="hint" id="csv">You can autocomplete multiple comma seperated values at a time.</li>
-        </ol>
+                <li class="hint" id="csv">You can auto complete multiple comma separated values at a time.</li>
+            </ol>
+        </fieldset>
+        <fieldset>
+            <legend>Sync Graphs</legend>
+            <input type="checkbox" name="sync" id="sync" class="persist">Keep all graphs in sync.</input>
+            <p class="hint" id="synchint">Checking this box will synchronize the zoom of all the graphs.</p>
+        </fieldset>
     </div>
     <div id="service_options">
-        <fieldset id="autocollapse">
+        <fieldset id="expansion">
             <legend>Expansion</legend>
-            <div id="expansion_by_type">
-                <input type="checkbox" class="persist" name="state_ok" id="state_ok">OK</input>
-                <input type="checkbox" class="persist" name="state_warning" id="state_warning">Warning</input>
-                <input type="checkbox" class="persist" name="state_critical" id="state_critical">Critical</input>
-                <input type="checkbox" class="persist" name="state_unknown" id="state_unknown">Unknown</input>
-            </div>
-            <div id="expansion_mass">
-                <input type="button" value="Expand All" id="expandall" />
-                <input type="button" value="Collapse All" id="collapseall" />
-            </div>
+            <input type="checkbox" class="persist" id="expandall">Expand All</input>
+            <ul id="expansion_by_type">
+                <li><input type="checkbox" class="persist" id="state_ok">OK</input></li>
+                <li><input type="checkbox" class="persist" id="state_warning" checked>Warning</input></li>
+                <li><input type="checkbox" class="persist" id="state_critical" checked>Critical</input></li>
+                <li><input type="checkbox" class="persist" id="state_unknown" checked>Unknown</input></li>
+            </ul>
         </fieldset>
         <fieldset>
             <legend>Time Zone</legend>
             <input type="radio" name="timezone" id="localtime" class="persist">Local Time</input>
-            <input type="radio" name="timezone" id="utc" class="persist">UTC</input>
+            <input type="radio" name="timezone" id="utc" class="persist" checked>UTC</input>
         </fieldset>
         <fieldset>
             <legend>Sort By</legend>
@@ -50,13 +55,9 @@
                 <option value="service">Service Name</option>
                 <option value="host">Host Name</option>
                 <option value="status">Status</option>
-                <option value="value">RRD Value</option>
+                <option value="value">Latest Value</option>
             </select>
             <input type="checkbox" name="reverse_sort" id="reverse_sort" class="persist">Reverse sort order</input>
-        </fieldset>
-        <fieldset>
-            <legend>Sync Graphs</legend>
-            <input type="checkbox" name="sync" id="sync" class="persist"><label for="sync" title="keep all the graphs on this page on the same time period">Keep all graphs in sync.</label>
         </fieldset>
     </div>
 </form>

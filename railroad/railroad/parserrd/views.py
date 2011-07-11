@@ -18,6 +18,7 @@ import types
 import time
 import random
 from math import floor
+import urllib
 
 import rrdtool
 import coil
@@ -25,6 +26,8 @@ from django.conf import settings
 from django.http import HttpResponse
 
 from railroad.errors import RailroadError
+
+DAY = 60 * 60 * 24 # Seconds in a day
 
 def sigfigs(float):
     """Round float using desired sigfigs"""
@@ -81,8 +84,12 @@ def getColors(names):
 
     return colors
 
-def index(request, host, service, start, end, resolution='150'):
-    """Reads the rrd and returns the data in flot-friendly format"""
+def get_data(host, service, start=None, end=None, resolution='150'):
+    if not end:
+        end = int(time.time())
+    if not start:
+        start = end - DAY
+
     rra_path = settings.RRA_PATH
     rrd = '%s%s/%s.rrd' % (rra_path, host, service)
     coilfile = '%s%s/%s.coil' % (rra_path, host, service)
@@ -105,7 +112,6 @@ def index(request, host, service, start, end, resolution='150'):
     time_dict = {'h': time_struct.tm_hour, 'm': time_struct.tm_min, \
                  's': time_struct.tm_sec}
     current_time = '%(h)02d:%(m)02d:%(s)02d UTC' % time_dict
-    
 
     # Parse the data
     actual_start, actual_end, res = rrdslice[0]
@@ -157,7 +163,6 @@ def index(request, host, service, start, end, resolution='150'):
                         label = key
                     labels.append((key, label))
 
-
     if 'query' in all_labels:
         trend = query.get('trend', None)
         if trend:
@@ -173,7 +178,6 @@ def index(request, host, service, start, end, resolution='150'):
 
     indices = range(length)
     dataset = {}
-
 
     # flot_data and flot_data are of the format
     # [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
@@ -262,7 +266,7 @@ def index(request, host, service, start, end, resolution='150'):
                     flot_data[index][statistics]['min'] = data
 
             flot_data[index]['data'].append([x, data])
-    
+
         x += res
 
     empty_graph = True
@@ -296,15 +300,6 @@ def index(request, host, service, start, end, resolution='150'):
 
         final_base = pow(base, interval)
         unit = bases[interval]
-
-        for index in indices:
-            if flot_data[index][statistics]['num'] > 0:
-                flot_data[index]['label'] +=    \
-                        labelize(flot_data, index, final_base, unit)
-            else:
-                flot_data[index]['label'] +=    \
-                    ' (cur: N/A, min: N/A, max: N/A, avg: N/A)'
-
 
     if max != None:
         graph_options['yaxis']['max'] = max * 1.1 + 1
@@ -354,5 +349,12 @@ def index(request, host, service, start, end, resolution='150'):
                     'empty': empty_graph, 'current_time': current_time,
                     'start': start, 'end': end,
              }
+
+    return result
+
+def index(request, host, service, start, end, resolution='150'):
+    """Reads the rrd and returns the data in flot-friendly format"""
+
+    result = get_data(host, service, start, end, resolution)
 
     return HttpResponse(json.dumps(result))

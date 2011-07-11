@@ -1,66 +1,46 @@
+{% load services %}
 {% for graph in loaded_graphs %}
     <tr class="service_row">
-    <td class="controls">
-        <div class="collapse_row"></div>
-        <div class="remove_row"></div>
-        {# TODO: Kind of odd place for this? #}
-        <a href="{{graph.host_name}}/{{graph.service_description}}" class="service_data"></a>
-    </td>
-    {% ifequal graph.current_state '0' %}
-        <td class="status_text state_ok">
-    {% endifequal %}
-    {% ifequal graph.current_state '1' %}
-        <td class="status_text state_warning">
-    {% endifequal %}
-    {% ifequal graph.current_state '2' %}
-        <td class="status_text state_critical">
-    {% endifequal %}
-    {% ifequal graph.current_state '3' %}
-        <td class="status_text state_unknown">
-    {% endifequal %}
-
-        <h2><a href="{% url railroad.viewhosts.views.graphpage graph.host_name %}">{{graph.host_name}}</a></h2>
-        <h2><a href="{% url railroad.viewhosts.views.service graph.host_name graph.service_description %}">{{graph.service_description}}</a></h2>
-        <p>{{graph.plugin_output}}</p>
-    </td>
-
-    {% if graph.is_graphable %}
-        <td class="graph_container">
-            <div class="options">
-                <ul>
-                    {# TODO: Find a better way to set selected to match which graph we want? #}
-                    {% ifequal graph.period 'ajax'%}
-                        <li class="reset selected">live (day)</li>
-                    {% else  %}
-                        <li class="reset">live (day)</li>
-                    {% endifequal %}
-                    <li class="day">day</li>
-                    <li class="week">week</li>
-                    <li class="month">month</li>
-                    <li class="year">year</li>
-                    {% ifequal graph.period 'zoomed'%}
-                        <li class="zoom selected">zoomed</li>
-                    {% else  %}
-                        <li class="zoom" style="visibility: hidden">zoomed</li>
-                    {% endifequal %}
-                </ul>
-            </div>
-            <div class="ajax_info">
-                <div class="update"></div>
-            </div>
-
-            {% ifequal graph.period 'ajax'%}
-            <div id="{{graph.service_description|slugify}}" class="graph ajax">
-            {% else %}
-            <div id="{{graph.service_description|slugify}}" class="graph">
-            {% endifequal %}
-                <a href="{{graph.host_name}}/{{graph.service_description}}/{{graph.start}}/{{graph.end}}/100"></a>
-            </div>
-            <div class="legend"></div>
+        <td class="controls">
+            <div class="collapse_row"></div>
+            <div class="remove_row"></div>
         </td>
-    {% else %}
-        <td class="graph_container">No graph</td>
-    {% endif %}
-    
+        <td class="status_text state_{{ graph.current_state|state_name|lower }}">
+            <h2><a href="/railroad/configurator/host/{{graph.host_name}}">{{graph.host_name}}</a></h2>
+            <h2><a href="/railroad/viewhost/{{graph.host_name}}/{{graph.service_description}}">{{graph.service_description}}</a></h2>
+            <p>{{graph.plugin_output}}</p>
+        </td>
+
+        <td class="graph_container">
+            {% if graph.is_graphable %}
+                <div class="options">
+                    Current
+                    <input type="button" name="day" value="Day"/>
+                    <input type="button" name="week" value="Week"/>
+                    <input type="button" name="month" value="Month"/>
+                    <input type="button" name="year" value="Year"/>
+                </div>
+                <div class="daterange">
+                    From <input type="text" name="from"/>
+                    To <input type="text" name="to"/>
+                </div>
+                <div class="ajax_info">
+                    <div class="update"></div>
+                </div>
+
+                {% ifequal graph.period 'ajax'%}
+                    <div id="" class="{{graph.slug}} graph ajax">
+                    <div id="{{ graph.host_name }}" class="graph_hostname"></div>
+                    <div id="{{ graph.service_description }}" class="graph_service_name"></div>
+                {% else %}
+                    <div id="" class="{{graph.slug}} graph">
+                {% endifequal %}
+                    <a href="{{graph.host_name}}/{{graph.service_description}}/{{graph.start}}/{{graph.end}}/100"></a>
+                </div>
+            <div class="legend"></div>
+        {% else %}
+            No graph
+        {% endif %}
+        </td>
     </tr>
 {% endfor %}

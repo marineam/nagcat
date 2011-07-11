@@ -19,19 +19,23 @@ import sys
 import re
 import time
 import pickle
-
+import re
+from unicodedata import normalize
 import coil
 import rrdtool
+
 from django import forms
 from django.conf import settings
 from django.http import HttpResponse, HttpRequest, Http404
 from django.template import Context, loader
-from nagcat import nagios_objects
+from django.shortcuts import render_to_response
 
+from nagcat import nagios_objects
 from railroad.errors import RailroadError
 from railroad.viewhosts.models import URL
+from railroad.parserrd.views import get_data
 
-DAY = 86400
+DAY = 86400 # 1 Day in seconds
 
 def is_graphable(host, service):
     """Checks if service of host is graphable (has state or trend)"""
@@ -208,15 +212,19 @@ def servicenames_by_host(stat, host):
     return [service['service_description'] for service in all_services  \
                                 if service['host_name'] == host]
 
-def get_graphs(stat, obj, hosts='', groups='', services=''):
+def get_graphs(stat, obj, hosts='', groups='', services='', start=None, end=None):
     """Returns a list of services objects, marked graphable or not""" 
-    groups   = set([group.strip() for group in groups.split(',') if group.strip()])
-    hosts   = set([host.strip() for host in hosts.split(',') if host.strip()])
-    services   = set([service.strip() for service in services.split(',') if service.strip()])
+    groups = set([group.strip() for group in groups.split(',') if group.strip()])
+    hosts = set([host.strip() for host in hosts.split(',') if host.strip()])
+    services = set([service.strip() for service in services.split(',') if service.strip()])
+
     group_hosts = set() # Hosts under the given groups
     all_hosts = set()  # All hosts will contain all host names from host and group
-    end = int(time.time())  # For graphing
-    start = end - DAY # For graphing
+
+    if not end:
+        end = int(time.time())
+    if not start:
+        start = end - DAY
 
     if groups:
         for group in groups:
@@ -243,6 +251,7 @@ def get_graphs(stat, obj, hosts='', groups='', services=''):
         service['start']  = start
         service['end']    = end
         service['period'] = 'ajax'
+        service['slug'] = slugify(service['host_name']+service['service_description'])
     return service_list
 
 def get_time_intervals():
@@ -292,7 +301,7 @@ def error404(request):
     stat, obj = parse()
     context_data = {}
     context_data = add_hostlist(stat, obj, context_data)
-    c = Context(context_data)
+
     return HttpResponse(t.render(c))
 
 def graphpage(request,host=None,service=None):
@@ -458,10 +467,11 @@ def service(request, host, service):
     coilstring = ''
     if os.path.exists(coilfile):
         coilstring = open(coilfile).read()
-    
+
     time_intervals = get_time_intervals()
     context_data = {
         'host_name': host,
+        'slug' : slugify(host + service),
         'host_state': host_detail.get('current_state', ''),
         'service_name': service,
         'service_output': long_output,
@@ -606,26 +616,36 @@ def customgraph(request):
     Host & Service - service of host
     Group & Service - all instances of service in group
     Host & Group & Service - All chosen services of all chosen hosts
+    uniq - A unique identifier the client may set for this graph.
+
+    Graphs - A list of dictionaries containing host and service keys
     """
 
     stat,obj = parse()
 
-    t = loader.get_template('graph.html')
+    graphs = request.GET.get("graphs", None)
+    if graphs:
+        graphs = json.loads(graphs)
+        service_list = []
+        for graph in graphs:
+            s = servicedetail(stat, graph['host'], graph['service'])
+            if not s:
+                continue
+            s['is_graphable'] = is_graphable(s['host_name'],
+                    s['service_description'])
+            s['slug'] = slugify(s['host_name'] + s['service_description'])
+            if 'uniq' in graph:
+                s['uniq'] = graph['uniq']
+            service_list.append(s)
+    else:
+        groups = request.GET.get("group")
+        hosts = request.GET.get("host")
+        services = request.GET.get("service")
 
-    # Since we allow for multiple hosts, groups, services, getlist instead of get
-    groups = request.GET.get("group")
-    hosts = request.GET.get("host")
-    services = request.GET.get("service")
+        service_list = get_graphs(stat, obj, hosts, groups, services)
 
-    
-    service_list = get_graphs(stat, obj, hosts, groups, services)
-    
-
-    context_data = {
-        'loaded_graphs': service_list,
-    }
-    c = Context(context_data)
-    return HttpResponse(t.render(c))
+    c = {'loaded_graphs': service_list}
+    return render_to_response('graph.html', c)
 
 def directurl(request, id):
     """Returns a saved page by id"""
@@ -633,7 +653,7 @@ def directurl(request, id):
     loaded_graphs = []
 
     out_end = int(time.time())
-    out_start = out_end - DAY 
+    out_start = out_end - DAY
 
     if id != None:
         try:
@@ -679,7 +699,6 @@ def serviceconfigurator(request, service):
     stat, obj = parse()
     service_list = get_graphs(stat, obj, "", "", service)
     return configurator(stat, obj, 'Configurator', 'Configurator', service_list)
-
 
 def configurator(stat, obj, htmltitle='Configurator',            \
                      pagetitle='Configurator', loaded_graphs=[], \
@@ -790,13 +809,13 @@ def formstate(request):
     """Return the new state of the configurator form"""
     querydict = request.GET
     stat,obj = parse()
-    state =                                         \
-        {                                           \
-         'options': ['group', 'host', 'service'],   \
-         'group': grouplist(obj),                   \
-         'host': hostlist(stat),                    \
-         'service': servicelist(stat),              \
-         }
+    state = {
+        'options': ['group', 'host', 'service'],
+        'group': grouplist(obj),
+        'host': hostlist(stat),
+        'service': servicelist(stat)
+        }
+
     if (not(querydict)):
         state['options'] =  \
             map(lambda x: '%s%s' % (x[0].upper(), x[1:]), state['options'])
@@ -838,3 +857,76 @@ def formstate(request):
         state['ready'] = True
 
     return HttpResponse(json.dumps(stripstate(state)))
+
+def graphs(request):
+    stat, obj = parse()
+
+    graphs = request.GET.get('graphs', None)
+    hosts = request.GET.get('host', '')
+    services = request.GET.get('service', '')
+    groups = request.GET.get('group', '')
+    get_start = request.GET.get('start', None)
+    get_end = request.GET.get('end', None)
+    res = request.GET.get('res', None)
+    uniq = request.GET.get('uniq', None)
+
+    string = ""
+
+    if graphs:
+        graphs = json.loads(graphs)
+        service_objs = []
+        for graph in graphs:
+            so = servicedetail(stat, graph['host'], graph['service'])
+            if not so:
+                continue
+            so = so.copy()
+            so['start'] = graph.get('start', get_start)
+            so['end'] = graph.get('end', get_end)
+            if 'uniq' in graph:
+                so['uniq'] = graph['uniq']
+            service_objs.append(so)
+    else:
+        service_objs = get_graphs(stat, obj, hosts, groups, services, get_start, get_end)
+
+
+
+
+    response = []
+
+    for s in service_objs:
+        host = s['host_name']
+        service = s['service_description']
+        start = s['start']
+        end = s['end']
+
+        one_response = {
+            'host': host,
+            'service': service,
+            'current_time': time.strftime('%H:%M:%S %Z', time.gmtime()),
+            'slug': slugify(host + service),
+        }
+
+        if 'uniq' in s:
+            one_response['uniq'] = s['uniq']
+
+        if is_graphable(host, service):
+            one_response.update(get_data(host, service, start, end))
+
+        response.append(one_response)
+
+    return HttpResponse(json.dumps(response))
+
+# From http://flask.pocoo.org/snippets/5/
+_punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
+def slugify(text, delim=u''):
+    """
+    Generates a slug that will only use ASCII, be all lowercase, have no
+    spaces, and otherwise be nice for filenames, identifiers, and urls.
+    """
+    result = []
+    for word in _punct_re.split(text.lower()):
+        word = normalize('NFKD', unicode(word)).encode('ascii', 'ignore')
+        if word:
+            result.append(word)
+    return unicode(delim.join(result))
+
