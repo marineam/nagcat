@@ -307,7 +307,7 @@ function drawGraph (elemGraph, data) {
             }
         }
     }
-    reDrawGraph(elemGraph, data)
+    redrawGraph(elemGraph, data)
     if(data.options.yaxis.label) {
     // if there isn't already a ylabel
         if (elemGraph.siblings('.ylabel').length == 0) {
@@ -354,7 +354,7 @@ function drawGraph (elemGraph, data) {
                         }
                         if (data[i].data) {
                             elemGraph = $('.{0}'.format(data[i]['slug']));
-                            reDrawGraph(elemGraph, data[i]);
+                            redrawGraph(elemGraph, data[i]);
                             if(data[i].options.yaxis.label) {
                             // if there isn't already a ylabel
                                 if (elemGraph.siblings('.ylabel').length == 0) {
@@ -383,7 +383,7 @@ function drawGraph (elemGraph, data) {
                     data.data[i]['lines']['show'] ^= true; // toggle
                 }
             }
-            reDrawGraph(elemGraph, data);
+            redrawGraph(elemGraph, data);
         }
     });
 
@@ -398,7 +398,7 @@ function drawGraph (elemGraph, data) {
     $(datePickers[1]).datepicker('setDate', elemGraph.data('end'));
 }
 
-function reDrawGraph(element, data) {
+function redrawGraph(element, data) {
     data = formatGraph(element, data);
     $(element).data('plot', $.plot($(element), data.data, data.options));
     $(element).data('data', data);
@@ -651,7 +651,6 @@ function expand_row(row) {
 }
 
 
-/******* DOM HOOK SETUP *******/
 
 // Execute setup code when page loads
 $(document).ready(function() {
@@ -794,6 +793,15 @@ $(document).ready(function() {
         $('#host').val("");
         $('#group').val("");
         $('#service').val("");
+    });
+
+    $('#localtime, #utc').bind('change', function() {
+        graphs = $('.graph');
+        graphs.each(function(index, element) {
+            if (element.data('data')) {
+                redrawGraph(element, $(element).data('data'));
+            }
+        });
     });
 
     // Handle configurator form submissions

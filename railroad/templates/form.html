@@ -1,3 +1,4 @@
+<div class="hint" id="persist">This form will remember what you have entered, across browser sessions and page views.</div>
 <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
     <div id="service_selector">
         <fieldset>
@@ -23,12 +24,13 @@
                     <input type="button" value="Clear Graphs" id="cleargraphs">
                 </li>
 
-                <li class="hint" id="csv">You can autocomplete multiple comma seperated values at a time.</li>
+                <li class="hint" id="csv">You can auto complete multiple comma separated values at a time.</li>
             </ol>
         </fieldset>
         <fieldset>
             <legend>Sync Graphs</legend>
             <input type="checkbox" name="sync" id="sync" class="persist">Keep all graphs in sync.</input>
+            <p class="hint" id="synchint">Checking this box will synchronize the zoom of all the graphs.</p>
         </fieldset>
     </div>
     <div id="service_options">
@@ -53,7 +55,7 @@
                 <option value="service">Service Name</option>
                 <option value="host">Host Name</option>
                 <option value="status">Status</option>
-                <option value="value">RRD Value</option>
+                <option value="value">Latest Value</option>
             </select>
             <input type="checkbox" name="reverse_sort" id="reverse_sort" class="persist">Reverse sort order</input>
         </fieldset>

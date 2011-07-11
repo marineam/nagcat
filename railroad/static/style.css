@@ -74,7 +74,7 @@ ul, ol {
 .listheader {
 	font-size: 12pt;
 }
-.pagination { 
+.pagination {
         text-align: center;
 }
 /* TODO: Finish this styling */
@@ -302,6 +302,7 @@ fieldset {
     color: #444;
     font-size: .7em;
     position: relative;
+    width: 250px;
 }
 .hint:before { content: "Hint: ";}
 
@@ -324,20 +325,20 @@ fieldset {
 	text-transform: capitalize;
 }
 
-.filterform th { 
+.filterform th {
         text-align: right;
         border-spacing: 1px 5px;
 }
 
-.filterform { 
+.filterform {
         border-spacing: 60px 5px;
 }
 
-.filters h3 { 
+.filters h3 {
         text-align: center;
 }
 
-.submit { 
+.submit {
         text-align: center;
 }
 
