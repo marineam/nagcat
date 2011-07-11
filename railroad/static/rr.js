@@ -286,14 +286,14 @@ function createGraphs(data) {
                     drawGraph(element, data[i]);
                 }
             }
+            // get the graphs collapsed/expanded as they should be.
+            auto_expansion();
             $('.loading').remove();
         },
         error: function() {
             console.error('failed to get graph html');
         }
     });
-    // get the graphs collapsed/expanded as they should be.
-    auto_expansion();
 }
 
 // Plots the data in the given element
@@ -626,23 +626,28 @@ function auto_expansion() {
 }
 function collapse_row(row) {
     // Hide the graph and status text
-    $(row).children('.graph_container').children().hide();
+    var container = $(row).children('.graph_container').first();
+    container.children().hide();
+    if (container.children('.graph').length > 0) {
+        container.append('<p class="graphcollapsed">Graph Collapsed</p>');
+    }
     $(row).children('.status_text').children('p').hide();
     $(row).children('.status_text').children('h2').css({'display': 'inline'});
 
     // change the button to expand
-    $(row).children('.controls').children('div').removeClass('collapse_row');
-    $(row).children('.controls').children('div').addClass('expand_row');
+    $(row).children('.controls').children('div.collapse_row').addClass('expand_row');
+    $(row).children('.controls').children('div.collapse_row').removeClass('collapse_row');
 }
 function expand_row(row) {
     // Hide the graph and status text
+    $(row).children('.graph_container').children('.graphcollapsed').remove();
     $(row).children('.graph_container').children().show();
     $(row).children('.status_text').children('p').show();
     $(row).children('.status_text').children('h2').css({'display': 'block'});
 
     // change the button to expand
-    $(row).children('.controls').children('div').removeClass('expand_row');
-    $(row).children('.controls').children('div').addClass('collapse_row');
+    $(row).children('.controls').children('div.expand_row').addClass('collapse_row');
+    $(row).children('.controls').children('div.expand_row').removeClass('expand_row');
 }
 
 
@@ -842,7 +847,7 @@ $(document).ready(function() {
     // remove 1 buttons
     $('.remove_row').live('click', function() {
         var tr = $(this).parents().parents().first();
-        tr.hide(animate_time, function() {
+        tr.hide(0, function() {
             $(tr).remove();
         });
     });
