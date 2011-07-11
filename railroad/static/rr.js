@@ -333,11 +333,11 @@ function drawGraph (elemGraph, data) {
             graph = {};
             // If there aren't enought data points, get MOAR DATA!
             graph = {
-                "host" : $(elemGraph).data('host'),
-                "service" : $(elemGraph).data('service'),
+                "host" : $(element).data('host'),
+                "service" : $(element).data('service'),
                 "start" : parseInt(ranges.xaxis.from / 1000),
                 "end" : parseInt(ranges.xaxis.to / 1000),
-                "uniq": parseInt($(elemGraph).attr('id')),
+                "uniq": parseInt($(element).attr('id')),
             };
             graphs_to_update.push(graph);
         });
