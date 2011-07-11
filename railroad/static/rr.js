@@ -307,13 +307,7 @@ function drawGraph (elemGraph, data) {
             }
         }
     }
-    data = formatGraph(elemGraph, data);
-    elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
-    elemGraph.data('start', data['start']);
-    elemGraph.data('end', data['end']);
-    elemGraph.data('host', data['host']);
-    elemGraph.data('service', data['service']);
-    elemGraph.data('data', data)
+    reDrawGraph(elemGraph, data)
     if(data.options.yaxis.label) {
     // if there isn't already a ylabel
         if (elemGraph.siblings('.ylabel').length == 0) {
@@ -353,20 +347,14 @@ function drawGraph (elemGraph, data) {
                             if ( data[i].data[j].label ) {
                                 if ( data[i].data[j].lines ) {
                                     data[i].data[j].lines.show = true;
-                                } else { 
+                                } else {
                                     data[i].data[j].lines = { "show": true };
                                 }
                             }
                         }
                         if (data[i].data) {
                             elemGraph = $('.{0}'.format(data[i]['slug']));
-                            data[i] = formatGraph(elemGraph, data[i]);
-                            elemGraph.data('plot', $.plot(elemGraph, data[i].data, data[i].options));
-                            elemGraph.data('start', data[i]['start']);
-                            elemGraph.data('end', data[i]['end']);
-                            elemGraph.data('host', data[i]['host']);
-                            elemGraph.data('service', data[i]['service']);
-                            elemGraph.data('data', data[i])
+                            reDrawGraph(elemGraph, data[i]);
                             if(data[i].options.yaxis.label) {
                             // if there isn't already a ylabel
                                 if (elemGraph.siblings('.ylabel').length == 0) {
@@ -395,9 +383,7 @@ function drawGraph (elemGraph, data) {
                     data.data[i]['lines']['show'] ^= true; // toggle
                 }
             }
-            data = formatGraph(elemGraph, data);
-            $(elemGraph).data('plot', $.plot(elemGraph, data.data, data.options));
-            $(elemGraph).data('data', data);
+            reDrawGraph(elemGraph, data);
         }
     });
 
@@ -410,6 +396,16 @@ function drawGraph (elemGraph, data) {
     });
     $(datePickers[0]).datepicker('setDate', elemGraph.data('start'));
     $(datePickers[1]).datepicker('setDate', elemGraph.data('end'));
+}
+
+function reDrawGraph(element, data) {
+    data = formatGraph(element, data);
+    $(element).data('plot', $.plot($(element), data.data, data.options));
+    $(element).data('data', data);
+    $(element).data('start', data.start);
+    $(element).data('end', data.end);
+    $(element).data('host', data.host);
+    $(element).data('service', data.service);
 }
 
 function updateZoom(from, to) {
@@ -815,7 +811,6 @@ $(document).ready(function() {
             }
         });
         $('#configurator').data('changed', true);
-        // Prevent normal form submission
         return false;
     });
 
