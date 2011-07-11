@@ -392,6 +392,17 @@ function drawGraph (elemGraph, data) {
         },
         changeMonth: true,
         changeYear: true,
+        maxDate : "+0d",
+        minDate : "-5y",
+        onSelect: function ( selectedDate ) {
+           var option = this.name == "from" ? "minDate" : "MaxDate",
+           instance = $(this).data('datepicker'),
+           date = $.datepicker.parseDate(
+                               instance.settings.dateFormat ||
+                               $.datepicker._defaults.dateFormat,
+                               selectedDate, instance.settings );
+           datePickers.not(this).datepicker("option", option, date);
+        },
     });
     $(datePickers[0]).datepicker('setDate', elemGraph.data('start'));
     $(datePickers[1]).datepicker('setDate', elemGraph.data('end'));
