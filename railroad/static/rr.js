@@ -416,7 +416,7 @@ function updateZoom(from, to) {
     var start = $(from).datepicker('getDate').getTime();
     var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 100);
 
-    var graph = $(from).parent().siblings('.graph');
+    var graph = $(from).parent().siblings('.graph').first();
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
 }
 
@@ -659,8 +659,14 @@ $(document).ready(function() {
     // Bind the graph time range selection buttons
     $('.options input[type=button]').live('click', function() {
         var dates = $(this).parent().siblings('.daterange');
-        var from = $(dates).children('[name=from]');
-        var to = $(dates).children('[name=to]');
+
+        if ($('#sync').prop('checked')) {
+            var from = $('input[name=from]');
+            var to = $('input[name=to]');
+        } else {
+            var from = $(dates).children('[name=from]');
+            var to = $(dates).children('[name=to]');
+        }
 
         to.datepicker('setDate', new Date());
         from.datepicker('setDate', new Date());
