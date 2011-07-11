@@ -638,9 +638,6 @@ function auto_expansion() {
 function collapse_or_expand(row) {
     states = {};
     $('#expansion_by_type input').each(function(index, element) {
-        :x
-        :x
-        :q
     });
     for (var s in states) {
         if ($(row).children('td.status_text').hasClass(s)) {
