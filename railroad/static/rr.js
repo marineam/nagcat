@@ -403,95 +403,6 @@ function updateZoom(from, to) {
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
 }
 
-// Creates a graph
-function createGraph(element, path, callback, zoom) {
-    // If the graph isn't busy
-    if(!$(element).data('busy')) {
-        $(element).data('busy', true);
-        $(element).append('<div class="throbber"></div>');
-        $(element).remove('.empty');
-        var ajaxmanager = $.manageAjax.create('createGraph', {
-            queue: true,
-            cacheResponse: true,
-            maxRequests: 4,
-        });
-        ajaxmanager.add({
-            url: '/railroad/parserrd/' + path,
-            dataType: 'json',
-            success: function(data) {
-                // If we are zooming and there's no data, just bail with an
-                // error
-                if(zoom && data.empty) {
-                    plot = $(element).data('plot');
-                    plot.clearSelection();
-                    $(element).append('<div class="error">no data to ' +
-                                      'zoom</div>');
-                    // Nice fadeOut won't let us remove the element, so use a
-                    // callback
-                    $(element).find('.error')
-                              .delay(500)
-                              .fadeOut(500,
-                                       function() {
-                                           $(this).remove();
-                                       });
-                } else {
-                    data = formatGraph(element, data);
-                    $(element).data('plot',
-                                    $.plot($(element),
-                                    data.data,
-                                    data.options));
-                    $(element).data('start',
-                                    data.start);
-                    $(element).data('end',
-                                    data.end);
-                    if(data.options.yaxis.label) {
-                        // if there isn't already a ylabel
-                        if ($(element).siblings('.ylabel').length == 0) {
-                            $(element).before('<div class="ylabel">' +
-                                              data.options.yaxis.label + '</div>');
-                        }
-                    }
-                    if(data.empty == true) {
-                        $(element).append('<div class="empty">no data</div>');
-                    }
-
-                    update = $(element).closest('.graph_container') .find('.update')
-                                 .html('updated: ' + data.current_time);
-
-                    // get the graphs collapsed/expanded as they should be.
-                    auto_expansion();
-
-                    if(callback != null) {
-                        callback(data);
-                    }
-                }
-                $(element).find('.throbber').remove();
-            },
-            // If there's an error, toss out a warning about it
-            error: function(request, status, error) {
-                plot = $(element).data('plot');
-                if(zoom) {
-                    plot.clearSelection();
-                }
-                $(element).find('.throbber').remove();
-                $(element).append('<div class="error">error</div>');
-                if(zoom) {
-                    // Nice fadeOut won't let us remove the element, so use a
-                    // callback
-                    $(element).find('.error')
-                              .delay(500)
-                              .fadeOut(500,
-                                       function() {
-                                           $(this).remove();
-                                       });
-                }
-            }
-        });
-    // Release the graph
-    $(element).data('busy', null);
-    }
-}
-
 function parseAllGraphs(graphs) {
     var ajaxcalls = [];
 
@@ -519,125 +430,10 @@ function parseAllGraphs(graphs) {
 
     createGraphs(JSON.stringify(ajaxcalls));
 
-    // Allow for zooming
-    //$(element).bind('plotselected', function (event, ranges) {
-    //    // The graph isn't busy anymore, allow updates
-    //    $(element).data('busy', null); 
-
-    //    // If we are supposed to sync the graphs, loop over all graphs
-    //    if($('#sync').attr('checked')) {
-    //        graphs = $('.graph');
-    //        // Allow us to zoom even when it makes no sense if we are
-    //        // synced
-    //        zoom = false;
-    //    // Otherwise only loop over the graph associated with this button
-    //    } else {
-    //        graphs = $(element);
-    //        zoom = true;
-    //    }
-
-    //    graphs.each(function(index, element) {
-
-    //        serviceData = $(element).data();
-
-    //        path = [serviceData.host,
-    //                serviceData.service,
-    //                parseInt(ranges.xaxis.from / 1000),
-    //                parseInt(ranges.xaxis.to / 1000),
-    //                serviceData.res].join('/');
-
-    //        createGraph(element,
-    //                    path,
-    //                    function() {
-    //                        $(element).removeClass('ajax');
-    //                        zoomButton = $(element)
-    //                                        .closest('.graph_container')
-    //                                        .find('.zoom');
-    //                        selected = $(element)
-    //                                        .closest('.graph_container')
-    //                                        .find('.selected');
-    //                        selected.removeClass('selected');
-    //                        zoomButton.css('visibility', 'visible');
-    //                        zoomButton.addClass('selected');
-    //                    },
-    //                    zoom);
-    //    });
-    //});
-    //$(element).bind('plotselecting', function() {
-    //    // If we are selecting, mark the graph as busy so no AJAX fires
-    //    $(element).data('busy', true);
-    //});
-
-}
-// Parse and setup graphs on the page
-function parseGraphs(index, element) {
-
-    // Don't set up graphs already set up
-    $(element).addClass('setup');
-
-    // Store the graph data for usage later
-    path = $(element).find('a').attr('href');
-    splitPath = path.split('/');
-    $(element).data('host', splitPath[0]);
-    $(element).data('service', splitPath[1]);
-    $(element).data('start', splitPath[2]);
-    $(element).data('end', splitPath[3]);
-    $(element).data('res', splitPath[4]);
-
-    createGraph(element, path, sortGraphs);
-
-    // Allow for zooming
-    $(element).bind('plotselected', function (event, ranges) {
-        // The graph isn't busy anymore, allow updates
-        $(element).data('busy', null); 
-
-        // If we are supposed to sync the graphs, loop over all graphs
-        if($('#sync').attr('checked')) {
-            graphs = $('.graph');
-            // Allow us to zoom even when it makes no sense if we are
-            // synced
-            zoom = false;
-        // Otherwise only loop over the graph associated with this button
-        } else {
-            graphs = $(element);
-            zoom = true;
-        }
-
-        graphs.each(function(index, element) {
-
-            serviceData = $(element).data();
-
-            path = [serviceData.host,
-                    serviceData.service,
-                    parseInt(ranges.xaxis.from / 1000),
-                    parseInt(ranges.xaxis.to / 1000),
-                    serviceData.res].join('/');
-
-            createGraph(element,
-                        path,
-                        function() {
-                            $(element).removeClass('ajax');
-                            zoomButton = $(element)
-                                            .closest('.graph_container')
-                                            .find('.zoom');
-                            selected = $(element)
-                                            .closest('.graph_container')
-                                            .find('.selected');
-                            selected.removeClass('selected');
-                            zoomButton.css('visibility', 'visible');
-                            zoomButton.addClass('selected');
-                        },
-                        zoom);
-        });
-    });
-    $(element).bind('plotselecting', function() {
-        // If we are selecting, mark the graph as busy so no AJAX fires
-        $(element).data('busy', true);
-    });
-
 }
 
-function autoFetchDataNew() {
+// Automatically fetch new data for graphs that have the class 'ajax'
+function autoFetchData() {
     graphs = [];
     $('.graph.ajax').each(function (index, element) {
         host = $(element).data('host');
@@ -664,30 +460,7 @@ function autoFetchDataNew() {
             alert ("Auto Fetch data failed");
         }
     });
-    setTimeout(autoFetchDataNew, 600 * 1000);
-}
-
-
-
-
-
-// Function to automatically update any graphs which are set to ajax load
-function autoFetchData() {
-    $('.graph.ajax').each(function(index, element) {
-        serviceData = $(element).data();
-        time = new Date();
-        end = parseInt(time.getTime() / 1000);
-        start = parseInt(end - 60 * 60 * 24);
-
-        path = [serviceData.host,
-                serviceData.service,
-                start,
-                end,
-                serviceData.res].join('/');
-
-        createGraph(element, path);
-    });
-    setTimeout(autoFetchData, 60 * 1000);
+    setTimeout(autoFetchData, 600 * 1000);
 }
 
 // Sort the graphs.
@@ -730,6 +503,7 @@ var sorts = {
             return latest;
         })
 }
+
 function sortGraphs() {
     //console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
     var name = $('#sortby').val();
@@ -763,6 +537,7 @@ function localStorageSupport() {
         return false;
     }
 }
+
 function localStorageDelete(key) {
     if (localStorageSupport()) {
         if (localStorageGet(key)) {
@@ -770,6 +545,7 @@ function localStorageDelete(key) {
         }
     }
 }
+
 function localStorageSet(key, value) {
     if (localStorageSupport()) {
         var json = JSON.stringify(value)
@@ -780,6 +556,7 @@ function localStorageSet(key, value) {
     // Should we try other methods of storing data?
     return false;
 }
+
 function localStorageGet(key) {
     if (localStorageSupport()) {
         var ob;
@@ -793,6 +570,7 @@ function localStorageGet(key) {
     // Should we try other methods of storing data?
     return null;
 }
+
 function localStorageClear() {
     if (localStorageSupport()) {
         localStorage.clear();
@@ -805,7 +583,7 @@ function localStorageClear() {
 /******* Misc helper functions *******/
 // Give strings a format function.
 // Use it like this
-//    "Hello {0}, how are you this find {1}?".format(user_name, time_of_day);
+//    "Hello {0}, how are you this fine {1}?".format(user_name, time_of_day);
 //    Returns "Hello Mike, how are you this fine morning?"
 String.prototype.format = function() {
     var formatted = this;
@@ -906,7 +684,8 @@ $(document).ready(function() {
         ajaxcall.push({
             "host" : hostname,
             "service" : servicename,
-            "uniq" : uniq,
+            "uniq" : uniq, // This is used to identify graphs if there are multiples of the same
+                           // host and service combination (like on the service page).
             "start" : start,
             "end" : end,
         });
@@ -1006,11 +785,7 @@ $(document).ready(function() {
 
         $('#cleargraphs').after('<img class="loading" src="/railroad-static/img/loading.gif" />');
         fields = $('#configurator').formSerialize();
-        var ajaxmanager = $.manageAjax.create('configurator', {
-            queue: true,
-            maxRequests: 3,
-        });
-        ajaxmanager.add({
+        $.ajax({
             data: fields,
             dataType: 'json',
             url: '/railroad/graphs',
@@ -1151,7 +926,7 @@ $(document).ready(function() {
     });
 
     // Start the AJAX graph refreshes
-    setTimeout(autoFetchDataNew, 600 * 1000);
+    setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
     $('.hint').append('<span class="hide_hint"></span>');
