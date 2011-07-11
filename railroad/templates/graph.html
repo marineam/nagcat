@@ -14,23 +14,15 @@
         <td class="graph_container">
             {% if graph.is_graphable %}
                 <div class="options">
-                    <ul>
-                        {# TODO: Find a better way to set selected to match which graph we want? #}
-                        {% ifequal graph.period 'ajax'%}
-                            <li class="reset selected">live (day)</li>
-                        {% else  %}
-                            <li class="reset">live (day)</li>
-                        {% endifequal %}
-                        <li class="day">day</li>
-                        <li class="week">week</li>
-                        <li class="month">month</li>
-                        <li class="year">year</li>
-                        {% ifequal graph.period 'zoomed'%}
-                            <li class="zoom selected">zoomed</li>
-                        {% else  }
-                            <li class="zoom" style="visibility: hidden">zoomed</li>
-                        {% endifequal %}
-                    </ul>
+                    Current
+                    <input type="button" name="day" value="Day"/>
+                    <input type="button" name="week" value="Week"/>
+                    <input type="button" name="month" value="Month"/>
+                    <input type="button" name="year" value="Year"/>
+                </div>
+                <div class="daterange">
+                    From <input type="text" name="from"/>
+                    To <input type="text" name="to"/>
                 </div>
                 <div class="ajax_info">
                     <div class="update"></div>

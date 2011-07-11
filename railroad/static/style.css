@@ -210,16 +210,6 @@ td.graph_container { width: 540px; }
 .toggle, .options ul li {
 	cursor: pointer;
 }
-.options ul {
-	padding: 0;
-	margin: 0;
-}
-.options ul li {
-	display: inline;
-}
-.options .selected {
-	font-weight: bold;
-}
 .hidden {
 	visibility: hidden;
 }

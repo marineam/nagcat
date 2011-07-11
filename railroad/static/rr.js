@@ -286,111 +286,126 @@ function createGraphs(data) {
 
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
-                data = formatGraph(elemGraph, data);
-                elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
-                elemGraph.data('start', data['start']);
-                elemGraph.data('end', data['end']);
-                elemGraph.data('host', data['host']);
-                elemGraph.data('service', data['service']);
-                elemGraph.data('data', data)
-                if(data.options.yaxis.label) {
-                // if there isn't already a ylabel
-                    if (elemGraph.siblings('.ylabel').length == 0) {
-                        $(elemGraph).before('<div class="ylabel">' +
-                            data.options.yaxis.label + '</div>');
-                    }
+    data = formatGraph(elemGraph, data);
+    elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
+    elemGraph.data('start', data['start']);
+    elemGraph.data('end', data['end']);
+    elemGraph.data('host', data['host']);
+    elemGraph.data('service', data['service']);
+    elemGraph.data('data', data)
+    if(data.options.yaxis.label) {
+    // if there isn't already a ylabel
+        if (elemGraph.siblings('.ylabel').length == 0) {
+            $(elemGraph).before('<div class="ylabel">' +
+                data.options.yaxis.label + '</div>');
+        }
+    }
+    $(elemGraph).bind('plotselected', function (event, ranges) {
+        elemGraph.removeClass('ajax');
+        if ($('#sync').prop('checked')) {
+            graphs = $('.graph');
+        } else {
+            graphs = $(elemGraph);
+        }
+        graphs_to_update = [];
+        graphs.each(function(index, element) {
+            graph = {};
+            // Count the number of data points, if they aren't enough, we need to fetch more data
+            var count=0;
+            for (var j=0; j < data.data[0].data.length; j++) {
+                if ( data.data[0].data[j][0] > ranges.xaxis.from && data.data[0].data[j][0] < ranges.xaxis.to ) {
+                    count++;
                 }
-        $(elemGraph).bind('plotselected', function (event, ranges) {
-                elemGraph.removeClass('ajax');
-                if ($('#sync').prop('checked')) {
-                    graphs = $('.graph');
-                } else {
-                    graphs = $(elemGraph);
+            }
+            // If there aren't enought data points, get MOAR DATA!
+            if (true) {
+                graph = {
+                    "host" : $(element).data('host'),
+                    "service" : $(element).data('service'),
+                    "start" : parseInt(ranges.xaxis.from / 1000),
+                    "end" : parseInt(ranges.xaxis.to / 1000),
+                };
+                graphs_to_update.push(graph);
+            } else {
+            // else zoom in
+                // If there is data to graph, graph data! Otherwise, do nothing.
+                if ($(element).data('data')) {
+                    data = $(element).data('data')
+                    $(element).data('plot', $.plot(element, data.data, $.extend(true, {}, data.options, {
+                            xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
+                            })));
+                    $(element).data('start', data.start);
+                    $(element).data('end', data.end);
                 }
-                graphs_to_update = [];
-                graphs.each(function(index, element) {
-                    graph = {};
-                    // Count the number of data points, if they aren't enough, we need to fetch more data
-                    var count=0;
-                    for (var j=0; j < data.data[0].data.length; j++) {
-                        if ( data.data[0].data[j][0] > ranges.xaxis.from && data.data[0].data[j][0] < ranges.xaxis.to ) {
-                            count++;
-                        }
-                    }
-                    // If there aren't enought data points, get MOAR DATA!
-                    if ( count < 50 ) {
-                        graph = {
-                            "host" : $(element).data('host'),
-                            "service" : $(element).data('service'),
-                            "start" : parseInt(ranges.xaxis.from / 1000),
-                            "end" : parseInt(ranges.xaxis.to / 1000),
-                        };
-                        graphs_to_update.push(graph);
-                    } else {
-                    // else zoom in
-                        // If there is data to graph, graph data! Otherwise, do nothing.
-                        if ($(element).data('data')) {
-                            data = $(element).data('data')
-                            $(element).data('plot', $.plot(element, data.data, $.extend(true, {}, data.options, {
-                                    xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to }
-                                    })));
-                            $(element).data('start', data.start);
-                            $(element).data('end', data.end);
-                        }
-                    }
-                });
+            }
+        });
         // If there are graphs we need new data for, fetch new data!
-            if ( graphs_to_update.length > 0 ) {
-                ajaxcall = JSON.stringify(graphs_to_update);
-                $.ajax ({
-                    url: '/railroad/graphs?graphs=' + ajaxcall,
-                    dataType: 'json',
-                    success: function (data, textStatus, XMLHttpRequest) {
-                        for (var i=0; i < data.length; i++) {
-                            if (data[i].data) {
-                                element = $('#{0}'.format(data[i]['slug']));
-                                data[i] = formatGraph(elemGraph, data[i]);
-                                elemGraph.data('plot', $.plot(elemGraph, data[i].data, data[i].options));
-                                elemGraph.data('start', data[i]['start']);
-                                elemGraph.data('end', data[i]['end']);
-                                elemGraph.data('host', data[i]['host']);
-                                elemGraph.data('service', data[i]['service']);
-                                elemGraph.data('data', data[i])
-                                if(data[i].options.yaxis.label) {
-                                // if there isn't already a ylabel
-                                    if (elemGraph.siblings('.ylabel').length == 0) {
-                                        elemGraph.before('<div class="ylabel">' +
-                                            data[i].options.yaxis.label + '</div>');
-                                    }
+        if ( graphs_to_update.length > 0 ) {
+            ajaxcall = JSON.stringify(graphs_to_update);
+            $.ajax ({
+                url: '/railroad/graphs?graphs=' + ajaxcall,
+                dataType: 'json',
+                success: function (data, textStatus, XMLHttpRequest) {
+                    for (var i=0; i < data.length; i++) {
+                        if (data[i].data) {
+                            element = $('#{0}'.format(data[i]['slug']));
+                            data[i] = formatGraph(elemGraph, data[i]);
+                            elemGraph.data('plot', $.plot(elemGraph, data[i].data, data[i].options));
+                            elemGraph.data('start', data[i]['start']);
+                            elemGraph.data('end', data[i]['end']);
+                            elemGraph.data('host', data[i]['host']);
+                            elemGraph.data('service', data[i]['service']);
+                            elemGraph.data('data', data[i])
+                            if(data[i].options.yaxis.label) {
+                            // if there isn't already a ylabel
+                                if (elemGraph.siblings('.ylabel').length == 0) {
+                                    elemGraph.before('<div class="ylabel">' +
+                                        data[i].options.yaxis.label + '</div>');
                                 }
                             }
                         }
-                    },
-                    error: function (XMLHttpRequest, textStatus, errorThrown) {
-                        alert ("Something went wrong in getting new data");
                     }
-                });
-            }
-        });
-        $('.removeSeries').live('click', function () {
-            var elemGraph = $(this).closest('.legend').siblings('.graph');
-            if (elemGraph.data('data')) {
-                data = elemGraph.data('data');
-                for (var i=0; i < data.data.length; i++) {
-                    if (data.data[i].label == $(this).attr('id')) {
-                        if (!data.data[i]['lines']) {
-                            data.data[i]['lines'] = {'show': true};
-                        }
-                        data.data[i]['lines']['show'] ^= true; // toggle
-                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    alert ("Something went wrong in getting new data");
                 }
-            data = formatGraph(elemGraph, data);
-            elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
-            elemGraph.data('data', data);
+            });
+        }
+    });
+    $('.removeSeries').live('click', function () {
+        var elemGraph = $(this).closest('.legend').siblings('.graph');
+        if (elemGraph.data('data')) {
+            data = elemGraph.data('data');
+            for (var i=0; i < data.data.length; i++) {
+                if (data.data[i].label == $(this).attr('id')) {
+                    if (!data.data[i]['lines']) {
+                        data.data[i]['lines'] = {'show': true};
+                    }
+                    data.data[i]['lines']['show'] ^= true; // toggle
+                }
             }
-        });
+        data = formatGraph(elemGraph, data);
+        elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
+        elemGraph.data('data', data);
+        }
+    });
 
+    var datePickers = $('.daterange input').datepicker({
+        onSelect: function(selectedDate) {
+            updateZoom(datePickers[0], datePickers[1]);
+        },
+        changeMonth: true,
+    });
 }
+
+function updateZoom(from, to) {
+    var start = $(from).datepicker('getDate').getTime();
+    var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 1000);
+
+    var graph = $(from).parent().siblings('.graph');
+    $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
+}
+
 // Creates a graph
 function createGraph(element, path, callback, zoom) {
     // If the graph isn't busy
@@ -854,82 +869,29 @@ $(document).ready(function() {
     /**** GRAPH SETUP ****/
 
     // Bind the graph time range selection buttons
-    $('.options ul li').live('click', function() {
-        clicked = $(this);
-        // If we are supposed to sync the graphs, loop over all graphs
-        if($('#sync').attr('checked')) {
-            graphs = $('.graph');
-        // Otherwise only loop over the graph associated with this button
-        } else {
-            graphs = $(this).closest('.graph_container')
-                             .find('.graph');
+    $('.options input[type=button]').live('click', function() {
+        var dates = $(this).parent().siblings('.daterange');
+        var from = $(dates).children('[name=from]');
+        var to = $(dates).children('[name=to]');
+
+        to.datepicker('setDate', new Date());
+        from.datepicker('setDate', new Date());
+
+        if ($(this).attr('name') == 'day') {
+            from.datepicker('setDate', '-1d');
+        } else if ($(this).attr('name') == 'week') {
+            from.datepicker('setDate', '-1w');
+        } else if ($(this).attr('name') == 'month') {
+            from.datepicker('setDate', '-1m');
+        } else if ($(this).attr('name') == 'year') {
+            from.datepicker('setDate', '-1y');
         }
-        graphs.each(function(index, graph) {
-            button = $(graph).closest('.graph_container')
-                             .find('.year');
-            time = new Date();
-            end = parseInt(time.getTime() / 1000);
 
-            // Depending on which button is hit, change the behavior
-            // TODO: Look at possibilities at cleaning this up
-
-            if(clicked.hasClass('zoom')) {
-                return;
-            }
-
-            $(graph).closest('.graph_container')
-                    .find('.zoom')
-                    .css('visibility', 'hidden');
-
-            if(clicked.hasClass('reset')) {
-                $(graph).addClass('ajax');
-            } else {
-                $(graph).removeClass('ajax');
-            }
-            if(clicked.hasClass('day') || clicked.hasClass('reset')) {
-                start = parseInt(end - 60 * 60 * 24);
-            } else if(clicked.hasClass('week')) {
-                start = parseInt(end - 60 * 60 * 24 * 7);
-            } else if(clicked.hasClass('month')) {
-                start = parseInt(end - 60 * 60 * 24 * 30);
-            } else if(clicked.hasClass('year')) {
-                start = parseInt(end - 60 * 60 * 24 * 365);
-            }
-
-            serviceData = $(graph).data();
-
-            path = [serviceData.host,
-                    serviceData.service,
-                    start,
-                    end,
-                    serviceData.res].join('/');
-
-            createGraph(graph,
-                        path,
-                        function() {
-                            $(graph).closest('.graph_container')
-                                    .find('.options .selected')
-                                    .removeClass('selected');
-                            // This is pretty horrible, perhaps there is a
-                            // better way
-                            if(clicked.hasClass('reset')) {
-                                buttonClass = '.reset';
-                            } else if(clicked.hasClass('day')) {
-                                buttonClass = '.day';
-                            } else if(clicked.hasClass('week')) {
-                                buttonClass = '.week';
-                            } else if(clicked.hasClass('month')) {
-                                buttonClass = '.month';
-                            } else if(clicked.hasClass('year')) {
-                                buttonClass = '.year';
-                            } else if(clicked.hasClass('zoom')) {
-                                buttonClass = '.zoom';
-                            }
-                            $(graph).closest('.graph_container')
-                                    .find(buttonClass)
-                                    .addClass('selected');
-                        });
-        });
+        to.datepicker('refresh')
+        from.datepicker('refresh')
+        console.log(to.datepicker('getDate'));
+        console.log(from.datepicker('getDate'));
+        updateZoom(from,to);
     });
 
     // Initialize the data for any graphs already on the page
