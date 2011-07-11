@@ -288,7 +288,6 @@ function createGraphs(data) {
             }
             // get the graphs collapsed/expanded as they should be.
             auto_expansion();
-            $('.loading').remove();
         },
         error: function() {
             console.error('failed to get graph html');
@@ -654,6 +653,22 @@ function expand_row(row) {
 
 // Execute setup code when page loads
 $(document).ready(function() {
+    /******* AJAX Helpers ******/
+    $('body').ajaxStart(function() {
+        console.log('found an ajax!');
+        if ($('#cursor').length == 0) {
+            $('body').append('<img id="cursor" src="/railroad-static/img/loading.gif" style="position: absolute;"/>');
+            $('body').mousemove(function(e) {
+                $('#cursor').css('top', e.clientY).css('left', e.clientX+7);
+            });
+            $('body').trigger('mousemove');
+        }
+    });
+
+    $('body').ajaxStop(function() {
+        $('#cursor').remove();
+    });
+
     /**** GRAPH SETUP ****/
 
     // Bind the graph time range selection buttons
@@ -807,7 +822,6 @@ $(document).ready(function() {
     // Handle configurator form submissions
     $('#configurator').submit(function() {
 
-        $('#cleargraphs').after('<img class="loading" src="/railroad-static/img/loading.gif" />');
         fields = $('#configurator').formSerialize();
         $.ajax({
             data: fields,
@@ -979,4 +993,5 @@ $(document).ready(function() {
     /******** Sorting *********/
     $('#sortby').bind('change', sortGraphs);
     $('#reverse_sort').bind('change', sortGraphs);
+
 });
