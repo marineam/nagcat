@@ -395,18 +395,21 @@ function drawGraph (elemGraph, data) {
                     data.data[i]['lines']['show'] ^= true; // toggle
                 }
             }
-        data = formatGraph(elemGraph, data);
-        elemGraph.data('plot', $.plot(elemGraph, data.data, data.options));
-        elemGraph.data('data', data);
+            data = formatGraph(elemGraph, data);
+            $(elemGraph).data('plot', $.plot(elemGraph, data.data, data.options));
+            $(elemGraph).data('data', data);
         }
     });
 
-    var datePickers = $('.daterange input').datepicker({
-        onSelect: function(selectedDate) {
+    var datePickers = $(elemGraph).siblings('.daterange').children('input').datepicker({
+        onClose: function(selectedDate) {
             updateZoom(datePickers[0], datePickers[1]);
         },
         changeMonth: true,
+        changeYear: true,
     });
+    $(datePickers[0]).datepicker('setDate', elemGraph.data('start'));
+    $(datePickers[1]).datepicker('setDate', elemGraph.data('end'));
 }
 
 function updateZoom(from, to) {
@@ -651,7 +654,6 @@ function expand_row(row) {
 
 // Execute setup code when page loads
 $(document).ready(function() {
-
     /**** GRAPH SETUP ****/
 
     // Bind the graph time range selection buttons
