@@ -191,14 +191,21 @@ function labelFormatter(label, series) {
 
     var checked = "";
     if (series.lines.show) {
-        var checked = " checked";
+        checked = " checked";
     }
-    var label = '<input type="checkbox" id="{0}" class="removeSeries"{1}>{0}</input>'.format(label, checked);
-    label += ' (Cur: {0}, Max: {1}, Min: {2}, Avg: {3})'.format(
-        series.statistics.cur.toPrecision(4), series.statistics.max.toPrecision(4),
-        series.statistics.min.toPrecision(4), series.statistics.avg.toPrecision(4));
 
-    return label;
+    var stats = "";
+    try {
+        stats = ' (Cur: {0}, Max: {1}, Min: {2}, Avg: {3})'.format(
+            series.statistics.cur.toPrecision(4), series.statistics.max.toPrecision(4),
+            series.statistics.min.toPrecision(4), series.statistics.avg.toPrecision(4));
+    } catch(e) {
+        // graph doesn't have cur,max,min,avg, so skip them.
+    }
+
+    var out = '<input type="checkbox" id="{0}" class="removeSeries"{1}>{0}{2}</input>'.format(label, checked, stats);
+
+    return out;
 }
 
 /******* GRAPH GENERATION/MANIPULTION *******/
@@ -282,7 +289,7 @@ function createGraphs(data) {
             $('.loading').remove();
         },
         error: function() {
-            console.log('fail');
+            console.error('failed to get graph html');
         }
     });
     // get the graphs collapsed/expanded as they should be.
@@ -404,7 +411,7 @@ function drawGraph (elemGraph, data) {
 
 function updateZoom(from, to) {
     var start = $(from).datepicker('getDate').getTime();
-    var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 1000);
+    var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 100);
 
     var graph = $(from).parent().siblings('.graph');
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
@@ -512,7 +519,6 @@ var sorts = {
 }
 
 function sortGraphs() {
-    //console.log('sorting... #of trs: {0}'.format($('tr.service_row').length));
     var name = $('#sortby').val();
     var sorter = sorts[name];
     if ($('#reverse_sort').prop('checked')) {
@@ -603,12 +609,10 @@ String.prototype.format = function() {
 
 /**** Expand/Collapse the graph rows ****/
 function auto_expansion() {
-    console.log('auto');
     states = {}
     $('#expansion_by_type input').each(function(index, elem) {
         states[elem.id] = $(elem).prop('checked');
     });
-    console.log(states);
     $('.service_row').each(function(index, elem) {
         for (var s in states) {
             if ($(elem).children('td.status_text').hasClass(s)) {
@@ -659,9 +663,7 @@ $(document).ready(function() {
         to.datepicker('setDate', new Date());
         from.datepicker('setDate', new Date());
 
-        if ($(this).attr('name') == 'day') {
-            from.datepicker('setDate', '-1d');
-        } else if ($(this).attr('name') == 'week') {
+        if ($(this).attr('name') == 'week') {
             from.datepicker('setDate', '-1w');
         } else if ($(this).attr('name') == 'month') {
             from.datepicker('setDate', '-1m');
@@ -671,8 +673,6 @@ $(document).ready(function() {
 
         to.datepicker('refresh')
         from.datepicker('refresh')
-        console.log(to.datepicker('getDate'));
-        console.log(from.datepicker('getDate'));
         updateZoom(from,to);
     });
 
