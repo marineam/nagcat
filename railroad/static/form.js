@@ -48,23 +48,7 @@ $(document).ready(function() {
     // Initialize the data for any graphs already on the page
     ajaxcall = [];
     $('.graph').each(function (index, element) {
-        var slug = $(element).attr('name');
-        graphs = $('.{0}'.format(slug)).each(function (index, element) {
-            $(element).attr('id', index);
-        });
-        var hostname = $($(element).children('.graph_hostname')).attr('id');
-        var servicename = $($(element).children('.graph_service_name')).attr('id');
-        var start = $($(element).children('.graph_start')).attr('id');
-        var end = $($(element).children('.graph_end')).attr('id');
-        var uniq = $(element).attr('id');
-        ajaxcall.push({
-            "host" : hostname,
-            "service" : servicename,
-            "uniq" : uniq, // This is used to identify graphs if there are multiples of the same
-                           // host and service combination (like on the service page).
-            "start" : start,
-            "end" : end,
-        });
+        ajaxcall.push(getGraphData(element));
     });
     ajaxcall = JSON.stringify(ajaxcall);
     $.ajax({
@@ -139,6 +123,7 @@ $(document).ready(function() {
             $(element).val(form_store[key]);
         }
     }
+
 
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {

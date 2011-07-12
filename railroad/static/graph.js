@@ -245,6 +245,26 @@ function formatGraph(element, data) {
     return data;
 }
 
+function getGraphData(element) {
+    var slug = $(element).attr('name');
+    graphs = $('.{0}'.format(slug)).each(function (index, element) {
+        $(element).attr('id', index);
+    });
+    var hostname = $($(element).children('.graph_hostname')).attr('id');
+    var servicename = $($(element).children('.graph_service_name')).attr('id');
+    var start = $($(element).children('.graph_start')).attr('id');
+    var end = $($(element).children('.graph_end')).attr('id');
+    var uniq = $(element).attr('id');
+    var data = {
+        "host" : hostname,
+        "service": servicename,
+        "uniq" : uniq,
+        "start": start,
+        "end" : end,
+    };
+    return data;
+}
+
 function createGraphs(data) {
     var params = [];
     for (var i=0; i<data.length; i++) {
