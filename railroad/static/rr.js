@@ -432,7 +432,7 @@ function redrawGraph(element, data) {
 
 function updateZoom(from, to) {
     var start = $(from).datepicker('getDate').getTime();
-    var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 100);
+    var end = $(to).datepicker('getDate').getTime() + (24*60*60*1000);
 
     var graph = $(from).parent().siblings('.graph').first();
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
@@ -719,16 +719,25 @@ $(document).ready(function() {
             var to = $(dates).children('[name=to]');
         }
 
-        to.datepicker('setDate', new Date());
-        from.datepicker('setDate', new Date());
+        var fromDate = new Date();
+        var toDate = new Date();
 
-        if ($(this).attr('name') == 'week') {
-            from.datepicker('setDate', '-1w');
+        fromDate.setHours(0);
+        toDate.setHours(24);
+
+        if ($(this).attr('name') == 'day') {
+        } else if ($(this).attr('name') == 'week') {
+            fromDate.setDate(fromDate.getDate() - 6);
         } else if ($(this).attr('name') == 'month') {
-            from.datepicker('setDate', '-1m');
+            fromDate.setMonth(fromDate.getMonth() - 1);
         } else if ($(this).attr('name') == 'year') {
-            from.datepicker('setDate', '-1y');
+            fromDate.setYear(fromDate.getYear() - 1);
         }
+
+        console.log(fromDate + ' ' + toDate);
+
+        to.datepicker('setDate', toDate);
+        from.datepicker('setDate', fromDate);
 
         to.datepicker('refresh')
         from.datepicker('refresh')
@@ -849,7 +858,7 @@ $(document).ready(function() {
     $('#localtime, #utc').bind('change', function() {
         graphs = $('.graph');
         graphs.each(function(index, element) {
-            if (element.data('data')) {
+            if ($(element).data('data')) {
                 redrawGraph(element, $(element).data('data'));
             }
         });
