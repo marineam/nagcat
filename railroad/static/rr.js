@@ -1006,12 +1006,29 @@ $(document).ready(function() {
             $(this).parent().remove();
         });
 
+    $('#hide_all_hints').change(function () {
+        var hints_hidden = localStorageGet('hints_hidden');
+        if (!hints_hidden) {
+            hints_hidden = {};
+        }
+        hints_hidden['hide_all_hints'] = $(this).prop('checked');
+        localStorageSet('hints_hidden', hints_hidden);
+        if ($(this).prop('checked')) {
+            var hints = $('.hint .hide_hint');
+            hints.each(function (index,element) {
+                $(element).trigger('click');
+            });
+        }
+    });
+
+
+
     var hints_hidden = localStorageGet('hints_hidden');
     if (hints_hidden == null) {
         hints_hidden = {};
     }
     $('.hint').each(function() {
-        if (! hints_hidden[$(this).attr('id')]) {
+        if (! hints_hidden[$(this).attr('id')] && ! hints_hidden["hide_all_hints"]) {
             $(this).css('display', 'block');
         }
     });
