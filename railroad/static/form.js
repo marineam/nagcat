@@ -4,7 +4,7 @@ $(document).ready(function() {
     $('body').ajaxStart(function() {
         console.log('found an ajax!');
         if ($('#cursor').length == 0) {
-            $('body').append('<img id="cursor" src="/railroad-static/img/loading.gif" style="position: absolute;"/>');
+            $('body').append('<images id="cursor" src="/railroad-static/images/loading.gif" style="position: absolute;"/>');
             $('body').mousemove(function(e) {
                 $('#cursor').css('top', e.clientY).css('left', e.clientX+7);
             });

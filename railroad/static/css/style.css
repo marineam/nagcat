@@ -123,13 +123,13 @@ ul, ol {
 	height: 16px;
 }
 .collapse_row {
-	background-image: url("/railroad-static/img/collapse.png");
+	background-image: url("/railroad-static/images/collapse.png");
 }
 .expand_row {
-	background-image: url("/railroad-static/img/expand.png");
+	background-image: url("/railroad-static/images/expand.png");
 }
 .remove_row {
-	background-image: url("/railroad-static/img/remove.png");
+	background-image: url("/railroad-static/images/remove.png");
 }
 
 .state_ok       { background-color: #BFB; }
@@ -315,7 +315,7 @@ fieldset {
     cursor: pointer;
     width: 16px;
     height: 16px;
-    background-image: url("/railroad-static/img/remove.png");
+    background-image: url("/railroad-static/images/remove.png");
 }
 
 /* Filtering */
