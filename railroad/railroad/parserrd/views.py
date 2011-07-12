@@ -228,7 +228,6 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     # Set defaults
     datapoint = rrdslice[2][0]
     for index in indices:
-        data = datapoint[transform[index]]
 
         flot_data[index][statistics] = {}
         flot_data[index][statistics]['cur'] = None
@@ -236,11 +235,14 @@ def get_data(host, service, start=None, end=None, resolution='150'):
         flot_data[index][statistics]['sum'] = 0
         flot_data[index][statistics]['max'] = None
         flot_data[index][statistics]['min'] = None
-        flot_data[index][railroad_conf]['scale'] = 1
+        if not 'scale' in flot_data[index][railroad_conf]:
+            flot_data[index][railroad_conf]['scale'] = 1
+
+        data = datapoint[transform[index]]
         if data:
-            flot_data[index][statistics]['max'] =                     \
-                flot_data[index][statistics]['min'] =                 \
-                    data * flot_data[index][railroad_conf]['scale']
+            data *= flot_data[index][railroad_conf]['scale']
+            flot_data[index][statistics]['max'] = data
+            flot_data[index][statistics]['min'] = data
 
     # Loop over all data and aggregate it in flot's desired format
     for datapoints in rrdslice[2]:
@@ -257,12 +259,12 @@ def get_data(host, service, start=None, end=None, resolution='150'):
                 data *= flot_data[index][railroad_conf]['scale']
                 flot_data[index][statistics]['sum'] += data
 
-                if flot_data[index][statistics]['max'] == None or   \
-                            data > flot_data[index][statistics]['max']:
+                if (flot_data[index][statistics]['max'] == None or
+                            data > flot_data[index][statistics]['max']):
                     flot_data[index][statistics]['max'] = data
 
-                if flot_data[index][statistics]['min'] == None or   \
-                            data < flot_data[index][statistics]['min']:
+                if (flot_data[index][statistics]['min'] == None or
+                            data < flot_data[index][statistics]['min']):
                     flot_data[index][statistics]['min'] = data
 
             flot_data[index]['data'].append([x, data])
