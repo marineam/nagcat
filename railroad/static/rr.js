@@ -681,17 +681,13 @@ function expand_row(row) {
 $(document).ready(function() {
     /******* AJAX Helpers ******/
     $('body').ajaxStart(function() {
-        if ($('#cursor').length == 0) {
-            $('body').append('<img id="cursor" src="/railroad-static/img/loading.gif" style="position: absolute;"/>');
-            $('body').mousemove(function(e) {
-                $('#cursor').css('top', e.clientY).css('left', e.clientX+7);
-            });
-            $('body').trigger('mousemove');
+        if ($('#loading').length == 0) {
+            $('#content h1').first().append('<img id="loading" src="/railroad-static/img/loading.gif"/>');
         }
     });
 
     $('body').ajaxStop(function() {
-        $('#cursor').remove();
+        $('#loading').remove();
     });
 
     /**** GRAPH SETUP ****/
