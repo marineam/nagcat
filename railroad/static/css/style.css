@@ -246,10 +246,8 @@ td.graph_container { width: 540px; }
 }
 
 /* Ajax Loading Throbber */
-.throbber {
-	width: 16px;
-	height: 16px;
-	background-image: url('/railroad-static/throbber.gif');
+#loading {
+    margin-left: 10px;
 }
 .filter {
 	display: inline-block;
