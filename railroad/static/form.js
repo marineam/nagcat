@@ -48,7 +48,7 @@ $(document).ready(function() {
     // Initialize the data for any graphs already on the page
     ajaxcall = [];
     $('.graph').each(function (index, element) {
-        ajaxcall.push(getGraphData(element));
+        ajaxcall.push(getGraphDataByDiv(element));
     });
     ajaxcall = JSON.stringify(ajaxcall);
     $.ajax({

@@ -245,7 +245,24 @@ function formatGraph(element, data) {
     return data;
 }
 
-function getGraphData(element) {
+function getGraphDataByData(element) {
+    var slug = $(element).attr('name');
+    var hostname = $(element).data('host');
+    var servicename = $(element).data('service');
+    var start = $(element).data('start');
+    var end = $(element).data('end');
+    var uniq = $(element).attr('id');
+    var data = {
+        "host" : hostname,
+        "service" : servicename,
+        "uniq" : uniq,
+        "start" : start,
+        "end" : end,
+    };
+    return data
+}
+
+function getGraphDataByDiv(element) {
     var slug = $(element).attr('name');
     graphs = $('.{0}'.format(slug)).each(function (index, element) {
         $(element).attr('id', index);
@@ -343,16 +360,11 @@ function drawGraph (elemGraph, data) {
         }
         graphs_to_update = [];
         graphs.each(function(index, element) {
-            graph = {};
-            // If there aren't enought data points, get MOAR DATA!
-            graph = {
-                "host" : $(element).data('host'),
-                "service" : $(element).data('service'),
-                "start" : parseInt(ranges.xaxis.from / 1000),
-                "end" : parseInt(ranges.xaxis.to / 1000),
-                "uniq": parseInt($(element).attr('id')),
-            };
-            graphs_to_update.push(graph);
+            $(element).data('start', ranges.xaxis.from / 1000);
+            $(element).data('end', ranges.xaxis.to / 1000);
+            if ( $(element).data('data')) {
+                graphs_to_update.push(getGraphDataByData(element));
+            }
         });
         // If there are graphs we need new data for, fetch new data!
         if ( graphs_to_update.length > 0 ) {
