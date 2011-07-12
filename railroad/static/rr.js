@@ -1048,7 +1048,7 @@ $(document).ready(function() {
         if ($(this).prop('checked')) {
             var hints = $('.hint .hide_hint');
             hints.each(function (index,element) {
-                $(element).trigger('click');
+                $(element).parent().remove();
             });
         }
     });
