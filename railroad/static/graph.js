@@ -458,35 +458,6 @@ function updateZoom(from, to) {
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
 }
 
-function parseAllGraphs(graphs) {
-    var ajaxcalls = [];
-
-    // Don't set up graphs already set up
-    graphs.each(function (index, element) {
-        var ajaxcall = {};
-        //$(element).addClass('setup');
-        // Store the graph data for usage later
-        path = $(element).find('a').attr('href');
-        splitPath = path.split('/');
-        $(element).data('host', splitPath[0]);
-        $(element).data('service', splitPath[1]);
-        $(element).data('start', splitPath[2]);
-        $(element).data('end', splitPath[3]);
-        $(element).data('res', splitPath[4]);
-
-        ajaxcall['host'] = splitPath[0];
-        ajaxcall['service'] = splitPath[1];
-        ajaxcall['start'] = splitPath[2];
-        ajaxcall['end'] = splitPath[3];
-        ajaxcall['res'] = splitPath[4];
-
-        ajaxcalls.push(ajaxcall);
-    });
-
-    createGraphs(JSON.stringify(ajaxcalls));
-
-}
-
 // Automatically fetch new data for graphs that have the class 'ajax'
 function autoFetchData() {
     graphs = [];
