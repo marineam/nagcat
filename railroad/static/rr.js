@@ -185,6 +185,22 @@ function tickFormatter(val, axis) {
     return (val / final_base).toFixed(axis.tickDecimals) + bases[interval];
 }
 
+function numberFormatter(n, base, labels) {
+    if (base == undefined) {
+        base = 1024;
+    }
+    if (labels == undefined) {
+        labels = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'H'];
+    }
+    label_index = 0;
+    while (n > base && label_index < labels.length-1) {
+        n /= base;
+        label_index++;
+    }
+
+    return '{0}{1}'.format(n.toPrecision(3), labels[label_index]);
+}
+
 // Format a label, passed to Flot
 function labelFormatter(label, series) {
     //return '<input type="button" id="'+label+'" value="'+label+'" class="removeSeries"></input>';
@@ -197,8 +213,8 @@ function labelFormatter(label, series) {
     var stats = "";
     try {
         stats = ' (Cur: {0}, Max: {1}, Min: {2}, Avg: {3})'.format(
-            series.statistics.cur.toPrecision(4), series.statistics.max.toPrecision(4),
-            series.statistics.min.toPrecision(4), series.statistics.avg.toPrecision(4));
+            numberFormatter(series.statistics.cur), numberFormatter(series.statistics.max),
+            numberFormatter(series.statistics.min), numberFormatter(series.statistics.avg));
     } catch(e) {
         // graph doesn't have cur,max,min,avg, so skip them.
     }
@@ -421,7 +437,7 @@ function redrawGraph(element, data) {
 
 function updateZoom(from, to) {
     var start = $(from).datepicker('getDate').getTime();
-    var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 100);
+    var end = $(to).datepicker('getDate').getTime() + (24*60*60*1000);
 
     var graph = $(from).parent().siblings('.graph').first();
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
@@ -681,18 +697,13 @@ function expand_row(row) {
 $(document).ready(function() {
     /******* AJAX Helpers ******/
     $('body').ajaxStart(function() {
-        console.log('found an ajax!');
-        if ($('#cursor').length == 0) {
-            $('body').append('<img id="cursor" src="/railroad-static/img/loading.gif" style="position: absolute;"/>');
-            $('body').mousemove(function(e) {
-                $('#cursor').css('top', e.clientY).css('left', e.clientX+7);
-            });
-            $('body').trigger('mousemove');
+        if ($('#loading').length == 0) {
+            $('#content h1').first().append('<img id="loading" src="/railroad-static/img/loading.gif"/>');
         }
     });
 
     $('body').ajaxStop(function() {
-        $('#cursor').remove();
+        $('#loading').remove();
     });
 
     /**** GRAPH SETUP ****/
@@ -709,16 +720,25 @@ $(document).ready(function() {
             var to = $(dates).children('[name=to]');
         }
 
-        to.datepicker('setDate', new Date());
-        from.datepicker('setDate', new Date());
+        var fromDate = new Date();
+        var toDate = new Date();
 
-        if ($(this).attr('name') == 'week') {
-            from.datepicker('setDate', '-1w');
+        fromDate.setHours(0);
+        toDate.setHours(24);
+
+        if ($(this).attr('name') == 'day') {
+        } else if ($(this).attr('name') == 'week') {
+            fromDate.setDate(fromDate.getDate() - 6);
         } else if ($(this).attr('name') == 'month') {
-            from.datepicker('setDate', '-1m');
+            fromDate.setMonth(fromDate.getMonth() - 1);
         } else if ($(this).attr('name') == 'year') {
-            from.datepicker('setDate', '-1y');
+            fromDate.setYear(fromDate.getYear() - 1);
         }
+
+        console.log(fromDate + ' ' + toDate);
+
+        to.datepicker('setDate', toDate);
+        from.datepicker('setDate', fromDate);
 
         to.datepicker('refresh')
         from.datepicker('refresh')
@@ -837,9 +857,10 @@ $(document).ready(function() {
     });
 
     $('#localtime, #utc').bind('change', function() {
+        $('#configurator').trigger('change');
         graphs = $('.graph');
         graphs.each(function(index, element) {
-            if (element.data('data')) {
+            if ($(element).data('data')) {
                 redrawGraph(element, $(element).data('data'));
             }
         });
@@ -1006,12 +1027,29 @@ $(document).ready(function() {
             $(this).parent().remove();
         });
 
+    $('#hide_all_hints').change(function () {
+        var hints_hidden = localStorageGet('hints_hidden');
+        if (!hints_hidden) {
+            hints_hidden = {};
+        }
+        hints_hidden['hide_all_hints'] = $(this).prop('checked');
+        localStorageSet('hints_hidden', hints_hidden);
+        if ($(this).prop('checked')) {
+            var hints = $('.hint .hide_hint');
+            hints.each(function (index,element) {
+                $(element).parent().remove();
+            });
+        }
+    });
+
+
+
     var hints_hidden = localStorageGet('hints_hidden');
     if (hints_hidden == null) {
         hints_hidden = {};
     }
     $('.hint').each(function() {
-        if (! hints_hidden[$(this).attr('id')]) {
+        if (! hints_hidden[$(this).attr('id')] && ! hints_hidden["hide_all_hints"]) {
             $(this).css('display', 'block');
         }
     });
