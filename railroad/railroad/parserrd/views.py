@@ -29,6 +29,7 @@ from railroad.errors import RailroadError
 
 DAY = 60 * 60 * 24 # Seconds in a day
 
+
 def sigfigs(float):
     """Round float using desired sigfigs"""
     desired_sigfigs = 3
@@ -44,6 +45,7 @@ def sigfigs(float):
     else:
         return round(float, desired_sigfigs - power)
 
+
 def labelize(data, index, base, unit):
     """Return a label containing statistics"""
     statistics = data[index]['statistics']
@@ -53,6 +55,7 @@ def labelize(data, index, base, unit):
         (cur, unit, str(sigfigs(statistics['min'] / base)), unit,
         str(sigfigs(statistics['max'] / base)), unit,
         str(sigfigs(statistics['avg'] / base)), unit))
+
 
 def getColors(names):
     rng_state = random.getstate()
@@ -68,21 +71,22 @@ def getColors(names):
         l = 0.375 + 0.25 * random.random()
 
         # convert it from HSL to RGB
-        c = (1 - abs(2*l-1)) * s;
+        c = (1 - abs(2 * l - 1)) * s
         hp = floor(h / 60)
         x = c * (1 - abs(hp % 2 - 1))
-        (rp,gp,bp) = {0: (c,x,0), 1: (x,c,0), 2: (0,c,x),
-                    3: (0,x,c), 4: (x,0,c), 5: (c,0,x)}[hp]
+        (rp, gp, bp) = {0: (c, x, 0), 1: (x, c, 0), 2: (0, c, x),
+                    3: (0, x, c), 4: (x, 0, c), 5: (c, 0, x)}[hp]
 
         m = l - 0.5 * c
-        r,g,b = [x*256 for x in (rp + m, gp + m, bp + m)]
+        r, g, b = [x * 256 for x in (rp + m, gp + m, bp + m)]
 
         # Convert it to a hex color
-        colors.append('#%02x%02x%02x' % (r,g,b))
+        colors.append('#%02x%02x%02x' % (r, g, b))
 
     random.setstate(rng_state)
 
     return colors
+
 
 def get_data(host, service, start=None, end=None, resolution='150'):
     if not end:
@@ -130,10 +134,10 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     # Graph options for FLOT
     graph_options = {
         'xaxis': {
-            'mode': 'time', 
+            'mode': 'time',
         },
-        'yaxis': {}, 
-        'legend': {'position': 'nw'}, 
+        'yaxis': {},
+        'legend': {'position': 'nw'},
         'selection': {'mode': 'x'},
         'pan': {'interactive': True},
         'grid': {}
@@ -189,7 +193,7 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     labels = map(lambda x: x[0], labels)
     state_data = []
 
-    graph_options['colors'] = getColors(labels);
+    graph_options['colors'] = getColors(labels)
 
     # Reading graph options
     for index in indices:
@@ -199,7 +203,7 @@ def get_data(host, service, start=None, end=None, resolution='150'):
             continue
 
         trend_settings = {}
-        for var in trend_attributes: 
+        for var in trend_attributes:
             trend_settings[var] = trend.get(var, '')
 
         if trend_settings['display']:
@@ -353,6 +357,7 @@ def get_data(host, service, start=None, end=None, resolution='150'):
              }
 
     return result
+
 
 def index(request, host, service, start, end, resolution='150'):
     """Reads the rrd and returns the data in flot-friendly format"""
