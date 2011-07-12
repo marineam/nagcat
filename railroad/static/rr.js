@@ -857,6 +857,7 @@ $(document).ready(function() {
     });
 
     $('#localtime, #utc').bind('change', function() {
+        $('#configurator').trigger('change');
         graphs = $('.graph');
         graphs.each(function(index, element) {
             if ($(element).data('data')) {
