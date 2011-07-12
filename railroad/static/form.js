@@ -2,7 +2,6 @@
 $(document).ready(function() {
     /******* AJAX Helpers ******/
     $('body').ajaxStart(function() {
-        console.log('found an ajax!');
         if ($('#cursor').length == 0) {
             $('body').append('<images id="cursor" src="/railroad-static/images/loading.gif" style="position: absolute;"/>');
             $('body').mousemove(function(e) {
