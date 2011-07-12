@@ -681,7 +681,6 @@ function expand_row(row) {
 $(document).ready(function() {
     /******* AJAX Helpers ******/
     $('body').ajaxStart(function() {
-        console.log('found an ajax!');
         if ($('#cursor').length == 0) {
             $('body').append('<img id="cursor" src="/railroad-static/img/loading.gif" style="position: absolute;"/>');
             $('body').mousemove(function(e) {
