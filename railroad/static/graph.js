@@ -209,7 +209,6 @@ function numberFormatter(n, base, labels) {
 
 // Format a label, passed to Flot
 function labelFormatter(label, series) {
-    //return '<input type="button" id="'+label+'" value="'+label+'" class="removeSeries"></input>';
 
     var checked = "";
     if (series.lines.show) {
