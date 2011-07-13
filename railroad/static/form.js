@@ -53,7 +53,9 @@ $(document).ready(function() {
     ajaxcall = JSON.stringify(ajaxcall);
     $.ajax({
         dataType: 'json',
-        url: '/railroad/graphs?graphs=' + ajaxcall,
+        url: '/railroad/graphs',
+        data: {'graphs': ajaxcall},
+        type: 'POST',
         success: function (data, textStatus, XMLHttpRequest) {
             for (var i=0; i < data.length; i++) {
                 var element;

@@ -315,11 +315,11 @@ function createGraphs(data) {
             'service': data[i]['service'],
         });
     }
-    params = {"graphs": JSON.stringify(params)}
 
     $.ajax({
-        data: params,
+        data: {'graphs': JSON.stringify(params)},
         url: '/railroad/configurator/graph',
+        type: 'POST',
         dataType: 'html',
         success: function (html, textStatus, XMLHttpRequest) {
             $(html).appendTo('#graphs');
@@ -385,8 +385,8 @@ function drawGraph (elemGraph, data) {
         }
         graphs_to_update = [];
         graphs.each(function(index, element) {
-            $(element).data('start', ranges.xaxis.from / 1000);
-            $(element).data('end', ranges.xaxis.to / 1000);
+            $(element).data('start', parseInt(ranges.xaxis.from / 1000));
+            $(element).data('end', parseInt(ranges.xaxis.to / 1000));
             if ( $(element).data('data')) {
                 graphs_to_update.push(getGraphDataByData(element));
             }
@@ -395,7 +395,9 @@ function drawGraph (elemGraph, data) {
         if ( graphs_to_update.length > 0 ) {
             ajaxcall = JSON.stringify(graphs_to_update);
             $.ajax ({
-                url: '/railroad/graphs?graphs=' + ajaxcall,
+                url: '/railroad/graphs',
+                data: {'graphs': ajaxcall},
+                type: 'POST',
                 dataType: 'json',
                 success: function (data, textStatus, XMLHttpRequest) {
                     for (var i=0; i < data.length; i++) {
@@ -498,7 +500,9 @@ function autoFetchData() {
     ajaxcall = JSON.stringify(graphs);
     $.ajax({
         dataType: 'json',
-        url: '/railroad/graphs?graphs=' + ajaxcall,
+        url: '/railroad/graphs',
+        data: {'graphs': ajaxcall},
+        type: 'POST',
         success: function (data, textStatus, XMLHttpRequest) {
             for (var i=0; i < data.length; i++){
                 var element = $('.{0}'.format(data[i]['slug']));

@@ -685,9 +685,10 @@ def customgraph(request):
     Graphs - A list of dictionaries containing host and service keys
     """
 
+    source = request.POST if request.POST else request.GET
     stat, obj = parse()
 
-    graphs = request.GET.get("graphs", None)
+    graphs = source.get("graphs", None)
     if graphs:
         graphs = json.loads(graphs)
         service_list = []
@@ -702,9 +703,9 @@ def customgraph(request):
                 s['uniq'] = graph['uniq']
             service_list.append(s)
     else:
-        groups = request.GET.get("group")
-        hosts = request.GET.get("host")
-        services = request.GET.get("service")
+        groups = source.get("group")
+        hosts = source.get("host")
+        services = source.get("service")
 
         service_list = get_graphs(stat, obj, hosts, groups, services)
 
@@ -936,14 +937,16 @@ def formstate(request):
 def graphs(request):
     stat, obj = parse()
 
-    graphs = request.GET.get('graphs', None)
-    hosts = request.GET.get('host', '')
-    services = request.GET.get('service', '')
-    groups = request.GET.get('group', '')
-    get_start = request.GET.get('start', None)
-    get_end = request.GET.get('end', None)
-    res = request.GET.get('res', None)
-    uniq = request.GET.get('uniq', None)
+    source = request.POST if request.POST else request.GET
+
+    graphs = source.get('graphs', None)
+    hosts = source.get('host', '')
+    services = source.get('service', '')
+    groups = source.get('group', '')
+    get_start = source.get('start', None)
+    get_end = source.get('end', None)
+    res = source.get('res', None)
+    uniq = source.get('uniq', None)
 
     string = ""
 
