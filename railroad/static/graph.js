@@ -333,6 +333,7 @@ function createGraphs(data) {
         dataType: 'html',
         success: function (html, textStatus, XMLHttpRequest) {
             $(html).appendTo('#graphs');
+            $('#stats #graph_count').html('{0} graphs'.format($('.service_row').length));
 
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {

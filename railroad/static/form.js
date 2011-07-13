@@ -84,6 +84,8 @@ $(document).ready(function() {
                 }
                 drawGraph(element, data[i]);
             }
+
+            $('#stats #graph_count').html('{0} graphs'.format($('.service_row').length));
         },
         error: function (XMLHttpRequest, textStatus, error) {
             alert ("There was an error preloading the graphs");
@@ -294,21 +296,20 @@ $(document).ready(function() {
                 func(elem);
             }
         });
+        $('.service_row .controls input[type=checkbox]').prop('checked', false);
+        $('#checkall input').prop('checked', false);
     }
     $('#checkall').bind('click', function() {
         $('#selectall.menu').toggle();
     });
     $('#remove_checked').bind('click', function() {
         allChecked(function(elem) {$(elem).remove();});
-        $('.service_row .controls input[type=checkbox]').prop('checked', false);
     });
     $('#expand_checked').bind('click', function() {
         allChecked(expand_row);
-        $('.service_row .controls input[type=checkbox]').prop('checked', false);
     });
     $('#collapse_checked').bind('click', function() {
         allChecked(collapse_row);
-        $('.service_row .controls input[type=checkbox]').prop('checked', false);
     });
 
     $('#selectall.menu li').bind('click', function(e) {

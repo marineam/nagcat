@@ -374,9 +374,12 @@ fieldset {
     padding: 4px 8px;
     cursor: pointer;
     margin-right: -1px;
+    border-radius: 2px;
 }
+
 #toolbar li:hover {
     background-color: #CCC;
+    border-color: #CCC;
 }
 
 #toolbar input {
