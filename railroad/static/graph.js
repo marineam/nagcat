@@ -110,7 +110,7 @@ function chooseBase(max) {
             break;
         }
     }
-    var result = new Array();
+    var result = [];
     result.interval = interval;
     result.bases = bases;
     result.max = max;
@@ -226,7 +226,7 @@ function labelFormatter(label, series) {
     return out;
 }
 
-/******* GRAPH GENERATION/MANIPULTION *******/
+/******* GRAPH GENERATION/MANIPULATION *******/
 
 // Takes the raw data and sets up required Flot formatting options
 function formatGraph(element, data) {
