@@ -490,12 +490,7 @@ function updateZoom(from, to) {
 function autoFetchData() {
     graphs = [];
     $('.graph.ajax').each(function (index, element) {
-        host = $(element).data('host');
-        service = $(element).data('service');
-        graph = {
-            "host" : host,
-            "service": service,
-        };
+        graph = getGraphDataByData(element);
         graphs.push(graph);
     });
     ajaxcall = JSON.stringify(graphs);
