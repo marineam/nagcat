@@ -19,7 +19,8 @@ $(document).ready(function() {
     /******* AJAX Helpers ******/
     $('body').ajaxStart(function() {
         if ($('#cursor').length == 0) {
-            $('body').append('<images id="cursor" src="/railroad-static/images/loading.gif" style="position: absolute;"/>');
+            $('body').append('<images id="cursor" src="/railroad-static/' +
+                'images/loading.gif" style="position: absolute;"/>');
             $('body').mousemove(function(e) {
                 $('#cursor').css('top', e.clientY).css('left', e.clientX+7);
             });
@@ -76,7 +77,8 @@ $(document).ready(function() {
             for (var i=0; i < data.length; i++) {
                 var element;
                 if (data[i]['uniq']) {
-                    element = $('.{0}#{1}'.format(data[i]['slug'],data[i]['uniq']));
+                    element = $('.{0}#{1}'.format(data[i]['slug'],
+                                                  data[i]['uniq']));
                 } else {
                     element = $('.{0}'.format(data[i]['slug']));
                 }
@@ -105,7 +107,9 @@ $(document).ready(function() {
 
 
     /*** Persistent form settings ***/
-    // Anything in #configurator with a class of "... persist ..." will get persistence.
+    /* Anything in #configurator with a class of "... persist ..."
+     * will get persistence.
+     */
     $('#configurator').change(function() {
         var store = {};
         var value = null;
@@ -145,7 +149,8 @@ $(document).ready(function() {
 
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
-        $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" + $(this).attr('name' ), minLength : 1, autoFocus: true})
+        $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
+            $(this).attr('name' ), minLength : 1, autoFocus: true})
     });
 
     $('#cleargraphs').click(function () {
@@ -191,13 +196,15 @@ $(document).ready(function() {
         return false;
     });
 
-    // *************************** Row manip ***************************
+    // *************************** Row manipulations ***************************
     // Expand all/of type buttons
     $('#expansion_by_type').find('input').bind('change', function() {
         auto_expansion();
+        //To shorten the else if line below to < 80 chars
+        var allCheckboxes = $(this).parent().siblings().children('input');
         if (! $(this).prop('checked')) {
             $('#expandall').prop('checked', false);
-        } else if ($(this).parent().siblings().children('input').not(':checked').length == 0) {
+        } else if ($(allCheckBoxes).not(':checked').length == 0) {
             // If all inputs are checked
             $('#expandall').prop('checked', true);
         }
@@ -266,7 +273,8 @@ $(document).ready(function() {
         hints_hidden = {};
     }
     $('.hint').each(function() {
-        if (! hints_hidden[$(this).attr('id')] && ! hints_hidden["hide_all_hints"]) {
+        if (! hints_hidden[$(this).attr('id')] &&
+            ! hints_hidden["hide_all_hints"]) {
             $(this).css('display', 'block');
         }
     });

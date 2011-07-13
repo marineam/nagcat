@@ -39,7 +39,8 @@ $.plot.formatDate = function(d, fmt, monthNames) {
     }
     var isAM = hours < 12;
     if (monthNames == null)
-        monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     if (fmt.search(/%p|%P/) != -1) {
         if (hours > 12) {
@@ -218,13 +219,17 @@ function labelFormatter(label, series) {
     var stats = "";
     try {
         stats = ' (Cur: {0}, Max: {1}, Min: {2}, Avg: {3})'.format(
-            numberFormatter(series.statistics.cur), numberFormatter(series.statistics.max),
-            numberFormatter(series.statistics.min), numberFormatter(series.statistics.avg));
+            numberFormatter(series.statistics.cur),
+            numberFormatter(series.statistics.max),
+            numberFormatter(series.statistics.min),
+            numberFormatter(series.statistics.avg)
+        );
     } catch(e) {
         // graph doesn't have cur,max,min,avg, so skip them.
     }
 
-    var out = '<input type="checkbox" id="{0}" class="removeSeries"{1}>{0}{2}</input>'.format(label, checked, stats);
+    var out = '<input type="checkbox" id="{0}" class="removeSeries"{1}>{0}{2}' +
+              '</input>'.format(label, checked, stats);
 
     return out;
 }
@@ -306,7 +311,9 @@ function getGraphDataByDiv(element) {
 
 function createGraphs(data) {
     if (data.length > 100) {
-        var conf = confirm('You asked to add {0} graphs. Do you want to continue?'.format(data.length));
+        var confText = 'You asked to add {0} graphs.'.format(data.length) +
+                       ' Do you want to continue?';
+        var conf = confirm(confText);
         if (!conf) {
             return;
         }
@@ -331,7 +338,8 @@ function createGraphs(data) {
             for (var i=0; i < data.length; i++) {
                 var element;
                 if ( data[i]['uniq']) {
-                    element = $('.{0}#{1}'.format(data[i]['slug'], data[i]['uniq']))
+                    element = $('.{0}#{1}'.format(data[i]['slug'],
+                                                  data[i]['uniq']))
                 } else {
                     element = $('.{0}'.format(data[i]['slug']));
                 }
@@ -445,8 +453,9 @@ function drawGraph (elemGraph, data) {
             redrawGraph(elemGraph, data);
         }
     });
-
-    var datePickers = $(elemGraph).siblings('.daterange').children('input').datepicker({
+    // elemGraphDates keeps the line below it < 80 chars
+    var elemGraphDates = $(elemGraph).siblings('.dategrange').children('input');
+    var datePickers = $(elemGraphDates).datepicker({
         onClose: function(selectedDate) {
             updateZoom(datePickers[0], datePickers[1]);
         },
@@ -571,7 +580,8 @@ function updateDebug() {
         $('#debug ul li').remove();
         for (var prop in localStorage) {
             var desc = localStorage[prop];
-            $('#debug ul').append('<li>({0}) {1}: {2}</li>'.format(typeof(desc), prop, desc));
+            $('#debug ul').append('<li>({0}) {1}: {2}</li>'.format(typeof(desc),
+                                                                   prop, desc));
         }
         $('#debug ul').append('<li><a href="#">Reset localStorage</a></li>');
     } else {
@@ -688,8 +698,9 @@ function collapse_row(row) {
     $(row).children('.status_text').children('h2').css({'display': 'inline'});
 
     // change the button to expand
-    $(row).children('.controls').children('div.collapse_row').addClass('expand_row');
-    $(row).children('.controls').children('div.collapse_row').removeClass('collapse_row');
+    var rowChildren = $(row).children('.controls').children('div.collapse_row');
+    $(rowChildren).addClass('expand_row');
+    $(rowChildren).removeClass('collapse_row');
 }
 function expand_row(row) {
     // Hide the graph and status text
@@ -699,7 +710,8 @@ function expand_row(row) {
     $(row).children('.status_text').children('h2').css({'display': 'block'});
 
     // change the button to expand
-    $(row).children('.controls').children('div.expand_row').addClass('collapse_row');
-    $(row).children('.controls').children('div.expand_row').removeClass('expand_row');
+    var rowChildren = $(row).children('.controls').children('div.expand_row');
+    $(rowChildren).addClass('collapse_row');
+    $(rowChildren).removeClass('expand_row');
 }
 
