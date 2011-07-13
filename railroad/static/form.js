@@ -132,7 +132,6 @@ $(document).ready(function() {
 
     $('#cleargraphs').click(function () {
         $('.service_row').remove();
-        $('#configurator').data('changed', true);
     });
 
     $('#clearform').bind('click', function () {
@@ -206,93 +205,7 @@ $(document).ready(function() {
         });
     });
 
-    // Handle configurator link generation
-    $('#static').click(function() {
-        function paint_link(data) {
-            $('#link').html('Link: <input type="text" name="link"' +
-                            ' readonly value="' + data + '" size="25" />');
-            $('#link input').focus()
-                            .select();
-        }
 
-        // If there are any service rows, we have a custom link to generate
-        if($('.service_row').size()) {
-            services = new Array();
-            $('.service_row').each(function(index, element) {
-                temp = $(element).find('.service_data').attr('href').split('/');
-                host = temp[0];
-                service = temp[1];
-                start = $(element).find('.graph').data('start');
-                end = $(element).find('.graph').data('end');
-                services[index] = [host, service, start, end];
-            });
-            data = {services: services};
-            $.ajaxq("linkgenerator",{
-                data: data,
-                dataType: 'json',
-                type: 'POST',
-                url: '/railroad/configurator/generatelink',
-                success: function(data) {
-                    paint_link(data);
-                },
-                error: function(XMLHttpRequest, textStatus, errorThrown) {
-                    // TODO: Handle error?
-                }
-            });
-        // If not, give a link to the page
-        } else {
-             paint_link(window.location);
-        } 
-    });
-
-    // Handle configurator link generation
-    $('#live').click(function() {
-        function paint_link(data) {
-            $('#link').html('Link: <input type="text" name="link"' +
-                            ' readonly value="' + data + '" size="25" />');
-            $('#link input').focus()
-                            .select();
-        }
-
-        // If anything on the page has changed, give them a link to that exact
-        // zoom, configuration, etc
-        if($('#configurator').data('changed')) {
-            services = new Array();
-            $('.service_row').each(function(index, element) {
-                temp = $(element).find('.service_data').attr('href').split('/');
-                host = temp[0];
-                service = temp[1];
-                if($(element).find('.graph').data('start')) {
-                    start = -1;
-                } else {
-                    start = null;
-                }
-                if($(element).find('.graph').data('end')) {
-                    end = -1;
-                } else {
-                    end = null;
-                }
-
-                services[index] = [host, service, start, end];
-            });
-            data = {services: services};
-            $.ajaxq("linkgenerator",{
-                data: data,
-                dataType: 'json',
-                type: 'POST',
-                url: '/railroad/configurator/generatelink',
-                success: function(data) {
-                    paint_link(data);
-                },
-                error: function(XMLHttpRequest, textStatus, errorThrown) {
-                    // TODO: Handle error?
-                }
-            });
-        // If not, give them a generic link to this page
-        } else {
-            paint_link(window.location);
-        }
-    });
 
     // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 600 * 1000);
