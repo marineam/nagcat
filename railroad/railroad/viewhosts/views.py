@@ -289,8 +289,8 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
         service['start'] = start
         service['end'] = end
         service['period'] = 'ajax'
-        service['slug'] = slugify(service['host_name']
-                service['service_description'])
+        service['slug'] = slugify(service['host_name'],
+                                  service['service_description'])
     return service_list
 
 
