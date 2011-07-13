@@ -372,6 +372,11 @@ fieldset {
     background-color: #EEE;
     height: 21px;
     padding: 4px 8px;
+    cursor: pointer;
+    margin-right: -1px;
+}
+#toolbar li:hover {
+    background-color: #CCC;
 }
 
 #toolbar input {
@@ -381,7 +386,7 @@ fieldset {
 /* Menus */
 .menu {
     position: absolute;
-    background-color: #DDD;
+    background-color: #EEE;
     display: none;
 }
 .menu li {
@@ -391,5 +396,5 @@ fieldset {
     border: 1px solid black;
 }
 .menu li:hover {
-    background-color: #AAA;
+    background-color: #CCC;
 }
