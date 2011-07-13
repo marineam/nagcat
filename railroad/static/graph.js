@@ -378,7 +378,6 @@ function drawGraph (elemGraph, data) {
         }
     }
     $(elemGraph).bind('plotselected', function (event, ranges) {
-        elemGraph.removeClass('ajax');
         if ($('#sync').prop('checked')) {
             graphs = $('.graph');
         } else {
@@ -386,6 +385,7 @@ function drawGraph (elemGraph, data) {
         }
         graphs_to_update = [];
         graphs.each(function(index, element) {
+            $(element).removeClass('ajax');
             $(element).data('start', parseInt(ranges.xaxis.from / 1000));
             $(element).data('end', parseInt(ranges.xaxis.to / 1000));
             if ( $(element).data('data')) {
