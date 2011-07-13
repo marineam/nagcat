@@ -2,21 +2,13 @@
 
 {% block title %}{{htmltitle}}{% endblock %}
 
-{% block header %}
-{% ifequal page_state '0' %}
-	<span class="greenbg">
-{% else %}
-    {% ifequal page_state '1' %}
-    	<span class="redbg">
-    {% else %}
-        <span>
-    {% endifequal %}
-{% endifequal %}
-{{pagetitle}}</span>{% endblock %}
+{% block header %}{{pagetitle}}{% endblock %}
 
 {% block content %}
 
 {% include "form.html" %}
+
+{% include "toolbar.html" %}
 
 <div class="services">
 <table id="graphs">

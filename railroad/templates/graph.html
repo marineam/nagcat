@@ -2,8 +2,7 @@
 {% for graph in loaded_graphs %}
     <tr class="service_row">
         <td class="controls">
-            <div class="collapse_row"></div>
-            <div class="remove_row"></div>
+            <input type="checkbox">
         </td>
         <td class="status_text state_{{ graph.current_state|state_name|lower }}">
             <h2><a href="/railroad/configurator/host/{{graph.host_name}}">{{graph.host_name}}</a></h2>

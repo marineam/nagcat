@@ -266,8 +266,6 @@ $(document).ready(function() {
         }
     });
 
-
-
     var hints_hidden = localStorageGet('hints_hidden');
     if (hints_hidden == null) {
         hints_hidden = {};
@@ -283,4 +281,56 @@ $(document).ready(function() {
     $('#sortby').bind('change', sortGraphs);
     $('#reverse_sort').bind('change', sortGraphs);
 
+    /****** Tool bar stuff *****/
+    $('#check_controls input[type=checkbox]').bind('click', function(event) {
+        $('.service_row .controls input[type=checkbox]').prop('checked', $(this).prop('checked'));
+        // Don't trigger the click event of the parent
+        event.stopPropagation();
+    });
+
+    var allChecked = function(func) {
+        $('.service_row').each(function(index, elem) {
+            if ($(elem).children('.controls').children('input').prop('checked')) {
+                func(elem);
+            }
+        });
+    }
+    $('#checkall').bind('click', function() {
+        $('#selectall.menu').toggle();
+    });
+    $('#remove_checked').bind('click', function() {
+        allChecked(function(elem) {$(elem).remove();});
+        $('.service_row .controls input[type=checkbox]').prop('checked', false);
+    });
+    $('#expand_checked').bind('click', function() {
+        allChecked(expand_row);
+        $('.service_row .controls input[type=checkbox]').prop('checked', false);
+    });
+    $('#collapse_checked').bind('click', function() {
+        allChecked(collapse_row);
+        $('.service_row .controls input[type=checkbox]').prop('checked', false);
+    });
+
+    $('#selectall.menu li').bind('click', function(e) {
+        switch ($(this).attr('name')) {
+            case 'all':
+                $('.service_row .controls input[type=checkbox]').prop('checked', true);
+                break;
+            case 'none':
+                $('.service_row .controls input[type=checkbox]').prop('checked', false);
+                break;
+            case 'state_ok':
+            case 'state_warning':
+            case 'state_critical':
+            case 'state_unknown':
+                var button = this;
+                $('.service_row').each(function(index, elem) {
+                    if ($(elem).children('.status_text').hasClass($(button).attr('name'))) {
+                        $(elem).children('.controls').children('input').prop('checked', true);
+                    }
+                });
+                break;
+        }
+        $('#selectall.menu').hide();
+    });
 });

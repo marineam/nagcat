@@ -346,3 +346,50 @@ fieldset {
     left: 10px;
     bottom: 10px;
 }
+
+/* CSS Sprites */
+.sprite {
+    width: 16px;
+    height: 16px;
+    background: url('/railroad-static/images/ui-icons_222222_256x240.png') no-repeat;
+    display: inline-block;
+}
+.open_tri_s {
+    background-position: -64px 0px;
+}
+
+/* Toolbar */
+#toolbar {
+    margin: 8px 0 12px 0;
+}
+#toolbar ul {
+    margin: 3px 6px 3px 0;
+    display: inline;
+}
+#toolbar li {
+    display: inline;
+    border: 1px solid #AAA;
+    background-color: #EEE;
+    height: 21px;
+    padding: 4px 8px;
+}
+
+#toolbar input {
+    margin: 3px 0 0 0;
+}
+
+/* Menus */
+.menu {
+    position: absolute;
+    background-color: #DDD;
+    display: none;
+}
+.menu li {
+    display: block;
+    padding: 3px;
+    margin-top: -1px;
+    border: 1px solid black;
+}
+.menu li:hover {
+    background-color: #AAA;
+}
