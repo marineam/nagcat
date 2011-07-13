@@ -184,6 +184,25 @@ function tickFormatter(val, axis) {
     return (val / final_base).toFixed(axis.tickDecimals) + bases[interval];
 }
 
+function numberFormatter(n, base, labels) {
+    if (base == undefined) {
+        base = 1024;
+    }
+    if (labels == undefined) {
+        labels = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y', 'H'];
+    }
+    if (n==null) {
+        return '';
+    }
+    label_index = 0;
+    while (n > base && label_index < labels.length-1) {
+        n /= base;
+        label_index++;
+    }
+
+    return '{0}{1}'.format(n.toPrecision(3), labels[label_index]);
+}
+
 // Format a label, passed to Flot
 function labelFormatter(label, series) {
     //return '<input type="button" id="'+label+'" value="'+label+'" class="removeSeries"></input>';
@@ -196,8 +215,8 @@ function labelFormatter(label, series) {
     var stats = "";
     try {
         stats = ' (Cur: {0}, Max: {1}, Min: {2}, Avg: {3})'.format(
-            series.statistics.cur.toPrecision(4), series.statistics.max.toPrecision(4),
-            series.statistics.min.toPrecision(4), series.statistics.avg.toPrecision(4));
+            numberFormatter(series.statistics.cur), numberFormatter(series.statistics.max),
+            numberFormatter(series.statistics.min), numberFormatter(series.statistics.avg));
     } catch(e) {
         // graph doesn't have cur,max,min,avg, so skip them.
     }
