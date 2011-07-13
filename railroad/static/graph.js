@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/* This file primarily contains function definitions used in
+ * plotting graphs for configurator.
+ */
+
 /******* GLOBALS ********/
 // Base for data manipulation
 // TODO: Find a way to remove global variable?
@@ -327,7 +331,7 @@ function createGraphs(data) {
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
                 var element;
-                if ( $('.{0}'.format(data[i]['slug'])).length > 1) {
+                if ( data[i]['uniq']) {
                     element = $('.{0}#{1}'.format(data[i]['slug'], data[i]['uniq']))
                 } else {
                     element = $('.{0}'.format(data[i]['slug']));
@@ -347,8 +351,6 @@ function createGraphs(data) {
                     drawGraph(element, data[i]);
                 }
             }
-            // get the graphs collapsed/expanded as they should be.
-            auto_expansion();
         },
         error: function() {
             console.error('failed to get graph html');
@@ -669,6 +671,7 @@ function auto_expansion() {
 function collapse_or_expand(row) {
     states = {};
     $('#expansion_by_type input').each(function(index, element) {
+        states[element.id] = $(element).prop('checked');
     });
     for (var s in states) {
         if ($(row).children('td.status_text').hasClass(s)) {
