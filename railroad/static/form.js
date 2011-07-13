@@ -159,6 +159,7 @@ $(document).ready(function() {
     });
 
     $('#localtime, #utc').bind('change', function() {
+        // Guarantee that localstorage gets the change before redrawing graphs
         $('#configurator').trigger('change');
         graphs = $('.graph');
         graphs.each(function(index, element) {
