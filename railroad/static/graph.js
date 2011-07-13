@@ -302,6 +302,12 @@ function getGraphDataByDiv(element) {
 }
 
 function createGraphs(data) {
+    if (data.length > 100) {
+        var conf = confirm('You asked to add {0} graphs. Do you want to continue?'.format(data.length));
+        if (!conf) {
+            return;
+        }
+    }
     var params = [];
     for (var i=0; i<data.length; i++) {
         params.push({
