@@ -883,9 +883,10 @@ $(document).ready(function() {
     $('#reverse_sort').bind('change', sortGraphs);
 
     /******** Quicklook view ********/
-    $('li.status_text').children('span').bind('click', function() {
+    $('#quicklook .status_text, .host').bind('click', function() {
         $(this).siblings('ul').toggle();
     });
-    $('li.status_text.state_ok').children('ul').hide();
+    $('#quicklook .status_text.state_ok').siblings('ul').hide();
+    $('#quicklook .host').siblings('ul').hide();
 
 });
