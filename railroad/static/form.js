@@ -330,6 +330,7 @@ $(document).ready(function() {
     });
     $('#remove_checked').bind('click', function() {
         allChecked(function(elem) {$(elem).remove();});
+        update_number_graphs();
     });
     $('#expand_checked').bind('click', function() {
         allChecked(expand_row);
