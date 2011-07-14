@@ -228,8 +228,8 @@ function labelFormatter(label, series) {
         // graph doesn't have cur,max,min,avg, so skip them.
     }
 
-    var out = ('<input type="checkbox" id="{0}" class="removeSeries"{1}>{0}{2}' +
-              '</input>').format(label, checked, stats);
+    var out = ('<input type="checkbox" id="{0}" class="removeSeries"{1}>' +
+               '{0}{2}</input>').format(label, checked, stats);
 
     return out;
 }
@@ -412,6 +412,29 @@ function drawGraph (elemGraph, data) {
             });
         }
     });
+
+    function showTooltip(x, y, label) {
+        $('#tooltip').remove()
+        $('<div id="tooltip">{0}</div>'.format(label)).appendTo('body')
+            .css({'left': x, 'top': y});
+    }
+
+    var prevItem = null;
+    $(elemGraph).parent().bind('plothover', function(event, pos, item) {
+        if (item) {
+            if(item != prevItem) {
+                prevItem = item;
+                var label = '<h3>{0} - {2}</h3><p>({1})</p>'.format(
+                    item.series.label, new Date(pos.x).toString(),
+                    numberFormatter(pos.y))
+
+                showTooltip(item.pageX, item.pageY, label);
+            }
+        } else {
+            $('#tooltip').remove();
+        }
+    });
+
     $('.removeSeries').live('click', function () {
         var elemGraph = $(this).closest('.legend').siblings('.graph');
         if (elemGraph.data('data')) {

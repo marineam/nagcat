@@ -140,7 +140,9 @@ def get_data(host, service, start=None, end=None, resolution='150'):
         'legend': {'position': 'nw'},
         'selection': {'mode': 'x'},
         'pan': {'interactive': True},
-        'grid': {}
+        'grid': {
+            'hoverable': True,
+        }
     }
 
     # Handle unconventional trend definitions
@@ -187,7 +189,7 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     # [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
     #   { label: "Bar", data: [ [11, 13], [19, 11], [30, -7] ] } ]
     # See Flot Reference (http://flot.googlecode.com/svn/trunk/API.txt)
-    flot_data = [{'label': label[1], railroad_conf: {}, 'data': []}    \
+    flot_data = [{'label': label[1], railroad_conf: {}, 'data': []}
                     for label in labels]
 
     labels = map(lambda x: x[0], labels)
@@ -273,6 +275,10 @@ def get_data(host, service, start=None, end=None, resolution='150'):
                     flot_data[index][statistics]['min'] = data
 
             flot_data[index]['data'].append([x, data])
+
+            if 'lines' not in flot_data[index]:
+                flot_data[index]['lines'] = {}
+            flot_data[index]['lines']['show'] = True
 
         x += res
 
