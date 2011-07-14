@@ -333,6 +333,7 @@ function createGraphs(data) {
             $(html).appendTo('#graphs');
             update_number_graphs();
             sortGraphs();
+            update_number_graphs();
 
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
