@@ -243,14 +243,12 @@ function formatGraph(element, data) {
     var first = true;
     var max = null;
     for (var i=0; i < data.data.length; i++) {
-        if ( data.data[i].lines) {
-            if (data.data[i].lines.show) {
-                for (var j=0; j < data.data[i].data.length; j++) {
-                    var val = data.data[i].data[j][1];
-                    if (( val > max && val != null) || first ) {
-                        max = val;
-                        first = false;
-                    }
+        if (data.data[i].lines.show) {
+            for (var j=0; j < data.data[i].data.length; j++) {
+                var val = data.data[i].data[j][1];
+                if (( val > max && val != null) || first ) {
+                    max = val;
+                    first = false;
                 }
             }
         }
@@ -348,15 +346,6 @@ function createGraphs(data) {
                 element.data('host', data[i]['host']);
                 element.data('service', data[i]['service']);
                 if (data[i].data) {
-                    for (var j=0; j< data[i].data.length; j++) {
-                        if ( data[i].data[j].label) {
-                            if (data[i].data[j].lines) {
-                                data[i].data[j].lines.show = true;
-                            } else {
-                                data[i].data[j].lines = { "show" : true };
-                            }
-                        }
-                    }
                     drawGraph(element, data[i]);
                 }
             }
@@ -369,15 +358,6 @@ function createGraphs(data) {
 
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
-    for (var i=0; i < data.data.length; i++) {
-        if ( data.data[i].label) {
-            if ( data.data[i].lines ) {
-                data.data[i].lines.show = true;
-            } else {
-                data.data[i].lines = { "show" : true };
-            }
-        }
-    }
     redrawGraph(elemGraph, data)
     collapse_or_expand($(elemGraph).closest('.service_row'));
     if(data.options.yaxis.label) {
@@ -412,15 +392,6 @@ function drawGraph (elemGraph, data) {
                 dataType: 'json',
                 success: function (data, textStatus, XMLHttpRequest) {
                     for (var i=0; i < data.length; i++) {
-                        for (var j=0; j < data[i].data.length; j++) {
-                            if ( data[i].data[j].label ) {
-                                if ( data[i].data[j].lines ) {
-                                    data[i].data[j].lines.show = true;
-                                } else {
-                                    data[i].data[j].lines = { "show": true };
-                                }
-                            }
-                        }
                         if (data[i].data) {
                             elemGraph = $('.{0}'.format(data[i]['slug']));
                             redrawGraph(elemGraph, data[i]);
@@ -447,9 +418,6 @@ function drawGraph (elemGraph, data) {
             data = elemGraph.data('data');
             for (var i=0; i < data.data.length; i++) {
                 if (data.data[i].label == $(this).attr('id')) {
-                    if (!data.data[i]['lines']) {
-                        data.data[i]['lines'] = {'show': true};
-                    }
                     data.data[i]['lines']['show'] ^= true; // toggle
                 }
             }

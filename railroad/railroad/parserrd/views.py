@@ -206,9 +206,10 @@ def get_data(host, service, start=None, end=None, resolution='150'):
         for var in trend_attributes:
             trend_settings[var] = trend.get(var, '')
 
+        flot_data[index]['lines'] = {'show': True}
         if trend_settings['display']:
-            flot_data[index]['lines'] =     \
-                {'fill': 0.5 if trend_settings['display'] == 'area' else 0}
+            flot_data[index]['lines']['fill'] = (
+                    0.5 if trend_settings['display'] == 'area' else 0)
 
         if trend_settings['scale']:
             flot_data[index][railroad_conf]['scale'] = trend_settings['scale']
@@ -292,9 +293,10 @@ def get_data(host, service, start=None, end=None, resolution='150'):
 
         for index in indices:
             if flot_data[index][statistics]['num'] > 0:
-                flot_data[index][statistics]['avg'] =           \
-                    flot_data[index][statistics]['sum'] /       \
-                        flot_data[index][statistics]['num']
+                flot_data[index][statistics]['avg'] = (
+                    flot_data[index][statistics]['sum'] /
+                        flot_data[index][statistics]['num'])
+
                 if flot_data[index][statistics]['max'] > max:
                     max = flot_data[index][statistics]['max']
 
