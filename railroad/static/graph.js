@@ -334,6 +334,7 @@ function createGraphs(data) {
         success: function (html, textStatus, XMLHttpRequest) {
             $(html).appendTo('#graphs');
             update_number_graphs();
+            sortGraphs();
 
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
@@ -432,6 +433,7 @@ function drawGraph (elemGraph, data) {
                             }
                         }
                     }
+                    sortGraphs();
                 },
                error: function (XMLHttpRequest, textStatus, errorThrown) {
                     alert ("Something went wrong in getting new data");

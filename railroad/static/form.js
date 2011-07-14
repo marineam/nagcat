@@ -68,6 +68,7 @@ $(document).ready(function() {
         ajaxcall.push(getGraphDataByDiv(element));
     });
     ajaxcall = JSON.stringify(ajaxcall);
+    sortGraphs();
     $.ajax({
         dataType: 'json',
         url: '/railroad/graphs',
@@ -213,7 +214,6 @@ $(document).ready(function() {
                 //reset_fields();
                 $('#clearform').trigger('click');
                 createGraphs(data);
-                //sortGraphs();
             },
             error: function(XMLHttpRequest, textStatus, errorThrown) {
                 // TODO: Indicate error somehow, probably
