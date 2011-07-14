@@ -85,8 +85,10 @@ $(document).ready(function() {
                 drawGraph(element, data[i]);
             }
 
-            $('#stats #graph_count').html('{0} graphs'.format(
+            $('#stats #graph_count').html('{0} Graphs'.format(
                 $('.graph').length));
+            $('#stats #service_count').html('{0} Services'.format(
+                $('.service_row').length));
         },
         error: function (XMLHttpRequest, textStatus, error) {
             alert ("There was an error preloading the graphs");
