@@ -333,10 +333,7 @@ function createGraphs(data) {
         dataType: 'html',
         success: function (html, textStatus, XMLHttpRequest) {
             $(html).appendTo('#graphs');
-            $('#stats #graph_count').html('{0} Graphs'.format(
-                $('.graph').length));
-            $('#stats #service_count').html('{0} Services'.format(
-                $('.service_row').length));
+            update_number_graphs();
 
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
@@ -719,3 +716,15 @@ function expand_row(row) {
     $(rowChildren).removeClass('expand_row');
 }
 
+function update_number_graphs() {
+    $('#stats #service_count').html('{0} Services'.format(
+        $('.service_row').length));
+    $('#stats #state_ok_count').html('{0}'.format(
+        $('.service_row .state_ok').length));
+    $('#stats #state_warning_count').html('{0}'.format(
+        $('.service_row .state_warning').length));
+    $('#stats #state_critical_count').html('{0}'.format(
+        $('.service_row .state_critical').length));
+    $('#stats #state_unknown_count').html('{0}'.format(
+        $('.service_row .state_unknown').length));
+}

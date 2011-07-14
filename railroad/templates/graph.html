@@ -2,7 +2,7 @@
 {% for graph in loaded_graphs %}
     <tr class="service_row">
         <td class="controls">
-            <input type="checkbox">
+            <input type="checkbox" class="graphcheckbox">
         </td>
         <td class="status_text state_{{ graph.current_state|state_name|lower }}">
             <h2><a href="/railroad/configurator/host/{{graph.host_name}}">{{graph.host_name}}</a></h2>

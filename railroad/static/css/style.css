@@ -137,10 +137,6 @@ ul, ol {
 	background-image: url("/railroad-static/images/remove.png");
 }
 
-td.state_ok       { background-color: #BFB; }
-td.state_warning  { background-color: #FFB; }
-td.state_critical { background-color: #FF6347; }
-td.state_unknown  { background-color: #CCC; }
 
 #graphs { border-collapse: collapse; }
 
@@ -418,7 +414,7 @@ fieldset {
 #quicklook .host { cursor: pointer; font-size: 1.1em; }
 
 #quicklook .status_text { cursor: pointer; font-size: 1.2em; font-weight: bold; }
-#quicklook .state_ok { background-color: #BFB; }
-#quicklook .state_warning { background-color: #FFB; }
-#quicklook .state_critical { background-color: #FF6347; }
-#quicklook .state_unknown { background-color: #CCC; }
+.state_ok       { background-color: #BFB !important;  }
+.state_warning  { background-color: #FFB !important; }
+.state_critical { background-color: #FF6347 !important; }
+.state_unknown  { background-color: #CCC !important; }

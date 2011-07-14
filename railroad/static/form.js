@@ -84,11 +84,8 @@ $(document).ready(function() {
                 }
                 drawGraph(element, data[i]);
             }
+            update_number_graphs();
 
-            $('#stats #graph_count').html('{0} Graphs'.format(
-                $('.graph').length));
-            $('#stats #service_count').html('{0} Services'.format(
-                $('.service_row').length));
         },
         error: function (XMLHttpRequest, textStatus, error) {
             alert ("There was an error preloading the graphs");
@@ -160,6 +157,31 @@ $(document).ready(function() {
 
     $('#cleargraphs').click(function () {
         $('.service_row').remove();
+    });
+
+    $('#service_count').click(function () {
+        var checkp = true;
+        if ( $('.checkall').prop('checked') ) {
+            checkp = false;
+        } else {
+            checkp = true;
+        }
+        checkboxes = $('.graphcheckbox');
+        checkboxes.each(function (index, element) {
+            $(element).prop('checked', checkp);
+            $(element).trigger('change');
+        });
+    });
+
+    $('.graphcheckbox').change(function () {
+        var checkp = true;
+        var checkboxes = $('.graphcheckbox');
+        checkboxes.each(function (index, element) {
+            if (  ! $(element).prop('checked') ) {
+                checkp = false;
+            }
+        });
+        $('.checkall').prop('checked', checkp);
     });
 
     $('#clearform').bind('click', function () {
@@ -288,7 +310,8 @@ $(document).ready(function() {
 
     /****** Tool bar stuff *****/
     $('#check_controls input[type=checkbox]').bind('click', function(event) {
-        $('.service_row .controls input[type=checkbox]').prop('checked', $(this).prop('checked'));
+        $('.service_row .controls input[type=checkbox]').prop('checked',
+            $(this).prop('checked'));
         // Don't trigger the click event of the parent
         event.stopPropagation();
     });
@@ -335,6 +358,7 @@ $(document).ready(function() {
                 });
                 break;
         }
+        $('.graphcheckbox').trigger('change');
         $('#selectall.menu').hide();
     });
 
