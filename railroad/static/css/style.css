@@ -359,9 +359,10 @@ fieldset {
     background: url('/railroad-static/images/ui-icons_222222_256x240.png') no-repeat;
     display: inline-block;
 }
-.open_tri_s {
-    background-position: -64px 0px;
-}
+.open_tri_s { background-position: -64px 0px; }
+.arrow_e { background-position: -32px -32px; }
+
+.arrow_e.hover:hover { background-position: -32px -48px; }
 
 /* Toolbar */
 #toolbar {

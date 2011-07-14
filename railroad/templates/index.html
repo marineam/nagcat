@@ -26,7 +26,7 @@ graphs of your choice.
             {% for host in hosts_in_state %}
                 <li>
                     <span class="host">{{ host.grouper }} - {{host.list|length}} service{{state.list|length|pluralize}}</span>
-                    <a href="/railroad/viewhost/{{host.grouper}}">-></a>
+                    <a href="/railroad/configurator/host/{{host.grouper}}"><div class="sprite arrow_e hover"></div></a>
                     <ul>
                         {% for state in host.list %}
                             <li>
