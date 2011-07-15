@@ -507,7 +507,7 @@ function autoFetchData() {
             for (var i=0; i < data.length; i++){
                 var element = $('.{0}'.format(data[i]['slug']));
                 if (data[i].data) {
-                    drawGraph(element, data[i]);
+                    redrawGraph(element, data[i]);
                 }
             }
         },
