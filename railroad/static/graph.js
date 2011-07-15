@@ -333,7 +333,6 @@ function createGraphs(data) {
             $(html).appendTo('#graphs');
             update_number_graphs();
             sortGraphs();
-            update_number_graphs();
 
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
@@ -713,12 +712,32 @@ function expand_row(row) {
 function update_number_graphs() {
     $('#stats #service_count').html('{0} Services'.format(
         $('.service_row').length));
-    $('#stats #state_ok_count').html('{0}'.format(
+    $('#stats .state_ok').html('{0}'.format(
         $('.service_row .state_ok').length));
-    $('#stats #state_warning_count').html('{0}'.format(
+    $('#stats .state_warning').html('{0}'.format(
         $('.service_row .state_warning').length));
-    $('#stats #state_critical_count').html('{0}'.format(
+    $('#stats .state_critical').html('{0}'.format(
         $('.service_row .state_critical').length));
-    $('#stats #state_unknown_count').html('{0}'.format(
+    $('#stats .state_unknown').html('{0}'.format(
         $('.service_row .state_unknown').length));
+}
+
+var update_hidden_count = function() {
+    console.log('update_hidden_count');
+    if ($('#hiddenCount').length == 0) {
+        $('#stats').append('<span id="hiddenCount"></span>');
+    }
+    var count = $('.service_row').filter(':hidden').length;
+    if (count > 0) {
+        $('#hiddenCount').html('{0} hidden'.format(count));
+    } else {
+        $('#hiddenCount').remove();
+    }
+    $('#stats .state_count').each(function(index, element) {
+        var buttonClass = $(this).attr('name');
+        var checkp = $('.service_row').children('.status_text')
+            .filter('.' + buttonClass + ':hidden').length > 0;
+        $(this).data('checkp', checkp);
+        $(element).css({'opacity': checkp ? 0.4 : 1.0});
+    });
 }

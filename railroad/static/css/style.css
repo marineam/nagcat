@@ -294,7 +294,7 @@ fieldset {
 }
 /* Hints! */
 .hint {
-    display: none ;
+    display: none;
     padding: 3px 20px 3px 3px;
     border: 1px solid #FC4;
     background-color: #FFB;
@@ -303,7 +303,6 @@ fieldset {
     position: relative;
     width: 250px;
 }
-.hint:before { content: "Hint: ";}
 
 .hide_hint {
     margin-left: 5;
@@ -357,6 +356,7 @@ fieldset {
 }
 .open_tri_s { background-position: -64px 0px; }
 .arrow_e { background-position: -32px -32px; }
+.info { background-position: -16px -142px; }
 
 .arrow_e.hover:hover { background-position: -32px -48px; }
 
@@ -389,9 +389,9 @@ fieldset {
 #toolbar li.state_critical:hover { background-color: #D42 !important; }
 #toolbar li.state_unknown:hover  { background-color: #AAA !important; }
 
-#toolbar input {
-    margin: 3px 0 0 0;
-}
+#toolbar input { margin: 3px 0 0 0; }
+
+#toolbar #hiddenCount { opacity: 0.5; font-size: 0.8em; padding: 3px; }
 
 /* Menus */
 .menu {

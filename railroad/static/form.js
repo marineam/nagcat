@@ -18,18 +18,14 @@
 $(document).ready(function() {
     /******* AJAX Helpers ******/
     $('body').ajaxStart(function() {
-        if ($('#cursor').length == 0) {
-            $('body').append('<images id="cursor" src="/railroad-static/' +
+        if ($('#loading').length == 0) {
+            $('body').append('<images id="loading" src="/railroad-static/' +
                 'images/loading.gif" style="position: absolute;"/>');
-            $('body').mousemove(function(e) {
-                $('#cursor').css('top', e.clientY).css('left', e.clientX+7);
-            });
-            $('body').trigger('mousemove');
         }
     });
 
     $('body').ajaxStop(function() {
-        $('#cursor').remove();
+        $('#loading').remove();
     });
 
     /**** GRAPH SETUP ****/
@@ -68,6 +64,7 @@ $(document).ready(function() {
         ajaxcall.push(getGraphDataByDiv(element));
     });
     ajaxcall = JSON.stringify(ajaxcall);
+    update_number_graphs();
     sortGraphs();
     $.ajax({
         dataType: 'json',
@@ -156,35 +153,33 @@ $(document).ready(function() {
             $(this).attr('name' ), minLength : 1, autoFocus: true})
     });
 
-    $('#cleargraphs').click(function () {
-        $('.service_row').remove();
-    });
-
     $('#service_count').click(function () {
-        var checkp = true;
-        if ( $('.checkall').prop('checked') ) {
-            checkp = false;
-        } else {
-            checkp = true;
-        }
-        checkboxes = $('.graphcheckbox');
-        checkboxes.each(function (index, element) {
-            $(element).prop('checked', checkp);
-        }).first().trigger('change');
+        $('.service_row').show();
+        console.log(update_hidden_count);
+        update_hidden_count();
+        $(this).siblings().css({'opacity': 1.0}).data('checkp', false);
     });
-    $('#state_ok_count, #state_warning_count,' +
-    '#state_critical_count, #state_unknown_count')
-    .bind('click', function() {
-        var buttonClass = $(this).attr('class');
+    $('#stats .state_count').bind('click', function() {
+        var buttonClass = $(this).attr('name');
         var checkp = !$(this).data('checkp');
         $(this).data('checkp', checkp);
 
         $('.service_row').each(function(index, element) {
             if ($(element).children('.status_text').hasClass(buttonClass)) {
-                $(element).find('.controls input[type=checkbox]')
-                    .prop('checked', checkp)
+                if (checkp) {
+                    $(element).hide();
+                } else {
+                    $(element).show();
+                }
             }
-        }).first().find('.controls input[type=checkbox]').trigger('change');
+        });
+        update_hidden_count();
+    });
+
+    $('#cleargraphs').click(function () {
+        $('.service_row').remove();
+        update_number_graphs()
+        update_hidden_count();
     });
 
     $('.graphcheckbox').change(function () {
@@ -198,7 +193,7 @@ $(document).ready(function() {
         $('.checkall').prop('checked', checkp);
     });
 
-    $('#clearform').bind('click', function () {
+    $('#cupdate_number_graphslearform').bind('click', function () {
         $('#host').val("");
         $('#group').val("");
         $('#service').val("");
@@ -277,6 +272,7 @@ $(document).ready(function() {
     setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
+    $('.hint').prepend('<div class="sprite info"></div>');t:
     $('.hint').append('<span class="hide_hint"></span>');
 
     $('.hint .hide_hint').bind('click',
@@ -313,7 +309,8 @@ $(document).ready(function() {
     $('.hint').each(function() {
         if (! hints_hidden[$(this).attr('id')] &&
             ! hints_hidden["hide_all_hints"]) {
-            $(this).css('display', 'block');
+
+            $(this).css('display', 'inline-block');
         }
     });
 

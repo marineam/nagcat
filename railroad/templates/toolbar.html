@@ -6,18 +6,21 @@
         </li>
     </ul>
     <ul id="row_manip">
-        {# The weird spacing has a purpose: it makes spaces in the html go away #}
+        {# The weird spacing has a purpose: it makes whitespace go away #}
         <li id="remove_checked">Remove</li
         ><li id="collapse_checked">Collapse</li
         ><li id="expand_checked">Expand</li>
     </ul>
     <ul id="stats">
         <li id="service_count">0 Services</li
-        ><li id="state_ok_count" class="state_ok">0</li
-        ><li id="state_warning_count" class="state_warning">0</li
-        ><li id="state_critical_count" class="state_critical">0</li
-        ><li id="state_unknown_count" class="state_unknown">0</li>
+        ><li class="state_count state_ok" name="state_ok">0</li
+        ><li class="state_count state_warning" name="state_warning">0</li
+        ><li class="state_count state_critical" name="state_critical">0</li
+        ><li class="state_count state_unknown" name="state_unknown">0</li>
     </ul>
+    <span class="hint" id="hintcountbuttons">
+        Click these buttons to hide/show rows. Click the main counter to show them all again.
+    </span>
 </div>
 <div class="menu" id="selectall">
     <ul>

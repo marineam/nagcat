@@ -14,7 +14,11 @@ graphs of your choice.
 
 <div id="quicklook">
 <h2>Quicklook</h2>
-<div class="hint" style="width: 400px;" id="quicklookhint">Click on the status names to collapse/expand them, or on a service to jump to it's graph on that host. Services that are OK have been automatically hidden.</div>
+<div class="hint" style="width: 400px;" id="quicklookhint">
+    Click on the status or hosts to collapse and expand them. Click on a
+    service to see it's details, or on the arrow next to a host to see that
+    host. Services that are OK have been automatically hidden.
+</div>
 
 {% regroup services|dictsort:"current_state" by current_state as service_states %}
 <ul>
