@@ -449,7 +449,7 @@ function drawGraph (elemGraph, data) {
         }
     });
     // elemGraphDates keeps the line below it < 80 chars
-    var elemGraphDates = $(elemGraph).siblings('.dategrange').children('input');
+    var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
     var datePickers = $(elemGraphDates).datepicker({
         onClose: function(selectedDate) {
             updateZoom(datePickers[0], datePickers[1]);
