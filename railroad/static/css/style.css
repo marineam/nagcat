@@ -418,7 +418,6 @@ fieldset {
 .state_warning  { background-color: #FFB !important; }
 .state_critical { background-color: #FF6347 !important; }
 .state_unknown  { background-color: #CCC !important; }
-<<<<<<< HEAD
 
 #tooltip {
     position: absolute;
@@ -427,5 +426,3 @@ fieldset {
     opacity: 0.8;
     border: 1px solid black;
 }
-=======
->>>>>>> made toolbar count good/warning/crit/unknown graphs
