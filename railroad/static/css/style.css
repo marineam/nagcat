@@ -381,8 +381,13 @@ fieldset {
 
 #toolbar li:hover {
     background-color: #CCC;
-    border-color: #CCC;
+    border-color: #777;
 }
+
+#toolbar li.state_ok:hover       { background-color: #9D9 !important; }
+#toolbar li.state_warning:hover  { background-color: #DD9 !important; }
+#toolbar li.state_critical:hover { background-color: #D42 !important; }
+#toolbar li.state_unknown:hover  { background-color: #AAA !important; }
 
 #toolbar input {
     margin: 3px 0 0 0;
@@ -416,7 +421,7 @@ fieldset {
 #quicklook .status_text { cursor: pointer; font-size: 1.2em; font-weight: bold; }
 .state_ok       { background-color: #BFB !important;  }
 .state_warning  { background-color: #FFB !important; }
-.state_critical { background-color: #FF6347 !important; }
+.state_critical { background-color: #F64 !important; }
 .state_unknown  { background-color: #CCC !important; }
 
 #tooltip {
