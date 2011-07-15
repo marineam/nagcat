@@ -170,8 +170,21 @@ $(document).ready(function() {
         checkboxes = $('.graphcheckbox');
         checkboxes.each(function (index, element) {
             $(element).prop('checked', checkp);
-            $(element).trigger('change');
-        });
+        }).first().trigger('change');
+    });
+    $('#state_ok_count, #state_warning_count,' +
+    '#state_critical_count, #state_unknown_count')
+    .bind('click', function() {
+        var buttonClass = $(this).attr('class');
+        var checkp = !$(this).data('checkp');
+        $(this).data('checkp', checkp);
+
+        $('.service_row').each(function(index, element) {
+            if ($(element).children('.status_text').hasClass(buttonClass)) {
+                $(element).find('.controls input[type=checkbox]')
+                    .prop('checked', checkp)
+            }
+        }).first().find('.controls input[type=checkbox]').trigger('change');
     });
 
     $('.graphcheckbox').change(function () {
@@ -318,7 +331,8 @@ $(document).ready(function() {
 
     var allChecked = function(func) {
         $('.service_row').each(function(index, elem) {
-            if ($(elem).children('.controls').children('input').prop('checked')) {
+            if ($(elem).children('.controls').children('input')
+                    .prop('checked')) {
                 func(elem);
             }
         });
@@ -342,10 +356,12 @@ $(document).ready(function() {
     $('#selectall.menu li').bind('click', function(e) {
         switch ($(this).attr('name')) {
             case 'all':
-                $('.service_row .controls input[type=checkbox]').prop('checked', true);
+                $('.service_row .controls input[type=checkbox]')
+                    .prop('checked', true);
                 break;
             case 'none':
-                $('.service_row .controls input[type=checkbox]').prop('checked', false);
+                $('.service_row .controls input[type=checkbox]')
+                    .prop('checked', false);
                 break;
             case 'state_ok':
             case 'state_warning':
@@ -353,8 +369,10 @@ $(document).ready(function() {
             case 'state_unknown':
                 var button = this;
                 $('.service_row').each(function(index, elem) {
-                    if ($(elem).children('.status_text').hasClass($(button).attr('name'))) {
-                        $(elem).children('.controls').children('input').prop('checked', true);
+                    var className = $(button).attr('name');
+                    if ($(elem).children('.status_text').hasClass(className)) {
+                        $(elem).children('.controls').children('input')
+                            .prop('checked', true);
                     }
                 });
                 break;
