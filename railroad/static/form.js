@@ -276,46 +276,18 @@ $(document).ready(function() {
     setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
-    $('.hint').prepend('<div class="sprite info"></div>');
-    $('.hint').append('<span class="hide_hint"></span>');
-
-    $('.hint .hide_hint').bind('click',
-        function() {
-            var hint_id = $(this).parent().attr('id');
-            var hints_hidden = localStorageGet('hints_hidden');
-            if (hints_hidden == null) {
-                hints_hidden = {};
-            }
-            hints_hidden[hint_id] = true;
-            localStorageSet('hints_hidden', hints_hidden);
-            $(this).parent().remove();
+    $('.hint').each(function(index, element) {
+        var hintText = $(element).text();
+        $('<div class="sprite info"></div>').insertBefore(element)
+        .mouseover(function(e) {
+            // on hover
+            showTooltip(e.pageX, e.pageY, hintText);
+        })
+        .mouseout(function(e) {
+            // on unhover
+            $('#tooltip').remove();
         });
-
-    $('#hide_all_hints').change(function () {
-        var hints_hidden = localStorageGet('hints_hidden');
-        if (!hints_hidden) {
-            hints_hidden = {};
-        }
-        hints_hidden['hide_all_hints'] = $(this).prop('checked');
-        localStorageSet('hints_hidden', hints_hidden);
-        if ($(this).prop('checked')) {
-            var hints = $('.hint .hide_hint');
-            hints.each(function (index,element) {
-                $(element).trigger('click');
-            });
-        }
-    });
-
-    var hints_hidden = localStorageGet('hints_hidden');
-    if (hints_hidden == null) {
-        hints_hidden = {};
-    }
-    $('.hint').each(function() {
-        if (! hints_hidden[$(this).attr('id')] &&
-            ! hints_hidden["hide_all_hints"]) {
-
-            $(this).css('display', 'inline-block');
-        }
+        $(element).remove();
     });
 
     /******** Sorting *********/

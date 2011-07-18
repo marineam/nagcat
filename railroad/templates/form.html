@@ -1,4 +1,3 @@
-<div class="hint" id="persist">This form will remember what you have entered, across browser sessions and page views.</div>
 <form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
     <div id="service_selector">
         <fieldset>
@@ -22,9 +21,9 @@
                     <input type="submit" value="Add" id="submit"/>
                     <input type="button" value="Clear Forms" id="clearform"/>
                     <input type="button" value="Clear Graphs" id="cleargraphs">
-                </li>
 
-                <li class="hint" id="csv">You can auto complete multiple comma separated values at a time.</li>
+                    <span class="hint" id="csv">You can auto complete multiple comma separated values at a time.</span >
+                </li>
             </ol>
         </fieldset>
         <fieldset>

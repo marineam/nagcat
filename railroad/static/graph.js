@@ -415,12 +415,6 @@ function drawGraph (elemGraph, data) {
         }
     });
 
-    function showTooltip(x, y, label) {
-        $('#tooltip').remove()
-        $('<div id="tooltip">{0}</div>'.format(label)).appendTo('body')
-            .css({'left': x, 'top': y});
-    }
-
     var prevItem = null;
     $(elemGraph).parent().bind('plothover', function(event, pos, item) {
         if (item) {
@@ -481,6 +475,12 @@ function redrawGraph(element, data) {
     $(element).data('end', data.end);
     $(element).data('host', data.host);
     $(element).data('service', data.service);
+}
+
+function showTooltip(x, y, label) {
+    $('#tooltip').remove()
+    $('<div id="tooltip">{0}</div>'.format(label)).appendTo('body')
+        .css({'left': x, 'top': y});
 }
 
 function updateZoom(from, to) {
