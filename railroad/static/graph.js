@@ -370,6 +370,9 @@ function drawGraph (elemGraph, data) {
             $(elemGraph).before('<div class="ylabel">' +
                 data.options.yaxis.label + '</div>');
         }
+        if ( $(elemGraph).css('display') === 'none' ) {
+            $(elemGraph).siblings('.ylabel').css('display', 'none');
+        }
     }
     $(elemGraph).bind('plotselected', function (event, ranges) {
         if ($('#sync').prop('checked')) {
@@ -400,11 +403,6 @@ function drawGraph (elemGraph, data) {
                             elemGraph = $('.{0}'.format(data[i]['slug']));
                             redrawGraph(elemGraph, data[i]);
                             if(data[i].options.yaxis.label) {
-                            // if there isn't already a ylabel
-                                if (elemGraph.siblings('.ylabel').length == 0) {
-                                    elemGraph.before('<div class="ylabel">' +
-                                        data[i].options.yaxis.label + '</div>');
-                                }
                             }
                         }
                     }
