@@ -334,6 +334,11 @@ function createGraphs(data) {
             update_number_graphs();
             sortGraphs();
 
+            var services = $('.service_row');
+            services.each(function (index, element) {
+                collapse_or_expand(element);
+            });
+
             // Now fill in the graphs.
             for (var i=0; i < data.length; i++) {
                 var element;
@@ -359,7 +364,6 @@ function createGraphs(data) {
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
     redrawGraph(elemGraph, data)
-    collapse_or_expand($(elemGraph).closest('.service_row'));
     if(data.options.yaxis.label) {
     // if there isn't already a ylabel
         if (elemGraph.siblings('.ylabel').length == 0) {

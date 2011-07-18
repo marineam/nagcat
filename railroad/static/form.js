@@ -63,6 +63,10 @@ $(document).ready(function() {
     $('.graph').each(function (index, element) {
         ajaxcall.push(getGraphDataByDiv(element));
     });
+    var services = $('.service_row');
+    services.each(function (index,element) {
+        collapse_or_expand(element);
+    });
     ajaxcall = JSON.stringify(ajaxcall);
     update_number_graphs();
     sortGraphs();
