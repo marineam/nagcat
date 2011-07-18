@@ -538,10 +538,14 @@ function makeComparer(val) {
 }
 var sorts = {
     'service': makeComparer(function(e) {
-            return $(e).find('td.status_text h2').last().text();
+            var s = $(e).find('td.status_text h2').last().text();
+            s.toLowerCase().strip();
+            return s;
         }),
     'host': makeComparer(function(e) {
-            return $(e).find('td.status_text h2').first().text();
+            var h = $(e).find('td.status_text h2').first().text();
+            h.toLowerCase().strip();
+            return h;
         }),
     'status': reverse(makeComparer(function(e) {
             e_td = $(e).find('td.status_text');
