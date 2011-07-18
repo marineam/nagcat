@@ -525,7 +525,15 @@ function reverse(func) {
 }
 function makeComparer(val) {
     return function(a,b) {
-        return val(a) > val(b);
+        var va = val(a);
+        var vb = val(b);
+        if (va > vb) {
+            return 1;
+        } else if (va < vb) {
+            return -1;
+        } else{
+            return 0;
+        }
     }
 }
 var sorts = {
@@ -564,7 +572,9 @@ function sortGraphs() {
     if ($('#reverse_sort').prop('checked')) {
         sorter = reverse(sorter);
     }
-    $('tr.service_row').sort(sorter).appendTo('#graphs');
+    var rows = $('tr.service_row');
+    rows = rows.sort(sorter);
+    $(rows).appendTo('#graphs');
 }
 
 /******* Local Storage Hooks *******/
