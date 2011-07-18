@@ -272,7 +272,7 @@ $(document).ready(function() {
     setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
-    $('.hint').prepend('<div class="sprite info"></div>');t:
+    $('.hint').prepend('<div class="sprite info"></div>');
     $('.hint').append('<span class="hide_hint"></span>');
 
     $('.hint .hide_hint').bind('click',

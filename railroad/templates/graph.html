@@ -5,9 +5,26 @@
             <input type="checkbox" class="graphcheckbox">
         </td>
         <td class="status_text state_{{ graph.current_state|state_name|lower }}">
-            <h2><a href="/railroad/configurator/host/{{graph.host_name}}">{{graph.host_name}}</a></h2>
-            <h2><a href="/railroad/viewhost/{{graph.host_name}}/{{graph.service_description}}">{{graph.service_description}}</a></h2>
-            <p>{{graph.plugin_output}}</p>
+            <h2><a href="/railroad/configurator/host/{{graph.host_name}}">
+                    {{graph.host_name}}
+            </a></h2>
+            <h2><a href="/railroad/viewhost/{{graph.host_name}}/{{graph.service_description}}">
+                    {{graph.service_description}}
+            </a></h2>
+            <table class="nagios_info">
+                <tr>
+                    <td>Plugin Output</td>
+                    <td>{{ graph.plugin_output}}</td>
+                </tr>
+                <tr>
+                    <td>Last check</td>
+                    <td>{{ graph.last_check }}</td>
+                </tr>
+                <tr>
+                    <td>Attempts</td>
+                    <td>{{ graph.current_attempt }}/{{ graph.max_attempts}}</td>
+                </tr>
+            </table>
         </td>
 
         <td class="graph_container">

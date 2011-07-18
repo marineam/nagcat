@@ -245,6 +245,9 @@ td.graph_container { width: 540px; }
 .services {
 	font-size: 10pt;
 }
+.service_row .nagios_info td {
+    border: none;
+}
 
 /* Ajax Loading Throbber */
 #loading {

@@ -688,7 +688,7 @@ function collapse_row(row) {
     if (container.children('.graph').length > 0) {
         container.append('<p class="graphcollapsed">Graph Collapsed</p>');
     }
-    $(row).children('.status_text').children('p').hide();
+    $(row).children('.status_text').children('table').hide();
     $(row).children('.status_text').children('h2').css({'display': 'inline'});
 
     // change the button to expand
@@ -700,7 +700,7 @@ function expand_row(row) {
     // Hide the graph and status text
     $(row).children('.graph_container').children('.graphcollapsed').remove();
     $(row).children('.graph_container').children().show();
-    $(row).children('.status_text').children('p').show();
+    $(row).children('.status_text').children('table').show();
     $(row).children('.status_text').children('h2').css({'display': 'block'});
 
     // change the button to expand

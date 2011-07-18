@@ -21,6 +21,8 @@ import time
 import pickle
 import re
 from unicodedata import normalize
+import datetime
+
 import coil
 import rrdtool
 
@@ -110,19 +112,20 @@ def parse():
     details.
     """
     data_path = settings.DATA_PATH
-#    try:
-#        staturl = urllib.urlopen('http://localhost:13337/status')
-#        stat = pickle.loads(staturl.read())
-#    except Exception:
-    stat_path = '%sstatus.dat' % data_path
+    stat_path = '{0}/status.dat'.format(data_path)
     stat = nagios_objects.ObjectParser(stat_path, ('service', 'host'))
 
-#    try:
-#        objurl = urllib.urlopen('http://localhost:13337/objects')
-#        stat = pickle.loads(objurl.read())
-#    except Exception:
     obj_path = '%sobjects.cache' % data_path
     obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
+
+    # Convert unix times to python datetimes.
+    DATE_OBJS = ['last_state_change', 'last_time_critical',
+            'last_hard_state_change', 'last_update', 'last_time_ok',
+            'last_check', 'next_check']
+    for s in stat['service']:
+        for key in DATE_OBJS:
+            s[key] = datetime.datetime.utcfromtimestamp(int(s[key]))
+
     # / in group names break urls, replace with - which are safer
     for group in obj['hostgroup']:
         group['alias'] = group['alias'].replace('/', '-')
@@ -354,7 +357,7 @@ def error404(request):
 
 def graphpage(request, host=None, service=None):
     """Returns a page of graphs matching specific filter criteria."""
-    t = loader.get_template('graphpage.html')
+
     htmltitle = "Railroad Graphs"
     pagetitle = "Railroad Graphs"
     # fake up a query if we're using Django URL arguments
@@ -378,13 +381,7 @@ def graphpage(request, host=None, service=None):
     end = int(time.time())
     start = end - DAY
     loaded_graphs = servicelist_by_filters(stat, query)
-    sortby = query.get('sortby', '')
-    revsort = bool(query.get('sortreverse', False))
-    if sortby == 'rrd':
-        keyfunc = sortkey_from_rrd
-    else:
-        keyfunc = lambda x: x['service_description']
-    loaded_graphs.sort(key=keyfunc, reverse=revsort)
+
     for graph in loaded_graphs:
         graph['is_graphable'] = is_graphable(graph['host_name'],
                                              graph['service_description'])
@@ -400,8 +397,7 @@ def graphpage(request, host=None, service=None):
                     'pagetitle': pagetitle,
                     }
     context_data = add_hostlist(stat, obj, context_data)
-    c = Context(context_data)
-    return HttpResponse(t.render(c))
+    return render_to_response('graphpage.html', context_data)
 
 
 def sortkey_from_rrd(service):
@@ -897,7 +893,6 @@ def formstate(request):
     if (not(querydict)):
         state['options'] =  \
             map(lambda x: '%s%s' % (x[0].upper(), x[1:]), state['options'])
-        return HttpResponse(json.dumps(stripstate(state)))
 
     format = [('type0', 'value0'), ('type1', 'value1'), ('type2', 'value2')]
     typeDict = {'group': [], 'host': [], 'service': [], }
