@@ -539,12 +539,12 @@ function makeComparer(val) {
 var sorts = {
     'service': makeComparer(function(e) {
             var s = $(e).find('td.status_text h2').last().text();
-            s.toLowerCase().strip();
+            s = s.toLowerCase().trim();
             return s;
         }),
     'host': makeComparer(function(e) {
             var h = $(e).find('td.status_text h2').first().text();
-            h.toLowerCase().strip();
+            h = h.toLowerCase().trim();
             return h;
         }),
     'status': reverse(makeComparer(function(e) {
