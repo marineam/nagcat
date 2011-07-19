@@ -702,29 +702,21 @@ function collapse_or_expand(row) {
 function collapse_row(row) {
     // Hide the graph and status text
     var container = $(row).children('.graph_container').first();
-    container.children().hide();
+    container.children().not('p').hide();
     if (container.children('.graph').length > 0) {
         container.append('<p class="graphcollapsed">Graph Collapsed</p>');
     }
-    $(row).children('.status_text').children('table').hide();
-    $(row).children('.status_text').children('h2').css({'display': 'inline'});
-
-    // change the button to expand
-    var rowChildren = $(row).children('.controls').children('div.collapse_row');
-    $(rowChildren).addClass('expand_row');
-    $(rowChildren).removeClass('collapse_row');
+    $(row).find('.status_text dt').hide();
+    $(row).find('.status_text dd').css({'width':'auto', 'margin-right':'10px'})
+        .not('[name=host]').not('[name=service]').hide();
 }
 function expand_row(row) {
     // Hide the graph and status text
     $(row).children('.graph_container').children('.graphcollapsed').remove();
     $(row).children('.graph_container').children().show();
-    $(row).children('.status_text').children('table').show();
-    $(row).children('.status_text').children('h2').css({'display': 'block'});
-
-    // change the button to expand
-    var rowChildren = $(row).children('.controls').children('div.expand_row');
-    $(rowChildren).addClass('collapse_row');
-    $(rowChildren).removeClass('expand_row');
+    $(row).find('.status_text dt').show();
+    $(row).find('.status_text dd').css({'width': '265px', 'margin-right': 0})
+        .show();
 }
 
 function update_number_graphs() {

@@ -22,9 +22,11 @@ body {
 }
 
 ol { margin: 0; padding: 0px; }
+p { margin: 0; }
+dl { margin: 0; }
 
 #wrapper {
-    width: 835px;;
+    width: 950px;;
     background-color: #fff;
     margin: 20px;
     position: relative;
@@ -162,7 +164,7 @@ td.controls { vertical-align: top }
 td.controls div { margin-top: 3px; }
 td.status_text {
    padding: 5px;
-   width: 250px;
+   width: 360px;
 }
 td.graph_container {
     font-size: 10pt;
@@ -182,6 +184,9 @@ td.graph_container canvas {
 	height: 225px;
 	margin: 5px 15px 15px 25px;
 	font-size: 12pt;
+}
+.nograph, .graphcollapsed {
+    margin-top: -12px;
 }
 
 .legend {
@@ -260,8 +265,25 @@ td.graph_container canvas {
 .services {
 	font-size: 10pt;
 }
-.service_row .nagios_info td {
-    border: none;
+.service_row dt,dd {
+    margin: 0;
+    padding: 0;
+}
+.service_row dt {
+    float: left;
+    clear: left;
+    width: 80px;
+    margin-bottom: 8px;
+    margin-right: 5px;
+}
+.service_row dd {
+    float: left;
+    margin: 3px 0 5px 10px;
+    text-indent: -10px;  /* Reverse Indent */
+    width: 265px;
+}
+td.status_text dd[name=output] {
+    font-family: monospace;
 }
 
 /* Ajax Loading Throbber */
@@ -361,12 +383,12 @@ fieldset {
 .info { background-position: -16px -142px; }
 .close { background-position:  -32px -192px; }
 
-
 .arrow_e.hover:hover { background-position: -32px -48px; }
 
 /* Toolbar */
 #toolbar {
     margin: 8px 0 12px 5px;
+    clear: both;
 }
 #toolbar ul {
     margin: 3px 6px 3px 0;
