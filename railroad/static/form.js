@@ -108,7 +108,7 @@ $(document).ready(function() {
     });
     var services = $('.service_row');
     services.each(function (index,element) {
-        collapse_or_expand(element);
+        collapse_or_expand($(element));
     });
     ajaxcall = JSON.stringify(ajaxcall);
     update_number_graphs();
@@ -255,7 +255,6 @@ $(document).ready(function() {
     // *************************** Row manipulations ***************************
     // Expand all/of type buttons
     $('#expansion_by_type').find('input').bind('change', function() {
-        auto_expansion();
         //To shorten the else if line below to < 80 chars
         var allCheckboxes = $(this).parent().siblings().children('input');
         if (! $(this).prop('checked')) {
@@ -269,7 +268,6 @@ $(document).ready(function() {
     $('#expandall').change(function() {
         var state = $(this).prop('checked');
         $('#expansion_by_type input').prop('checked', state);
-        auto_expansion();
     });
 
     // expand one buttons
