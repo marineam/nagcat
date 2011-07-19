@@ -138,7 +138,6 @@ $(document).ready(function() {
     });
 
     /**** CONFIGURATOR SETUP ****/
-	// TODO: delete remnants (most of it) carefully!
 
     $('#debug_check').prop('checked', localStorageGet('debug'));
     updateDebug();
