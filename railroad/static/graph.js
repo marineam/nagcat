@@ -33,7 +33,7 @@ $.plot.formatDate = function(d, fmt, monthNames) {
     var r = [];
     var escape = false, padNext = false;
     var hours = d.getUTCHours();
-    var form_data = localStorageGet('form_configurator');
+    var form_data = localStorageGet('preference_panel');
     if  (form_data && form_data['localtime']) {
         hours = d.getHours();
     }
@@ -52,7 +52,7 @@ $.plot.formatDate = function(d, fmt, monthNames) {
     for (var i = 0; i < fmt.length; ++i) {
         var c = fmt.charAt(i);
             if (escape) {
-                var form_data = localStorageGet('form_configurator');
+                var form_data = localStorageGet('preference_panel');
                 if  (form_data && form_data['localtime']) {
                     switch (c) {
                         case 'h': c = "" + hours; break;

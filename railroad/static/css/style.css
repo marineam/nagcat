@@ -360,6 +360,8 @@ fieldset {
 .open_tri_s { background-position: -64px 0px; }
 .arrow_e { background-position: -32px -32px; }
 .info { background-position: -16px -142px; }
+.close { background-position:  -32px -192px; }
+
 
 .arrow_e.hover:hover { background-position: -32px -48px; }
 
@@ -433,4 +435,19 @@ fieldset {
     background-color: #FEB;
     opacity: 0.8;
     border: 1px solid black;
+}
+
+#preference_panel {
+    display: none;
+    float: right;
+    position: fixed;
+    top: 0;
+    right: 0;
+	width: 500px;
+	margin-right: 10px;
+	background-color: #DDD;
+    z-index: 6;
+}
+#preference_panel h1 {
+    text-align: center;
 }

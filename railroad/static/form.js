@@ -14,6 +14,31 @@
  * limitations under the License.
  */
 
+function formPersistence(elemPersist) {
+    var store = {};
+    var value = null;
+    $(elemPersist).find('.persist').each(function(index, element) {
+        if ($(element).is('input')) {
+            if ($(element).attr('type') == 'checkbox') {
+                value = $(element).prop('checked');
+            } else if ($(element).attr('type') == 'radio') {
+                value = $(element).prop('checked');
+            } else if ($(element).attr('type') === 'field') {
+                value = $(element).val();
+            }
+        } else if ($(element).is('select')) {
+            value = $(element).val();
+        }
+
+        if (value != null) {
+            store[$(element).attr('id')] = value;
+        }
+    });
+    var dictName = $(elemPersist).attr('id')
+    localStorageSet(dictName, store)
+    updateDebug();
+}
+
 // Execute setup code when page loads
 $(document).ready(function() {
     /******* AJAX Helpers ******/
@@ -114,31 +139,31 @@ $(document).ready(function() {
     /* Anything in #configurator with a class of "... persist ..."
      * will get persistence.
      */
-    $('#configurator').change(function() {
-        var store = {};
-        var value = null;
-        $(this).find('.persist').each(function() {
-            if ($(this).is('input')) {
-                if ($(this).attr('type') == 'checkbox') {
-                    value = $(this).prop('checked');
-                } else if ($(this).attr('type') == 'radio') {
-                    value = $(this).prop('checked');
-                }
-            } else if ($(this).is('select')) {
-                value = $(this).val();
-            }
+    $('#configurator').bind('change', function () {
+        formPersistence($('#configurator'));
+    });
 
-            if (value != null) {
-                store[$(this).attr('id')] = value;
-            }
-        });
-        localStorageSet('form_configurator', store);
+    $('#preference_panel').bind('change', function () {
+        formPersistence($('#preference_panel'));
     });
 
     // Restore persisted objects
-    var form_store = localStorageGet('form_configurator');
+    var form_store = localStorageGet('configurator');
     for (key in form_store) {
         element = $('#configurator').find('#' + key);
+        if ($(element).is('input')) {
+            if ($(element).attr('type') == 'checkbox') {
+                $(element).prop('checked', form_store[key]);
+            } else if ($(element).attr('type') == 'radio') {
+                $(element).prop('checked', form_store[key]);
+            }
+        } else if ($(element).is('select')) {
+            $(element).val(form_store[key]);
+        }
+    }
+    var form_store = localStorageGet('preference_panel');
+    for (key in form_store) {
+        element = $('#preference_panel').find('#' + key);
         if ($(element).is('input')) {
             if ($(element).attr('type') == 'checkbox') {
                 $(element).prop('checked', form_store[key]);
@@ -324,6 +349,13 @@ $(document).ready(function() {
     });
     $('#collapse_checked').bind('click', function() {
         allChecked(collapse_row);
+    });
+    $('#preferences').bind('click', function() {
+        $('#preference_panel').toggle();
+    });
+
+    $('#close_preferences').bind('click', function() {
+        $('#preference_panel').toggle();
     });
 
     $('#selectall.menu li').bind('click', function(e) {

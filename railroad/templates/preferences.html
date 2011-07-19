@@ -1,0 +1,19 @@
+<div id="preference_panel" class="preferences">
+    <div class="close sprite" id="close_preferences" > </div>
+    <h1> Preferences </h1> 
+     <fieldset>
+        <legend>Impatience Threshold</legend>
+        <input type="field" id="impatienceThreshold" class="persist" />
+        <span class="hint" id="impatience" class="persist">If you try to add more graphs than this number, the page will ask if you really want to add the graphs or not</span>
+    </fieldset>
+    <fieldset>
+        <legend>Time Zone</legend>
+        <input type="radio" name="timezone" id="localtime" class="persist">Local Time</input>
+        <input type="radio" name="timezone" id="utc" class="persist" checked>UTC</input>
+    </fieldset>
+    <fieldset>
+        <legend>Sync Graphs</legend>
+        <input type="checkbox" name="sync" id="sync" class="persist">Keep all graphs in sync.</input>
+        <p class="hint" id="synchint">Checking this box will synchronize the zoom of all the graphs.</p>
+    </fieldset>
+</div>    
