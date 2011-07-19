@@ -252,7 +252,6 @@ td.graph_container canvas {
 }
 .service_row {
 	padding-bottom: 10px;
-    overflow: hidden;
 }
 .service_row td {
     border: 1px solid #888;
