@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-function formPersistence(elemPersist) {
+function saveFormPersistence(elemPersist) {
     var store = {};
     var value = null;
     $(elemPersist).find('.persist').each(function(index, element) {
         if ($(element).is('input')) {
-            if ($(element).attr('type') == 'checkbox') {
+            if ($(element).attr('type') === 'checkbox') {
                 value = $(element).prop('checked');
-            } else if ($(element).attr('type') == 'radio') {
+            } else if ($(element).attr('type') === 'radio') {
                 value = $(element).prop('checked');
             } else if ($(element).attr('type') === 'field') {
                 value = $(element).val();
@@ -37,6 +37,24 @@ function formPersistence(elemPersist) {
     var dictName = $(elemPersist).attr('id')
     localStorageSet(dictName, store)
     updateDebug();
+}
+
+function restoreFormPersistence(elemPersist) {
+    var form_store = localStorageGet($(elemPersist).attr('id'));
+    for (key in form_store) {
+        element = $(elemPersist).find('#' + key);
+        if ($(element).is('input')) {
+            if ($(element).attr('type') === 'checkbox') {
+                $(element).prop('checked', form_store[key]);
+            } else if ($(element).attr('type') === 'radio') {
+                $(element).prop('checked', form_store[key]);
+            } else if ($(element).attr('type') === 'field') {
+                $(element).val(form_store[key]);
+            }
+        } else if ($(element).is('select')) {
+            $(element).val(form_store[key]);
+        }
+    }
 }
 
 // Execute setup code when page loads
@@ -140,41 +158,16 @@ $(document).ready(function() {
      * will get persistence.
      */
     $('#configurator').bind('change', function () {
-        formPersistence($('#configurator'));
+        saveFormPersistence($('#configurator'));
     });
 
     $('#preference_panel').bind('change', function () {
-        formPersistence($('#preference_panel'));
+        saveFormPersistence($('#preference_panel'));
     });
 
     // Restore persisted objects
-    var form_store = localStorageGet('configurator');
-    for (key in form_store) {
-        element = $('#configurator').find('#' + key);
-        if ($(element).is('input')) {
-            if ($(element).attr('type') == 'checkbox') {
-                $(element).prop('checked', form_store[key]);
-            } else if ($(element).attr('type') == 'radio') {
-                $(element).prop('checked', form_store[key]);
-            }
-        } else if ($(element).is('select')) {
-            $(element).val(form_store[key]);
-        }
-    }
-    var form_store = localStorageGet('preference_panel');
-    for (key in form_store) {
-        element = $('#preference_panel').find('#' + key);
-        if ($(element).is('input')) {
-            if ($(element).attr('type') == 'checkbox') {
-                $(element).prop('checked', form_store[key]);
-            } else if ($(element).attr('type') == 'radio') {
-                $(element).prop('checked', form_store[key]);
-            }
-        } else if ($(element).is('select')) {
-            $(element).val(form_store[key]);
-        }
-    }
-
+    restoreFormPersistence($('#configurator'));
+    restoreFormPersistence($('#preference_panel'));
 
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
