@@ -45,5 +45,6 @@ urlpatterns = patterns('',
 
     # Stuff for AJAX
     (r'^ajax/autocomplete/(?P<context>\w+)$',
-        'railroad.ajax.views.autocomplete'),
+        'railroad.ajax.autocomplete.autocomplete'),
+    (r'^ajax/xmlrpc$', 'railroad.ajax.xmlrpc.xmlrpc'),
 )

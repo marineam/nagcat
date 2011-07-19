@@ -3,7 +3,6 @@ from railroad.viewhosts import views
 import itertools
 import json
 
-
 def transpose_combo(li, n, memo):
     """
     Give the right set of auto complete suggestions for repeated start strings.
@@ -21,7 +20,6 @@ def transpose_combo(li, n, memo):
     transpose = zip(*combinations)
     memo[key] = iter(transpose)
     return memo[key].next()
-
 
 def autocomplete(request, context):
     """
