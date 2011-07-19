@@ -214,7 +214,7 @@ $(document).ready(function() {
         $('.checkall').prop('checked', checkp);
     });
 
-    $('#cupdate_number_graphslearform').bind('click', function () {
+    $('#clearform').bind('click', function () {
         $('#host').val("");
         $('#group').val("");
         $('#service').val("");
