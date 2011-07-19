@@ -52,6 +52,14 @@ ul, ol {
 	padding: 0 20px;
 	background-color: #DDD;
 }
+#header #preferences {
+    position: fixed;
+    margin: 0 3px 3px 3px;
+    top: 0;
+    right: 0;
+    display: inline;
+    background-color: #DDD;
+}
 #header #title {
 	font-weight: bold;
 	padding: 0 5px;
@@ -444,7 +452,8 @@ fieldset {
     top: 0;
     right: 0;
 	width: 500px;
-	margin-right: 10px;
+	margin-left: 10px;
+    margin-top: 24px;
 	background-color: #DDD;
     z-index: 6;
 }
