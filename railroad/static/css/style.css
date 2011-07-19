@@ -108,15 +108,14 @@ ul, ol {
 }
 #sidebar {
 	padding: 18px 7px 10px 5px;
-	margin-right: 10px;
 	background-color: #FFF;
     border: 1px solid black;
     clear: both;
     float: left;
     width: 150px;
     position: absolute;
-    left: 20px;
-    top: 70px;
+    left: 17px;
+    top: 64px;
 }
 
 /* Status stoplight colors */
@@ -445,11 +444,14 @@ fieldset {
 	width: 500px;
 	margin-left: 10px;
     margin-top: 24px;
-	background-color: #DDD;
-    z-index: 10000;
+    background-color: #DDD;
+    z-index: 7;
 }
 #preference_panel h1 {
     text-align: center;
+}
+#preference_panel fieldset {
+    border: 1px solid #000;
 }
 
 .hint {
