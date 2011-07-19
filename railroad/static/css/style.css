@@ -443,6 +443,7 @@ fieldset {
     background-color: #FEB;
     opacity: 0.8;
     border: 1px solid black;
+    z-index: 10; /* This should always be on top */
 }
 
 #preference_panel {
