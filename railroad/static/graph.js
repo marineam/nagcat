@@ -308,7 +308,8 @@ function getGraphDataByDiv(element) {
 }
 
 function createGraphs(data) {
-    var graphWarningThreshold = ? localStorageGet('preference')[graphWarningThreshold] : 100;
+    var graphWarningThreshold = localStorageGet('preference')
+        ? localStorageGet('preference')[graphWarningThreshold] : 100;
     if (data.length > graphWarningThreshold) {
         var confText = 'You asked to add {0} graphs.'.format(data.length) +
                        ' Do you want to continue?';
