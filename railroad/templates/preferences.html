@@ -16,4 +16,14 @@
         <input type="checkbox" name="sync" id="sync" class="persist">Keep all graphs in sync.</input>
         <p class="hint" id="synchint">Checking this box will synchronize the zoom of all the graphs.</p>
     </fieldset>
+        <fieldset id="expansion">
+            <legend>Expansion</legend>
+            <input type="checkbox" class="persist" id="expandall">Expand All</input>
+            <ul id="expansion_by_type">
+                <li><input type="checkbox" class="persist" id="state_ok">OK</input></li>
+                <li><input type="checkbox" class="persist" id="state_warning" checked>Warning</input></li>
+                <li><input type="checkbox" class="persist" id="state_critical" checked>Critical</input></li>
+                <li><input type="checkbox" class="persist" id="state_unknown" checked>Unknown</input></li>
+            </ul>
+        </fieldset>
 </div>    
