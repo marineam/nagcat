@@ -283,6 +283,7 @@ pre {
 }
 fieldset {
     margin: 10px 0;
+    border-radius: 4px;
 }
 #configurator .left, #configurator .right {
        float: left;
@@ -365,7 +366,7 @@ fieldset {
 
 /* Toolbar */
 #toolbar {
-    margin: 8px 0 12px 0;
+    margin: 8px 0 12px 5px;
 }
 #toolbar ul {
     margin: 3px 6px 3px 0;
@@ -380,6 +381,9 @@ fieldset {
     cursor: pointer;
     margin-right: -1px;
     border-radius: 2px;
+}
+#toolbar #checkall {
+    padding-left: 5px;
 }
 
 #toolbar li:hover {
