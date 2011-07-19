@@ -37,18 +37,21 @@
             <li id="title">Railroad</li>
             <li><a href="{% url railroad.viewhosts.views.index %}">Home</a></li>
             <li><a href="{% url railroad.viewhosts.views.directconfigurator %}">Configurator</a></li>
-            <li id="preferences"><a href="#">Preferences</a></li>
+            <li id="preferences">
+                <a href="#">Preferences</a>
+            </li>
         </ul>
     </div>
+    {% include "preferences.html" %}
     <div id="content">
         <h1>{% block header %}{% endblock %}</h1>
         {% block content %}{% endblock %}
     </div>
-</div>
     <div id="debug">
         <input type="checkbox" name="debug" id="debug_check">Debug</input>
         <ul></ul> 
     </div>
+</div>
 
 </body>
 </html>

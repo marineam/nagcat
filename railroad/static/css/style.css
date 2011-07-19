@@ -66,12 +66,11 @@ ul, ol {
 	padding: 0 20px;
 }
 #header #preferences {
-    position: fixed;
     margin: 0 3px 3px 3px;
-    top: 0;
-    right: 0;
     display: inline;
     background-color: #DDD;
+    position: absolute;
+    right: 0;
 }
 #header #title {
 	font-weight: bold;
@@ -219,18 +218,6 @@ td.graph_container canvas {
 	padding: 5px;
     float: left;
 }
-.ajax_info {
-	position: absolute;
-	top: -20px;
-	right: 0;
-}
-.ajax_info, .options ul li {
-	padding: 5px;
-	margin-right: 5px;
-	background-color: #F0F0F0;
-	font-size: smaller;
-    border: 1px solid black;
-}
 .toggle, .update {
 	display: inline;
 }
@@ -359,6 +346,7 @@ fieldset {
 
 #debug {
     font-size: 0.6em;
+    opacity: 0.4;
 }
 
 /* CSS Sprites */
@@ -451,16 +439,19 @@ fieldset {
 
 #preference_panel {
     display: none;
-    float: right;
-    position: fixed;
-    top: 0;
-    right: 0;
+    position: absolute;
+    right: 0px;
+    top: 0px;
 	width: 500px;
 	margin-left: 10px;
     margin-top: 24px;
 	background-color: #DDD;
-    z-index: 6;
+    z-index: 10000;
 }
 #preference_panel h1 {
     text-align: center;
+}
+
+.hint {
+    display: none;
 }
