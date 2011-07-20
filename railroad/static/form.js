@@ -203,20 +203,8 @@ $(document).ready(function() {
     $('#configurator').submit(function() {
 
         fields = $('#configurator').formSerialize();
-        $.ajax({
-            data: fields,
-            dataType: 'json',
-            url: '/railroad/graphs',
-            success: function(data, textStatus, XMLHttpRequest) {
-                //reset_fields();
-                $('#clearform').trigger('click');
-                createGraphs(data);
-            },
-            error: function(XMLHttpRequest, textStatus, errorThrown) {
-                // TODO: Indicate error somehow, probably
-            }
-        });
-        $('#configurator').data('changed', true);
+        $('#clearform').trigger('click');
+        addHTML(fields);
         return false;
     });
 

@@ -313,7 +313,9 @@ function fetchAndDrawGraphDataByDiv () {
     });
     ajaxData = JSON.stringify(ajaxData);
     $.ajax({
-        url: '/railroad/graphs?graphs=' + ajaxData,
+        url: '/railroad/graphs',
+        data: 'graphs=' + ajaxData,
+        type: 'POST',
         dataType: 'json',
         success: function (data, textStatus, XMLHttpRequest) {
             for (var i=0; i < data.length; i++) {
@@ -354,7 +356,7 @@ function getGraphDataByDiv(element) {
     return data;
 }
 function addHTML(ajaxData) {
-    var graphWarningThreshold = localStorageGet('preference')
+    var graphWarningThreshold = localStorageGet('preference_panel')
         ? localStorageGet('preference')[graphWarningThreshold] : 100;
     $.ajax({
         data: ajaxData,
@@ -363,8 +365,9 @@ function addHTML(ajaxData) {
         dataType: 'html',
         success: function (html, textStatus, XMLHttpRequest) {
 
-            if ($(html).closest('service_row').length > graphWarningThreshold) {
-                var confText = 'You asked to add {0} graphs'.format(data.length)
+            var numServices = $(html).closest('.service_row').length;
+            if ( numServices > graphWarningThreshold) {
+                var confText = 'You asked to add {0} graphs'.format(numServices)
                     + '. Would you like to continue?';
                 var conf = confirm(confText);
                 if (!conf) {
@@ -390,60 +393,6 @@ function addHTML(ajaxData) {
     });
 }
 
-function createGraphs(data) {
-    var graphWarningThreshold = localStorageGet('preference')
-        ? localStorageGet('preference')[graphWarningThreshold] : 100;
-    if (data.length > graphWarningThreshold) {
-        var confText = 'You asked to add {0} graphs.'.format(data.length) +
-                       ' Do you want to continue?';
-        var conf = confirm(confText);
-        if (!conf) {
-            return;
-        }
-    }
-    var params = [];
-    for (var i=0; i<data.length; i++) {
-        params.push({
-            'host': data[i]['host'],
-            'service': data[i]['service'],
-        });
-    }
-
-    $.ajax({
-        data: {'graphs': JSON.stringify(params)},
-        url: '/railroad/configurator/graph',
-        type: 'POST',
-        dataType: 'html',
-        success: function (html, textStatus, XMLHttpRequest) {
-            $(html).appendTo('#graphs');
-            update_number_graphs();
-
-            var services = $('.service_row');
-            services.each(function (index, element) {
-                collapse_or_expand(element);
-            });
-
-            // Now fill in the graphs.
-            for (var i=0; i < data.length; i++) {
-                var element;
-                if ( data[i]['uniq']) {
-                    element = $('.{0}#{1}'.format(data[i]['slug'],
-                                                  data[i]['uniq']))
-                } else {
-                    element = $('.{0}'.format(data[i]['slug']));
-                }
-                element.data('host', data[i]['host']);
-                element.data('service', data[i]['service']);
-                if (data[i].data) {
-                    drawGraph(element, data[i]);
-                }
-            }
-        },
-        error: function() {
-            console.error('failed to get graph html');
-        }
-    });
-}
 
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
