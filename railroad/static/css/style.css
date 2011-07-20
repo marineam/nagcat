@@ -16,8 +16,8 @@
 
 /* Main styling options */
 body {
-	font-family: Arial, Helvetica, sans-serif;
-	margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
     background-color: #467a9c;
 }
 
@@ -48,24 +48,24 @@ ul, ol {
 
 /* Page header */
 #header {
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	width: 100%;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
     background-color: #EEE;
     overflow: hidden;
 }
 #header ul {
-	margin: 0;
-	padding: 0;
-	list-style-type: none;
-	font-size: 15pt;
-	float: left;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    font-size: 15pt;
+    float: left;
 }
 #header ul li {
-	display: inline;
-	margin: 3px 0 3px 3px;
-	padding: 0 20px;
+    display: inline;
+    margin: 3px 0 3px 3px;
+    padding: 0 20px;
 }
 #header #preferences {
     margin: 0 3px 3px 3px;
@@ -75,19 +75,19 @@ ul, ol {
     right: 0;
 }
 #header #title {
-	font-weight: bold;
-	padding: 0 5px;
+    font-weight: bold;
+    padding: 0 5px;
 }
 #header #graph_options {
-	float: right;
-	padding-right: 5px;
-	padding-top: 2px;
+    float: right;
+    padding-right: 5px;
+    padding-top: 2px;
 }
 #link {
-	right: 0.4em;
-	top: 1.8em;
-	position: fixed;
-	z-index: 5;
+    right: 0.4em;
+    top: 1.8em;
+    position: fixed;
+    z-index: 5;
 }
 
 /* General stuff */
@@ -96,21 +96,21 @@ ul, ol {
 #content {
 }
 .listheader {
-	font-size: 12pt;
+    font-size: 12pt;
 }
 .pagination {
         text-align: center;
 }
 /* TODO: Finish this styling */
 .biglist ul {
-	margin: 0;
-	padding-left: 15px;
-	list-style: square;
-	font-size: 10pt;
+    margin: 0;
+    padding-left: 15px;
+    list-style: square;
+    font-size: 10pt;
 }
 #sidebar {
-	padding: 18px 7px 10px 5px;
-	background-color: #FFF;
+    padding: 18px 7px 10px 5px;
+    background-color: #FFF;
     border: 1px solid black;
     clear: both;
     float: left;
@@ -122,39 +122,39 @@ ul, ol {
 
 /* Status stoplight colors */
 .green, .green a {
-	color: green;
+    color: green;
 }
 .green:hover, .green a:hover {
-	color: limegreen;
+    color: limegreen;
 }
 .greenbg {
-	background-color: lightgreen;
+    background-color: lightgreen;
 }
 .yellow, .yellow a {
-	color: yellow;
+    color: yellow;
 }
 .yellowbg {
-	background-color: yellow;
+    background-color: yellow;
 }
 .red, .red a {
-	color: red;
+    color: red;
 }
 .redbg {
-	background-color: tomato;
+    background-color: tomato;
 }
 
 .collapse_row, .expand_row, .remove_row {
-	width: 16px;
-	height: 16px;
+    width: 16px;
+    height: 16px;
 }
 .collapse_row {
-	background-image: url("/railroad-static/images/collapse.png");
+    background-image: url("/railroad-static/images/collapse.png");
 }
 .expand_row {
-	background-image: url("/railroad-static/images/expand.png");
+    background-image: url("/railroad-static/images/expand.png");
 }
 .remove_row {
-	background-image: url("/railroad-static/images/remove.png");
+    background-image: url("/railroad-static/images/remove.png");
 }
 
 #graphs { border-collapse: collapse; }
@@ -179,89 +179,89 @@ td.graph_container canvas {
 
 /* Graph styling */
 .graph {
-	width: 500px;
-	height: 225px;
-	margin: 5px 15px 15px 25px;
-	font-size: 12pt;
+    width: 500px;
+    height: 225px;
+    margin: 5px 15px 15px 25px;
+    font-size: 12pt;
 }
 .nograph, .graphcollapsed {
     margin-top: -12px;
 }
 
 .legend {
-	position: absolute;
-	top: 215px;
-	background-color: #F8F8F8;
-	width: 475px;
-	text-transform: capitalize;
+    position: absolute;
+    top: 215px;
+    background-color: #F8F8F8;
+    width: 475px;
+    text-transform: capitalize;
 }
 .legend table td {
-	padding: 2px;
-	border: 0;
+    padding: 2px;
+    border: 0;
 }
 .legend {
-	position: relative;
-	left: 50px;
-	top: -7px;
+    position: relative;
+    left: 50px;
+    top: -7px;
 }
 .ylabel {
-	position: relative;
-	top: 200px;
-	left: 10px;
-	width: 200px;
-	text-align: center;
-	-o-transform: rotate(-90deg);
-	-o-transform-origin: left;
-	-moz-transform: rotate(-90deg);
-	-moz-transform-origin: left;
-	-webkit-transform: rotate(-90deg);
-	-webkit-transform-origin: left;
-	transform: rotate(-90deg);
-	transform-origin: left;
-	padding: 5px;
+    position: relative;
+    top: 200px;
+    left: 10px;
+    width: 200px;
+    text-align: center;
+    -o-transform: rotate(-90deg);
+    -o-transform-origin: left;
+    -moz-transform: rotate(-90deg);
+    -moz-transform-origin: left;
+    -webkit-transform: rotate(-90deg);
+    -webkit-transform-origin: left;
+    transform: rotate(-90deg);
+    transform-origin: left;
+    padding: 5px;
     float: left;
 }
 .toggle, .update {
-	display: inline;
+    display: inline;
 }
 .toggle, .options ul li {
-	cursor: pointer;
+    cursor: pointer;
 }
 .hidden {
-	visibility: hidden;
+    visibility: hidden;
 }
 .empty, .error {
-	position: absolute;
-	width: 100%;
-	text-align: center;
+    position: absolute;
+    width: 100%;
+    text-align: center;
 }
 .empty {
-	top: 100px;
+    top: 100px;
 }
 .error {
-	top: 120px;
-	color: red;
+    top: 120px;
+    color: red;
 }
 
 /* Service listings */
 .services {
     clear: both;
-	font-size: 10pt;
+    font-size: 10pt;
     margin: 5px;
 }
 .service_row {
-	padding-bottom: 10px;
+    padding-bottom: 10px;
 }
 .service_row td {
     border: 1px solid #888;
 }
 .service_row h2 {
-	font-size: 14pt;
-	margin: 0;
+    font-size: 14pt;
+    margin: 0;
     margin-right: 10px;
 }
 .services {
-	font-size: 10pt;
+    font-size: 10pt;
 }
 .service_row dt,dd {
     margin: 0;
@@ -289,10 +289,10 @@ td.status_text dd[name=output] {
     margin-left: 10px;
 }
 .filter {
-	display: inline-block;
+    display: inline-block;
 }
 pre {
-	font-size: 8pt;
+    font-size: 8pt;
 }
 
 /* Configurator */
@@ -343,8 +343,8 @@ fieldset {
 /* Filtering */
 
 .type select {
-	/* Seems buggy in many browsers, doing in Python for now */
-	text-transform: capitalize;
+    /* Seems buggy in many browsers, doing in Python for now */
+    text-transform: capitalize;
 }
 
 .filterform th {
@@ -465,8 +465,8 @@ fieldset {
     position: absolute;
     right: 0px;
     top: 0px;
-	width: 500px;
-	margin-left: 10px;
+    width: 500px;
+    margin-left: 10px;
     margin-top: 24px;
     background-color: #DDD;
     z-index: 7;
