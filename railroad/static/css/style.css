@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-/* Main styling options */
+/* Misc. styling options */
 body {
     font-family: Arial, Helvetica, sans-serif;
     margin: 0;
     background-color: #467a9c;
 }
 
-ol { margin: 0; padding: 0px; }
+.small {
+    font-size: 0.7em;
+}
+
+ul, ol { margin: 0; padding: 0px; list-style: none; }
 p { margin: 0; }
 dl { margin: 0; }
 
+/* Layout */
 #wrapper {
     width: 950px;;
     background-color: #fff;
@@ -36,17 +41,7 @@ dl { margin: 0; }
     padding: 5px;
     min-height: 600px;
 }
-ul, ol {
-    margin: 0;
-    padding: 0;
-}
-ul, ol {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
 
-/* Page header */
 #header {
     position: absolute;
     top: 0px;
@@ -314,7 +309,7 @@ fieldset {
     margin-right: 15px
 }
 #configurator .right {
-    width: 325px;
+    width: 440px;
 }
 #configurator ul {
     padding: 0px;
@@ -333,12 +328,24 @@ fieldset {
     overflow: hidden;
 }
 #configurator ol li label {
-       width: 75px;
-       float: left;
+    width: 75px;
+    float: left;
 }
-#configurator ol li input[type=text] {
-       float: left;
-       width: 370px;
+.left input[type=text] {
+    float: left;
+    width: 370px;
+}
+.right input[type=text]{
+    float: left;
+    width: 325px;
+}
+#configurator .datetimerow input[type=text] {
+    width: 140px;
+    float: left;
+}
+#configurator .datetimerow .to {
+    width: 18px;
+    margin: 0 10px;
 }
 
 /* Filtering */
