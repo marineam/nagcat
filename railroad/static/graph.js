@@ -357,7 +357,7 @@ function getGraphDataByDiv(element) {
 }
 function addHTML(ajaxData) {
     var graphWarningThreshold = localStorageGet('preference_panel')
-        ? localStorageGet('preference')[graphWarningThreshold] : 100;
+        ? localStorageGet('preference_panel')[graphWarningThreshold] : 100;
     $.ajax({
         data: ajaxData,
         url: '/railroad/configurator/graph',
