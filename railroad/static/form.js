@@ -139,7 +139,7 @@ $(document).ready(function() {
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
-            $(this).attr('name' ), minLength : 1, autoFocus: true})
+            $(this).attr('id'), minLength : 1, autoFocus: true})
     });
 
     $('#service_count').click(function () {
