@@ -321,6 +321,9 @@ function fetchAndDrawGraphDataByDiv () {
                     , data[i].uniq)) : $('.{0}'.format(data[i].slug));
                 if (data[i].data) {
                     drawGraph(elem, data[i]);
+                } else {
+                    $(elem).data('host', data[i].host);
+                    $(elem).data('service', data[i].service);
                 }
             }
         },
