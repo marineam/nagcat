@@ -503,7 +503,7 @@ def host(request, host):
         raise Http404
     page_state = host_detail.get('current_state', '')
 
-    return configurator(stat, obj,  \
+    return configurator(request, stat, obj,
         'Host Detail: %s' % host, host, loaded_graphs, page_state)
 
 
@@ -642,7 +642,7 @@ def groupservice(request, group, test, alias):
 
         for host in host_list:
             loaded_graphs.extend(host['services'])
-    return configurator(stat, obj, 'Group-Service Detail: %s > %s' %    \
+    return configurator(request, stat, obj, 'Group-Service Detail: %s > %s' %
             (group, alias), '%s > %s' % (group, alias), loaded_graphs)
 
 
@@ -745,38 +745,37 @@ def directurl(request, id):
                 service_detail['is_graphable'] = False
                 loaded_graphs.append(service_detail)
 
-    return configurator(stat, obj, 'Saved Page',  \
+    return configurator(reuest, stat, obj, 'Saved Page',
             'Saved Page', loaded_graphs)
 
 
 def directconfigurator(request):
     """Returns a blank configurator page"""
     stat, obj = parse()
-    return configurator(stat, obj)
+    return configurator(request, stat, obj)
 
 
 def hostconfigurator(request, hosts):
     """Returns a configurator page with graphs on it"""
     stat, obj = parse()
     service_list = get_graphs(stat, obj, hosts)
-    return configurator(stat, obj, loaded_graphs=service_list)
+    return configurator(request, stat, obj, loaded_graphs=service_list)
 
 
 def serviceconfigurator(request, service):
     """Returns a configurator page with graphs on it"""
     stat, obj = parse()
     service_list = get_graphs(stat, obj, "", "", service)
-    return configurator(stat, obj, loaded_graphs=service_list)
+    return configurator(request, stat, obj, loaded_graphs=service_list)
 
 
-def configurator(stat, obj, htmltitle='Configurator',
+def configurator(request, stat, obj, htmltitle='Configurator',
                      pagetitle='Configurator', loaded_graphs=[],
                      page_state=''):
     """Returns a configurator page
     Loads specified graphs, sets specified htmltitle and pagetitle, and
     displays the configurator form
     """
-    t = loader.get_template('configurator.html')
     context_data = {
         'loaded_graphs': loaded_graphs,
         'htmltitle': htmltitle,
@@ -784,9 +783,13 @@ def configurator(stat, obj, htmltitle='Configurator',
         'page_state': page_state,
         'graphs': True,
     }
+    if 'REMOTE_USER' in request.META and request.META['REMOTE_USER']:
+        context_data['remoteuserid'] = request.META['REMOTE_USER']
+    else:
+        context_data['remoteuserid'] = 'anonymous railroad user'
+
     context_data = add_hostlist(stat, obj, context_data)
-    c = Context(context_data)
-    return HttpResponse(t.render(c))
+    return render_to_response('configurator.html', context_data);
 
 
 def generatelink(request):

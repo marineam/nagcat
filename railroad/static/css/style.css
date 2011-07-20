@@ -24,6 +24,9 @@ body {
 .small {
     font-size: 0.7em;
 }
+.data {
+    display: none;
+}
 
 ul, ol { margin: 0; padding: 0px; list-style: none; }
 p { margin: 0; }

@@ -139,7 +139,7 @@ $(document).ready(function() {
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
-            $(this).attr('id'), minLength : 1, autoFocus: true})
+            $(this).attr('id'), minLength: 1, autoFocus: true})
     });
 
     $('#service_count').click(function () {
@@ -206,6 +206,77 @@ $(document).ready(function() {
         $('#clearform').trigger('click');
         addHTML(fields);
         return false;
+    });
+
+    // Downtime requests
+    $('#configurator .datetimerow input').datetimepicker();
+    $('#configurator #downtime-submit').bind('click', function() {
+        // gather data
+        var expr = '';
+        if ($('#downtime-host').prop('checked')) {
+            var hosts = [];
+            $('.service_row dd[name=host]').each(function(index, element) {
+                hosts.push('host:' + $(element).text().trim());
+            });
+            hosts = hosts.uniqueList();
+            expr = hosts.join(' or ')
+        } else {
+            var hosts = [];
+            var services = [];
+            var objs = [];
+            $('.service_row dd[name=host]').each(function(index, element) {
+                hosts.push('host:"' + $(element).text().trim() + '"');
+            });
+            $('.service_row dd[name=service]').each(function(index, element) {
+                services.push('service:"' + $(element).text().trim() + '"');
+            });
+            for (var i=0; i<hosts.length; i++) {
+                objs.push(hosts[i] + ' and ' + services[i]);
+            }
+            objs = objs.uniqueList();
+            expr = objs.join(' or ')
+        }
+
+        if (!expr) {
+            console.log('no graphs')
+            return;
+        }
+
+        var from = $('#downtime-from').datepicker('getDate');
+        var to = $('#downtime-to').datepicker('getDate');
+        if (!(from && to)) {
+            console.log('invalid dates');
+            return;
+        }
+        from = Math.round(from.getTime() / 1000.0);
+        to = Math.round(to.getTime() / 1000.0);
+
+        var comment = $('#downtime-comment').prop('value');
+        if (!expr) {
+            console.log('no comment');
+            return;
+        }
+
+        var user = $('#remoteuserid').text().trim();
+
+        var args = [expr, from, to, user, comment]
+        var data = {
+            'url': 'http://localhost:8080',
+            'command': 'scheduleDowntime',
+            'args': JSON.stringify(args),
+        }
+
+        $.ajax({
+            url: '/railroad/ajax/xmlrpc',
+            data: data,
+            dataType: 'text',
+            success: function(cancellationCode) {
+                    console.log(cancellationCode);
+                },
+            error: function () {
+                console.log('error');
+            }
+        });
     });
 
     // *************************** Row manipulations ***************************

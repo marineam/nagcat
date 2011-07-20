@@ -684,7 +684,22 @@ String.prototype.format = function() {
         formatted = formatted.replace(regexp, arguments[i]);
     }
     return formatted;
-};
+}
+
+// An efficient function to unique values from a list
+Array.prototype.uniqueList = function() {
+    var oldList = this;
+    var uniqDict = {}
+    var uniqList = []
+
+    for (var i=0; i<oldList.length; i++) {
+        uniqDict[oldList[i]] = true;
+    }
+    for (var k in uniqDict) {
+        uniqList.push(k);
+    }
+    return uniqList;
+}
 
 /**** Expand/Collapse the graph rows ****/
 function auto_expansion() {

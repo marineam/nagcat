@@ -2,17 +2,21 @@
 
 import xmlrpclib
 import socket
+import json
 
 from django.http import HttpResponse
+from django.conf import settings
 
 
 def xmlrpc(request):
-    url = request.GET.get('url', 'http://localhost/')
+    url = settings.NAGIOS_XMLRPC_URL
     command = request.GET.get('command')
-    args = request.GET.get('args', '')
 
-    args = args.split(' ')
-    args = filter(None, [a.strip() for a in args])
+    args = request.GET.get('args')
+    if args:
+        args = json.loads(args)
+    else:
+        args = []
 
     socket.setdefaulttimeout(10)
     try:
