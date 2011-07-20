@@ -197,6 +197,7 @@ td.graph_container canvas {
 }
 .legend table td {
     padding: 2px;
+    text-align: left;
     border: 0;
 }
 .legend {
