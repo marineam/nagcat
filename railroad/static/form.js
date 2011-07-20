@@ -227,7 +227,7 @@ $(document).ready(function() {
         var allCheckboxes = $(this).parent().siblings().children('input');
         if (! $(this).prop('checked')) {
             $('#expandall').prop('checked', false);
-        } else if ($(allCheckBoxes).not(':checked').length == 0) {
+        } else if ($(allCheckboxes).not(':checked').length == 0) {
             // If all inputs are checked
             $('#expandall').prop('checked', true);
         }
