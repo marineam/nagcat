@@ -287,6 +287,50 @@ function getGraphDataByData(element) {
     return data
 }
 
+function fetchAndDrawGraphDataByDiv () {
+    var serviceRows = $('.service_row');
+    var ajaxData = [];
+    serviceRows.each(function () {
+        var element = $(this).children('.graph_container').children('.graph');
+        var slug = $(element).attr('name');
+        graphs = $(slug).each(function (index, element) {
+            $(element).attr('id', index);
+        });
+        var hostname = $($(element).children('.graph_hostname')).attr('id');
+        var serviceName = $($(element).children('.graph_service_name'))
+            .attr('id');
+        var start = $($(element).children('graph_start')).attr('id');
+        var end = $($(element).children('graph_end')).attr('id');
+        var uniq = $(element).attr('id');
+        var data = {
+            "host" : hostname,
+            "service" : serviceName,
+            "start" : start,
+            "end" : end,
+            "uniq" : uniq,
+        };
+        ajaxData.push(data);
+    });
+    ajaxData = JSON.stringify(ajaxData);
+    $.ajax({
+        url: '/railroad/graphs?graphs=' + ajaxData,
+        dataType: 'json',
+        success: function (data, textStatus, XMLHttpRequest) {
+            for (var i=0; i < data.length; i++) {
+                var elem = data[i].uniq ? $('.{0} #{1}'.format(data[i].slug
+                    , data[i].uniq)) : $('.{0}'.format(data[i].slug));
+                if (data[i].data) {
+                    drawGraph(elem, data[i]);
+                }
+            }
+        },
+        error: function () {
+            console.log('There was an error in obtaining the data for graphs');
+        }
+    });
+}
+
+
 function getGraphDataByDiv(element) {
     var slug = $(element).attr('name');
     graphs = $('.{0}'.format(slug)).each(function (index, element) {
@@ -305,6 +349,42 @@ function getGraphDataByDiv(element) {
         "end" : end,
     };
     return data;
+}
+function addHTML(ajaxData) {
+    var graphWarningThreshold = localStorageGet('preference')
+        ? localStorageGet('preference')[graphWarningThreshold] : 100;
+    $.ajax({
+        data: ajaxData,
+        url: '/railroad/configurator/graph',
+        type: 'POST',
+        dataType: 'html',
+        success: function (html, textStatus, XMLHttpRequest) {
+
+            if ($(html).closest('service_row').length > graphWarningThreshold) {
+                var confText = 'You asked to add {0} graphs'.format(data.length)
+                    + '. Would you like to continue?';
+                var conf = confirm(confText);
+                if (!conf) {
+                    return;
+                }
+            }
+
+            $(html).appendTo('#graphs');
+            update_number_graphs();
+
+
+            var services = $('.service_row');
+            services.each(function (index, elemRow) {
+                collapse_or_expand(elemRow);
+            });
+
+            fetchAndDrawGraphDataByDiv();
+
+        },
+        error: function () {
+            console.log('failed to add graph html');
+        }
+    });
 }
 
 function createGraphs(data) {
@@ -700,7 +780,7 @@ function collapse_row(row) {
     // Hide the graph and status text
     var container = $(row).children('.graph_container').first();
     container.children().not('p').hide();
-    if (container.children('.graph').length > 0) {
+    if ($(container).children('.nograph').length < 1) {
         container.append('<p class="graphcollapsed">Graph Collapsed</p>');
     }
     $(row).find('.status_text dt').hide();

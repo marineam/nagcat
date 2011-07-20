@@ -102,39 +102,8 @@ $(document).ready(function() {
     });
 
     // Initialize the data for any graphs already on the page
-    ajaxcall = [];
-    $('.graph').each(function (index, element) {
-        ajaxcall.push(getGraphDataByDiv(element));
-    });
-    var services = $('.service_row');
-    services.each(function (index,element) {
-        collapse_or_expand($(element));
-    });
-    ajaxcall = JSON.stringify(ajaxcall);
     update_number_graphs();
-    $.ajax({
-        dataType: 'json',
-        url: '/railroad/graphs',
-        data: {'graphs': ajaxcall},
-        type: 'POST',
-        success: function (data, textStatus, XMLHttpRequest) {
-            for (var i=0; i < data.length; i++) {
-                var element;
-                if (data[i]['uniq']) {
-                    element = $('.{0}#{1}'.format(data[i]['slug'],
-                                                  data[i]['uniq']));
-                } else {
-                    element = $('.{0}'.format(data[i]['slug']));
-                }
-                drawGraph(element, data[i]);
-            }
-            update_number_graphs();
-
-        },
-        error: function (XMLHttpRequest, textStatus, error) {
-            alert ("There was an error preloading the graphs");
-        }
-    });
+    fetchAndDrawGraphDataByDiv();
 
     /**** CONFIGURATOR SETUP ****/
 
