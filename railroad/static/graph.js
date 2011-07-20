@@ -528,26 +528,17 @@ function drawGraph (elemGraph, data) {
     });
     // elemGraphDates keeps the line below it < 80 chars
     var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
-    var datePickers = $(elemGraphDates).datepicker({
+    var datePickers = $(elemGraphDates).datetimepicker({
         onClose: function(selectedDate) {
             updateZoom(datePickers[0], datePickers[1]);
         },
         changeMonth: true,
         changeYear: true,
-        maxDate : "+0d",
-        minDate : "-5y",
-        onSelect: function ( selectedDate ) {
-           var option = this.name == "from" ? "minDate" : "MaxDate",
-           instance = $(this).data('datepicker'),
-           date = $.datepicker.parseDate(
-                               instance.settings.dateFormat ||
-                               $.datepicker._defaults.dateFormat,
-                               selectedDate, instance.settings );
-           datePickers.not(this).datepicker("option", option, date);
-        },
     });
-    $(datePickers[0]).datepicker('setDate', elemGraph.data('start'));
-    $(datePickers[1]).datepicker('setDate', elemGraph.data('end'));
+    $(datePickers[0]).datetimepicker('setDate',
+            new Date(elemGraph.data('start') * 1000));
+    $(datePickers[1]).datetimepicker('setDate',
+            new Date(elemGraph.data('end') * 1000));
 }
 
 function redrawGraph(element, data) {
@@ -567,8 +558,8 @@ function showTooltip(x, y, label) {
 }
 
 function updateZoom(from, to) {
-    var start = $(from).datepicker('getDate').getTime();
-    var end = $(to).datepicker('getDate').getTime() + (24 * 60 * 60 * 100);
+    var start = $(from).datetimepicker('getDate').getTime();
+    var end = $(to).datetimepicker('getDate').getTime() + (24 * 60 * 60 * 100);
 
     var graph = $(from).parent().siblings('.graph').first();
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});

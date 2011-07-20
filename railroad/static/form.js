@@ -85,19 +85,19 @@ $(document).ready(function() {
             var to = $(dates).children('[name=to]');
         }
 
-        to.datepicker('setDate', new Date());
-        from.datepicker('setDate', new Date());
+        to.datetimepicker('setDate', new Date());
+        from.datetimepicker('setDate', new Date());
 
         if ($(this).attr('name') == 'week') {
-            from.datepicker('setDate', '-1w');
+            from.datetimepicker('setDate', '-1w');
         } else if ($(this).attr('name') == 'month') {
-            from.datepicker('setDate', '-1m');
+            from.datetimepicker('setDate', '-1m');
         } else if ($(this).attr('name') == 'year') {
-            from.datepicker('setDate', '-1y');
+            from.datetimepicker('setDate', '-1y');
         }
 
-        to.datepicker('refresh')
-        from.datepicker('refresh')
+        to.datetimepicker('refresh')
+        from.datetimepicker('refresh')
         updateZoom(from,to);
     });
 
