@@ -112,7 +112,6 @@ $(document).ready(function() {
     });
     ajaxcall = JSON.stringify(ajaxcall);
     update_number_graphs();
-    sortGraphs();
     $.ajax({
         dataType: 'json',
         url: '/railroad/graphs',
@@ -305,10 +304,6 @@ $(document).ready(function() {
         $(element).remove();
     });
 
-    /******** Sorting *********/
-    $('#sortby').bind('change', sortGraphs);
-    $('#reverse_sort').bind('change', sortGraphs);
-
     /****** Tool bar stuff *****/
     $('#check_controls input[type=checkbox]').bind('click', function(event) {
         $('.service_row .controls input[type=checkbox]').prop('checked',
@@ -327,27 +322,17 @@ $(document).ready(function() {
         $('.service_row .controls input[type=checkbox]').prop('checked', false);
         $('#checkall input').prop('checked', false);
     }
-    $('#checkall').bind('click', function() {
-        $('#selectall.menu').toggle();
-    });
-    $('#remove_checked').bind('click', function() {
-        allChecked(function(elem) {$(elem).remove();});
-        update_number_graphs();
-    });
-    $('#expand_checked').bind('click', function() {
-        allChecked(expand_row);
-    });
-    $('#collapse_checked').bind('click', function() {
-        allChecked(collapse_row);
-    });
-    $('#preferences').bind('click', function() {
-        $('#preference_panel').toggle();
-    });
 
-    $('#close_preferences').bind('click', function() {
-        $('#preference_panel').toggle();
-    });
+    var bindMenu = function(button, menu) {
+        var pos = $(button).offset();
+        var height = $(button).height();
+        $(menu).position({my: 'left top', at: 'left bottom', of: $(button)}).hide();
+        $(button).bind('click', function() {
+            $(menu).toggle();
+        });
+    }
 
+    bindMenu($('#checkall'), $('#selectall.menu'));
     $('#selectall.menu li').bind('click', function(e) {
         switch ($(this).attr('name')) {
             case 'all':
@@ -374,6 +359,37 @@ $(document).ready(function() {
         }
         $('.graphcheckbox').trigger('change');
         $('#selectall.menu').hide();
+    });
+
+    $('#remove_checked').bind('click', function() {
+        allChecked(function(elem) {$(elem).remove();});
+        update_number_graphs();
+    });
+    $('#expand_checked').bind('click', function() {
+        allChecked(expand_row);
+    });
+    $('#collapse_checked').bind('click', function() {
+        allChecked(collapse_row);
+    });
+
+    bindMenu($('#sortby'), $('#sortbymenu'));
+    $('#sortbymenu li').bind('click', function(e) {
+        var name = $(this).attr('name');
+        sortGraphs(name);
+        $('#sortbymenu').hide();
+        $('#sortby').data('lastSort', name);
+    });
+    $('#sortreverse input').bind('change', function(e) {
+        var name = $('#sortby').data('lastSort');
+        sortGraphs(name, $(this).prop('checked'));
+        $('#sortby').data('lastSort', name);
+    });
+
+    $('#preferences').bind('click', function() {
+        $('#preference_panel').toggle();
+    });
+    $('#close_preferences').bind('click', function() {
+        $('#preference_panel').toggle();
     });
 
     /******** Quicklook view ********/

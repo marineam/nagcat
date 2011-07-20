@@ -334,7 +334,6 @@ function createGraphs(data) {
         success: function (html, textStatus, XMLHttpRequest) {
             $(html).appendTo('#graphs');
             update_number_graphs();
-            sortGraphs();
 
             var services = $('.service_row');
             services.each(function (index, element) {
@@ -408,7 +407,6 @@ function drawGraph (elemGraph, data) {
                             }
                         }
                     }
-                    sortGraphs();
                 },
                error: function (XMLHttpRequest, textStatus, errorThrown) {
                     alert ("Something went wrong in getting new data");
@@ -574,10 +572,9 @@ var sorts = {
         })
 }
 
-function sortGraphs() {
-    var name = $('#sortby').val();
+function sortGraphs(name, reversed) {
     var sorter = sorts[name];
-    if ($('#reverse_sort').prop('checked')) {
+    if (reversed) {
         sorter = reverse(sorter);
     }
     var rows = $('tr.service_row');
@@ -733,7 +730,6 @@ function update_number_graphs() {
 }
 
 var update_hidden_count = function() {
-    console.log('update_hidden_count');
     if ($('#hiddenCount').length == 0) {
         $('#stats').append('<span id="hiddenCount"></span>');
     }

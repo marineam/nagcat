@@ -157,7 +157,6 @@ ul, ol {
 	background-image: url("/railroad-static/images/remove.png");
 }
 
-
 #graphs { border-collapse: collapse; }
 
 td.controls { vertical-align: top }
@@ -425,7 +424,7 @@ fieldset {
 .menu {
     position: absolute;
     background-color: #EEE;
-    display: none;
+    z-index: 3;
 }
 .menu li {
     display: block;
