@@ -540,12 +540,12 @@ function makeComparer(val) {
 }
 var sorts = {
     'service': makeComparer(function(e) {
-            var s = $(e).find('td.status_text h2').last().text();
+            var s = $(e).find('td.status_text dd[name=service]').last().text();
             s = s.toLowerCase().trim();
             return s;
         }),
     'host': makeComparer(function(e) {
-            var h = $(e).find('td.status_text h2').first().text();
+            var h = $(e).find('td.status_text dd[name=host]').first().text();
             h = h.toLowerCase().trim();
             return h;
         }),
