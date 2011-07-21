@@ -592,6 +592,19 @@ var sorts = {
             series = plot.getData()[0].data;
             latest = parseInt(series[series.length-1][1]);
             return latest;
+        }),
+    'duration': makeComparer(function(e) {
+            var text = $(e).find('td.status_text dd[name=duration]').text();
+            var dur = parseInt(text);
+            if (text.indexOf('minute') != -1) {
+                dur *= 60;
+            } else if (text.indexOf('hour') != -1) {
+                dur *= 60 * 60;
+            } else if (text.indexOf('day') != -1) {
+                dur *= 60 * 60 * 24;
+            }
+            console.log(text + ' = ' + dur);
+            return dur;
         })
 }
 

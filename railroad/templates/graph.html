@@ -21,7 +21,9 @@
                 </dd>
 
                 <dt name="duration">Duration</dt>
-                <dd name="duration">{{ graph.state_duration|pretty_duration }}</dd>
+                <dd name="duration" value="{{graph.state_duration}}">
+                    {{ graph.state_duration|pretty_duration }}
+                </dd>
 
                 <dt name="output">Output</dt>
                 <dd name="output">{{ graph.plugin_output}}</dd>
