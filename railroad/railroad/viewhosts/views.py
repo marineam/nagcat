@@ -21,7 +21,7 @@ import time
 import pickle
 import re
 from unicodedata import normalize
-import datetime
+from datetime import datetime
 
 import coil
 import rrdtool
@@ -113,18 +113,21 @@ def parse():
     """
     data_path = settings.DATA_PATH
     stat_path = '{0}/status.dat'.format(data_path)
-    stat = nagios_objects.ObjectParser(stat_path, ('service', 'host'))
+    stat = nagios_objects.ObjectParser(stat_path)
 
     obj_path = '%sobjects.cache' % data_path
     obj = nagios_objects.ObjectParser(obj_path, ('hostgroup'))
 
     # Convert unix times to python datetimes.
+
     DATE_OBJS = ['last_state_change', 'last_time_critical',
             'last_hard_state_change', 'last_update', 'last_time_ok',
             'last_check', 'next_check']
     for s in stat['service']:
+        s['state_duration'] = (int(time.time()) -
+            int(s['last_state_change']))
         for key in DATE_OBJS:
-            s[key] = datetime.datetime.utcfromtimestamp(int(s[key]))
+            s[key] = datetime.utcfromtimestamp(int(s[key]))
 
     # / in group names break urls, replace with - which are safer
     for group in obj['hostgroup']:

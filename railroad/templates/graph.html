@@ -20,6 +20,9 @@
                     </a>
                 </dd>
 
+                <dt name="duration">Duration</dt>
+                <dd name="duration">{{ graph.state_duration|pretty_duration }}</dd>
+
                 <dt name="output">Output</dt>
                 <dd name="output">{{ graph.plugin_output}}</dd>
 
@@ -45,16 +48,15 @@
                     To <input type="text" name="to"/>
                 </div>
 
-                    <a href="{{graph.host_name}}/{{graph.service_description}}/{{graph.start}}/{{graph.end}}/100"></a>
-                </div>
-        {% else %}
-            <p class="nograph">No graph</p>
-        {% endif %}
-        <div id="" class="{{graph.slug}} graph ajax"> 
-            <div id="{{ graph.host_name }}" class="graph_hostname"></div>
-            <div id="{{ graph.service_description }}" class="graph_service_name"></div>
-        </div>
-        <div class="legend"></div>
+                <a href="{{graph.host_name}}/{{graph.service_description}}/{{graph.start}}/{{graph.end}}/100"></a>
+            {% else %}
+                <p class="nograph">No graph</p>
+            {% endif %}
+            <div id="" class="{{graph.slug}} graph ajax"> 
+                <div id="{{ graph.host_name }}" class="graph_hostname"></div>
+                <div id="{{ graph.service_description }}" class="graph_service_name"></div>
+            </div>
+            <div class="legend"></div>
         </td>
     </tr>
 {% endfor %}
