@@ -316,8 +316,10 @@ function fetchAndDrawGraphDataByDiv () {
         url: '/railroad/graphs',
         data: 'graphs=' + ajaxData,
         type: 'POST',
+        async: true,
         dataType: 'json',
         success: function (data, textStatus, XMLHttpRequest) {
+            setTimeout(function() {
             for (var i=0; i < data.length; i++) {
                 var elem = data[i].uniq ? $('.{0} #{1}'.format(data[i].slug
                     , data[i].uniq)) : $('.{0}'.format(data[i].slug));
@@ -328,13 +330,12 @@ function fetchAndDrawGraphDataByDiv () {
                     $(elem).data('service', data[i].service);
                 }
             }
-        },
+        }, 5000, data, textStatus, XMLHttpRequest)},
         error: function () {
             console.log('There was an error in obtaining the data for graphs');
         }
     });
 }
-
 
 function getGraphDataByDiv(element) {
     var slug = $(element).attr('name');
@@ -362,6 +363,7 @@ function addHTML(ajaxData) {
         data: ajaxData,
         url: '/railroad/configurator/graph',
         type: 'POST',
+        async: true,
         dataType: 'html',
         success: function (html, textStatus, XMLHttpRequest) {
 
@@ -429,6 +431,7 @@ function drawGraph (elemGraph, data) {
                 url: '/railroad/graphs',
                 data: {'graphs': ajaxcall},
                 type: 'POST',
+                async: true,
                 dataType: 'json',
                 success: function (data, textStatus, XMLHttpRequest) {
                     for (var i=0; i < data.length; i++) {
@@ -488,6 +491,8 @@ function drawGraph (elemGraph, data) {
             new Date(elemGraph.data('start') * 1000));
     $(datePickers[1]).datetimepicker('setDate',
             new Date(elemGraph.data('end') * 1000));
+
+    $(elemGraph).siblings('.graphloading').remove();
 }
 
 function redrawGraph(element, data) {
@@ -527,6 +532,7 @@ function autoFetchData() {
         url: '/railroad/graphs',
         data: {'graphs': ajaxcall},
         type: 'POST',
+        async: true,
         success: function (data, textStatus, XMLHttpRequest) {
             for (var i=0; i < data.length; i++){
                 var element = $('.{0}'.format(data[i]['slug']));

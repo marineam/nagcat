@@ -49,12 +49,12 @@
                     From <input type="text" name="from"/>
                     To <input type="text" name="to"/>
                 </div>
-
                 <a href="{{graph.host_name}}/{{graph.service_description}}/{{graph.start}}/{{graph.end}}/100"></a>
+                <div class="graphloading">Rendering graph...</div>
             {% else %}
                 <p class="nograph">No graph</p>
             {% endif %}
-            <div id="" class="{{graph.slug}} graph ajax"> 
+            <div class="{{graph.slug}} graph ajax"> 
                 <div id="{{ graph.host_name }}" class="graph_hostname"></div>
                 <div id="{{ graph.service_description }}" class="graph_service_name"></div>
             </div>
