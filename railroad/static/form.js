@@ -200,9 +200,9 @@ $(document).ready(function() {
     });
 
     // Handle configurator form submissions
+    $('#configurator #add').bind('click', function() {
         fields = $('#configurator').formSerialize();
         $('#clearform').trigger('click');
-    $('#configurator #add').bind('click', function() {
         addHTML(fields);
         return false;
     });

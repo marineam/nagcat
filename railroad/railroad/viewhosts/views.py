@@ -22,6 +22,7 @@ import pickle
 import re
 from unicodedata import normalize
 from datetime import datetime
+from fnmatch import fnmatch
 
 import coil
 import rrdtool
@@ -193,8 +194,9 @@ def servicedetail(stat, host, service_alias):
     """Returns the service object with the specified name and host"""
     all_services = servicelist(stat)
     for service in all_services:
-        if service['host_name'] == host and \
-                service['service_description'] == service_alias:
+        # Do glob based matching (ie: 'ab*' will match 'abcd')
+        if (fnmatch(service['host_name'], host) and
+                fnmatch(service['service_description'], service_alias)):
             return service
 
 
@@ -223,14 +225,14 @@ def hostnames_by_service(stat, service):
     """Returns a list of hosts (names) possessing the specified service"""
     all_services = servicelist(stat)
     return [s['host_name'] for s in all_services    \
-                                if s['service_description'] == service]
+                                if fnmatch(s['service_description'], service)]
 
 
 def servicelist_by_host(stat, host):
     """Returns a list of services possessed by the specified host"""
     all_services = servicelist(stat)
     return [service for service in all_services \
-                                if service['host_name'] == host]
+                                if fnmatch(service['host_name'], host)]
 
 
 def servicenames_by_host(stat, host):
@@ -263,6 +265,7 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
     if groups:
         for group in groups:
             group_hosts.update(set(hostnames_by_group(stat, obj, group)))
+
     all_hosts.update(hosts | group_hosts) if hosts | group_hosts else None
     service_list = [] # Will contain the service objects
 
@@ -285,8 +288,13 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
     # Given hosts and services, we already have a list of all hosts for the
     # listed services, we want to filter out hosts that weren't listed.
     if all_hosts and services:
-        service_list = [service for service in service_list
-                if service['host_name'] in all_hosts]
+        service_lists = []
+        for s in service_list:
+            for h in all_hosts:
+                if fnmatch(service['host_name'], h):
+                    service_list.append(s)
+                    break
+
 
     # Find out whether each service object is graphable or not
     for service in service_list:

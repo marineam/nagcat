@@ -366,6 +366,11 @@ function addHTML(ajaxData) {
         async: true,
         dataType: 'html',
         success: function (html, textStatus, XMLHttpRequest) {
+            html = html.trim();
+            if (!html) {
+                console.log('No html returned!');
+                return;
+            }
 
             var numServices = $(html).closest('.service_row').length;
             if ( numServices > graphWarningThreshold) {
