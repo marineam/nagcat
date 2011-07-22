@@ -75,7 +75,8 @@ $(document).ready(function() {
 
     // Bind the graph time range selection buttons
     $('.options input[type=button]').live('click', function() {
-        var dates = $(this).parent().siblings('.daterange');
+        var dateRangeButton = this;
+        var dates = $(dateRangeButton).parent().siblings('.daterange');
 
         if ($('#sync').prop('checked')) {
             var from = $('input[name=from]');
@@ -88,12 +89,19 @@ $(document).ready(function() {
         to.datetimepicker('setDate', new Date());
         from.datetimepicker('setDate', new Date());
 
-        if ($(this).attr('name') == 'week') {
-            from.datetimepicker('setDate', '-1w');
-        } else if ($(this).attr('name') == 'month') {
-            from.datetimepicker('setDate', '-1m');
-        } else if ($(this).attr('name') == 'year') {
-            from.datetimepicker('setDate', '-1y');
+        var newDate = from.datetimepicker('getDate');
+        if ($(dateRangeButton).attr('name') == 'day') {
+            newDate.setDate(newDate.getDate()-1);
+            from.datetimepicker('setDate', newDate)
+        } else if ($(dateRangeButton).attr('name') == 'week') {
+            newDate.setDate(newDate.getDate()-7);
+            from.datetimepicker('setDate', newDate)
+        } else if ($(dateRangeButton).attr('name') == 'month') {
+            newDate.setMonth(newDate.getMonth()-1);
+            from.datetimepicker('setDate', newDate)
+        } else if ($(dateRangeButton).attr('name') == 'year') {
+            newDate.setFullYear(newDate.getFullYear()-1);
+            from.datetimepicker('setDate', newDate)
         }
 
         to.datetimepicker('refresh')
