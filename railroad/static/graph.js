@@ -522,7 +522,7 @@ function showTooltip(x, y, label) {
 
 function updateZoom(from, to) {
     var start = $(from).datetimepicker('getDate').getTime();
-    var end = $(to).datetimepicker('getDate').getTime() + (24 * 60 * 60 * 100);
+    var end = $(to).datetimepicker('getDate').getTime();
 
     var graph = $(from).parent().siblings('.graph').first();
     $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
