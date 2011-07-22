@@ -356,8 +356,13 @@ function getGraphDataByDiv(element) {
     return data;
 }
 function addHTML(ajaxData) {
-    var graphWarningThreshold = localStorageGet('preference_panel')
-        ? localStorageGet('preference_panel')[graphWarningThreshold] : 100;
+    var graphWarningThreshold = 100;
+    if (localStorageGet('preference_panel')) {
+        if (localStorageGet('preference_panel')['graphWarningTreshold']) {
+            graphWarningTreshold =
+                localStorageGet('preference_panel')['graphWarningThreshold'];
+        }
+    }
     $.ajax({
         data: ajaxData,
         url: '/railroad/configurator/graph',
