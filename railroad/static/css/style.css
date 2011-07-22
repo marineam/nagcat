@@ -96,9 +96,6 @@ dl { margin: 0; }
 .listheader {
     font-size: 12pt;
 }
-.pagination {
-        text-align: center;
-}
 /* TODO: Finish this styling */
 .biglist ul {
     margin: 0;

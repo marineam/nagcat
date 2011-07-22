@@ -2,10 +2,7 @@
 
 {% block title %}{{ htmltitle }}{% endblock %}
 
-{% block header %}
-    {{pagetitle}}
-    <div class="hint" id="persist">This form will remember what you have entered, across browser sessions and page views.</div>
-{% endblock %}
+{% block header %}{{pagetitle}}{% endblock %}
 
 {% block content %}
 <div class="data" id="remoteuserid">{{ remoteuserid }}</div>
