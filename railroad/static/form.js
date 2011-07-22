@@ -142,6 +142,13 @@ $(document).ready(function() {
             $(this).attr('name'), minLength: 1, autoFocus: true})
     });
 
+    //Make it so pressing enter triggers the add graphs button 
+    $('#host,#service,#group').live('keypress', function(e) {
+        if (e.keyCode === 13) {
+            $('#add').trigger('click');
+        }
+    });
+
     $('#service_count').click(function () {
         $('.service_row').show();
         console.log(update_hidden_count);
