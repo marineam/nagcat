@@ -329,7 +329,7 @@ function fetchAndDrawGraphDataByDiv () {
                     $(elem).data('service', data[i].service);
                 }
             }
-        }
+        },
         error: function () {
             console.log('There was an error in obtaining the data for graphs');
         }
