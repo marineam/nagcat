@@ -3,19 +3,20 @@
         <fieldset>
             <legend>Add graphs</legend>
             <ol>
+                {# Yes, we really do need both name and id. formSerializer and automcomplete use name, not id. #}
                 <li>
                     <label for="host">Host</label>
-                    <input class="autocomplete value" id="host" type="text">
+                    <input class="autocomplete value" name="host" id="host" type="text">
                 </li>
 
                 <li>
                     <label for="group">Groups</label>
-                    <input class="autocomplete value" id="group" type="text">
+                    <input class="autocomplete value" name="group" id="group" type="text">
                 </li>
 
                 <li>
                     <label for="service">Services</label>
-                    <input class="autocomplete value" id="service" type="text">
+                    <input class="autocomplete value" name="service" id="service" type="text">
                 </li>
 
                 <li>
