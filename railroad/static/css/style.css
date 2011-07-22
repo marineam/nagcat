@@ -487,10 +487,12 @@ fieldset {
 
 #preference_panel {
     display: none;
+    border: 1px solid black;
     position: absolute;
     right: 0px;
     top: 0px;
     width: 500px;
+    padding: 10px;
     margin-left: 10px;
     margin-top: 24px;
     background-color: #DDD;
