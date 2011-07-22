@@ -317,23 +317,34 @@ fieldset {
 #configurator .right {
     width: 440px;
 }
-#configurator ul {
-    padding: 0px;
-    margin: 0px;
-    margin-top: 5px;
-    margin-left: 20px;
-}
-#configurator ul li {
+.fieldset_ul > li {
     list-style: none outside none;
     margin: 0px;
     overflow: hidden;
 }
-#configurator ol li {
+.form_button > li {
+    display: inline;
+    margin: 0;
+    list-style: none outside none;
+    border: 1px solid #AAA;
+    background-color: #EEE;
+    height: 21px;
+    padding: 4px 8px;
+    cursor: pointer;
+    margin-left: 0;
+    margin-right: -1px;
+    border-radius: 2px;
+}
+.form_button  {
+    display: inline;
+    margin: 3px 6px 3px 0;
+}
+.fieldset_ul > li {
     list-style: none outside none;
     margin: 5px;
     overflow: hidden;
 }
-#configurator ol li label {
+.fieldset_ul > li > label {
     width: 75px;
     float: left;
 }

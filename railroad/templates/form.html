@@ -1,8 +1,8 @@
-<form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
+<form name="input" class="configurator" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
     <div class="left">
         <fieldset>
             <legend>Add graphs</legend>
-            <ol>
+            <ul class="fieldset_ul">
                 {# Yes, we really do need both name and id. formSerializer and automcomplete use name, not id. #}
                 <li>
                     <label for="host">Host</label>
@@ -18,18 +18,20 @@
                     <label for="service">Services</label>
                     <input class="autocomplete value" name="service" id="service" type="text">
                 </li>
-
-                <li>
+                {# The padding on the below li is necessary to display the buttons properly. #}
+                <li style="padding: 5px;">
                     <label>&nbsp;</label>
-                    <input type="button" value="Add" id="add"/>
-                    <input type="button" value="Clear Forms" id="clearform"/>
-                    <input type="button" value="Clear Graphs" id="cleargraphs">
-                    <span class="hint" id="csv">
-                        You can auto complete multiple comma separated values
-                        at a time.
-                    </span >
+                    <ul id="form_buttons" class="form_button">
+                        <li id="add" >Add</li
+                        ><li id="clearform" >Clear Fields</li
+                        ><li id="cleargraphs" >Clear Graphs</li>
+                        <span class="hint" id="csv">
+                            You can auto complete multiple comma separated values
+                            at a time.
+                        </span >
+                    </ul>
                 </li>
-            </ol>
+            </ul>
         </ol>
     </div>
     <div class="right">
@@ -38,7 +40,7 @@
             <p class="small">
                 Schedule nagios downtime for all objects checked below.
             </p>
-            <ol>
+            <ul class="fieldset_ul">
                 <li class="datetimerow">
                     <label class="from">From</label>
                     <input type="text" id="downtime-from" />
@@ -54,9 +56,11 @@
                     <input type="radio" name="hostorservice" id="downtime-host">Hosts</input>
                     <input type="radio" name="hostorservice" id="downtime-service">Services</input>
                 </li>
-                <li>
+                <li style="padding: 5px;">
                     <label>&nbsp;</label>
-                    <input type="button" value="Submit" id="downtime-submit" />
+                    <ul class="form_button">
+                        <li id="downtime-submit">Submit</li>
+                    </ul>
                 </li>
             </ol>
 
