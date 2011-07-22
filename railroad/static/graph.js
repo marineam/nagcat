@@ -547,7 +547,7 @@ function autoFetchData() {
             }
         },
         error: function (XMLHttpRequest, textStatus, errorThrown) {
-            alert ("Auto Fetch data failed");
+            console.log ("Auto Fetch data failed");
         }
     });
     setTimeout(autoFetchData, 600 * 1000);
