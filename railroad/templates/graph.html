@@ -54,10 +54,17 @@
             {% else %}
                 <p class="nograph">No graph</p>
             {% endif %}
+            {% if graph.is_graphable %}
             <div class="{{graph.slug}} graph ajax"> 
                 <div id="{{ graph.host_name }}" class="graph_hostname"></div>
                 <div id="{{ graph.service_description }}" class="graph_service_name"></div>
             </div>
+            {% else %}
+            <div class="{{graph.slug}} noGraph">
+                <div id="{{ graph.host_name }}" class="graph_hostname"></div>
+                <div id="{{ graph.service_description }}" class="graph_service_name"></div>
+            </div>
+            {% endif %}
             <div class="legend"></div>
         </td>
     </tr>
