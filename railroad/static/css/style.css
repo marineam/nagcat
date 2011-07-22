@@ -403,6 +403,8 @@ fieldset {
 }
 .open_tri_s { background-position: -64px 0px; }
 .arrow_e { background-position: -32px -32px; }
+.arrow_n_line { background-position: -192px -32px; }
+.arrow_s_line { background-position: -224px -32px; }
 .info { background-position: -16px -142px; }
 .close { background-position:  -32px -192px; }
 

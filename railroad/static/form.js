@@ -410,14 +410,20 @@ $(document).ready(function() {
     bindMenu($('#sortby'), $('#sortbymenu'));
     $('#sortbymenu li').bind('click', function(e) {
         var name = $(this).attr('name');
-        sortGraphs(name);
+        sortGraphs(name, !!$('#sortdirection').data('ascending'));
+
         $('#sortbymenu').hide();
         $('#sortby').data('lastSort', name);
     });
-    $('#sortreverse input').bind('change', function(e) {
+    $('#sortdirection').bind('click', function(e) {
         var name = $('#sortby').data('lastSort');
-        sortGraphs(name, $(this).prop('checked'));
         $('#sortby').data('lastSort', name);
+
+        var ascend = !$(this).data('ascending');
+        $(this).data('ascending', ascend);
+        $(this).children('div').toggleClass('arrow_s_line').toggleClass('arrow_n_line');
+
+        sortGraphs(name, ascend);
     });
 
     $('#preferences').bind('click', function() {
