@@ -291,7 +291,7 @@ function fetchAndDrawGraphDataByDiv () {
     var serviceRows = $('.service_row');
     var ajaxData = [];
     serviceRows.each(function () {
-        var element = $(this).children('.graph_container').children('.graph');
+        var element = $(this).children('.graph_container').children('.graphInfo');
         var slug = $(element).attr('name');
         graphs = $(slug).each(function (index, element) {
             $(element).attr('id', index);
@@ -812,4 +812,17 @@ var update_hidden_count = function() {
         $(this).data('checkp', checkp);
         $(element).css({'opacity': checkp ? 0.4 : 1.0});
     });
+}
+
+function generateState() {
+    servicesList = [];
+    services = $('.service_row');
+    services.each(function(index, element) {
+        var elemGraph = $(element).find('.graph') ? $(element).find('.graph') :
+            $(element).find('.noGraph');
+        var service = getGraphDataByData($(elemGraph));
+        servicesList.push(service);
+    });
+    console.log(servicesList);
+    return servicesList;
 }
