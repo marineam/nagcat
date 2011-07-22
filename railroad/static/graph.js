@@ -102,6 +102,7 @@ $.plot.formatDate = function(d, fmt, monthNames) {
     }
     return r.join("");
 };
+
 // Choose a base for graph axis
 function chooseBase(max) {
     // Memoizes results!

@@ -332,17 +332,10 @@ $(document).ready(function() {
     setTimeout(autoFetchData, 600 * 1000);
 
     /******* Hint System *******/
+    var hint_timeout = null;
     $('.hint').each(function(index, element) {
-        var hintText = $(element).text();
-        $('<div class="sprite info"></div>').insertBefore(element)
-        .mouseover(function(e) {
-            // on hover
-            showTooltip(e.pageX, e.pageY, hintText);
-        })
-        .mouseout(function(e) {
-            // on unhover
-            $('#tooltip').remove();
-        });
+        var hintText = $(element).text().trim().replace(/  +/, ' ');
+        $('<div class="sprite info"></div>').insertBefore(element).attr('title', hintText);
         $(element).remove();
     });
 
