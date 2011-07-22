@@ -319,7 +319,6 @@ function fetchAndDrawGraphDataByDiv () {
         async: true,
         dataType: 'json',
         success: function (data, textStatus, XMLHttpRequest) {
-            setTimeout(function() {
             for (var i=0; i < data.length; i++) {
                 var elem = data[i].uniq ? $('.{0} #{1}'.format(data[i].slug
                     , data[i].uniq)) : $('.{0}'.format(data[i].slug));
@@ -330,7 +329,7 @@ function fetchAndDrawGraphDataByDiv () {
                     $(elem).data('service', data[i].service);
                 }
             }
-        }, 5000, data, textStatus, XMLHttpRequest)},
+        }
         error: function () {
             console.log('There was an error in obtaining the data for graphs');
         }
