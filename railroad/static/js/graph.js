@@ -285,6 +285,16 @@ function getGraphDataByData(element) {
         "start" : start,
         "end" : end,
     };
+    if ($(element).data('data')) {
+        for (var i=0; i < $(element).data('data').data.length; i++) {
+            if ($(element).data('data').data[i].label) {
+                if (!data['labels']) {
+                    data['labels'] = {};
+                }
+                data['labels'][$(element).data('data').data[i].label] = $(element).data('data').data[i].lines.show;
+            }
+        }
+    }
     return data
 }
 
