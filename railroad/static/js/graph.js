@@ -291,7 +291,9 @@ function getGraphDataByData(element) {
                 if (!data['labels']) {
                     data['labels'] = {};
                 }
-                data['labels'][$(element).data('data').data[i].label] = $(element).data('data').data[i].lines.show;
+                var label = $(element).data('data').data[i].label;
+                var show = $(element).data('data').data[i].lines.show;
+                data['labels'].label = show;
             }
         }
     }
@@ -829,11 +831,9 @@ function generateState() {
     servicesList = [];
     services = $('.service_row');
     services.each(function(index, element) {
-        var elemGraph = $(element).find('.graph') ? $(element).find('.graph') :
-            $(element).find('.noGraph');
+        var elemGraph = $(element).find('.graphInfo');
         var service = getGraphDataByData($(elemGraph));
         servicesList.push(service);
     });
-    console.log(servicesList);
     return servicesList;
 }
