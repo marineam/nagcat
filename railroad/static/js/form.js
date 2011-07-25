@@ -417,11 +417,14 @@ $(document).ready(function() {
     });
     $('#sortdirection').bind('click', function(e) {
         var name = $('#sortby').data('lastSort');
-        $('#sortby').data('lastSort', name);
+        if (!name) {
+            name = 'host';
+        }
 
         var ascend = !$(this).data('ascending');
         $(this).data('ascending', ascend);
-        $(this).children('div').toggleClass('arrow_s_line').toggleClass('arrow_n_line');
+        $(this).children('div').toggleClass('arrow_s_line')
+                               .toggleClass('arrow_n_line');
 
         sortGraphs(name, ascend);
     });

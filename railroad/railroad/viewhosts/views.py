@@ -1002,6 +1002,8 @@ def graphs(request):
 
         response.append(one_response)
 
+    response.sort(key=lambda r: r['service'])
+
     return HttpResponse(json.dumps(response))
 
 # From http://flask.pocoo.org/snippets/5/
