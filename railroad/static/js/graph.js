@@ -553,6 +553,8 @@ function drawGraph (elemGraph, data) {
 function redrawGraph(element, data) {
     data = formatGraph(element, data);
     $(element).data('plot', $.plot($(element), data.data, data.options));
+    $(element).siblings('.graphloading').text('Rendering Graph...');
+
     $(element).data('data', data);
     $(element).data('start', data.start);
     $(element).data('end', data.end);
@@ -602,7 +604,7 @@ function autoFetchData() {
                 textStatus + ' ' + errorThrown);
         }
     });
-    setTimeout(autoFetchData, 60 * 1000);
+    setTimeout(autoFetchData, 600 * 1000);
 }
 
 // Sort the graphs.
