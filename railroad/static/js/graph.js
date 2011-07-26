@@ -589,6 +589,7 @@ function autoFetchData() {
         type: 'POST',
         async: true,
         success: function (data, textStatus, XMLHttpRequest) {
+            console.log('autoFetchData success');
             for (var i=0; i < data.length; i++){
                 var element = $('.{0}'.format(data[i]['slug']));
                 if (data[i].data) {
@@ -597,10 +598,11 @@ function autoFetchData() {
             }
         },
         error: function (XMLHttpRequest, textStatus, errorThrown) {
-            console.log ("Auto Fetch data failed");
+            console.log ("Auto Fetch data failed." + XMLHttpRequest + ' ' +
+                textStatus + ' ' + errorThrown);
         }
     });
-    setTimeout(autoFetchData, 600 * 1000);
+    setTimeout(autoFetchData, 60 * 1000);
 }
 
 // Sort the graphs.

@@ -207,4 +207,45 @@ $(document).ready(function() {
         // Don't trigger the click event of the parent
         event.stopPropagation();
     });
+
+    // Handle configurator form submissions
+    $('#configurator #add').bind('click', function() {
+        fields = $('#configurator').formSerialize();
+        $('#clearform').trigger('click');
+        addHTML(fields);
+        return false;
+    });
+
+    // *************************** Row manipulations ***************************
+    // Expand all/of type buttons
+    $('#expansion_by_type').find('input').bind('change', function() {
+        //To shorten the else if line below to < 80 chars
+        var allCheckboxes = $(this).parent().siblings().children('input');
+        if (! $(this).prop('checked')) {
+            $('#expandall').prop('checked', false);
+        } else if ($(allCheckboxes).not(':checked').length == 0) {
+            // If all inputs are checked
+            $('#expandall').prop('checked', true);
+        }
+    });
+
+    $('#expandall').change(function() {
+        var state = $(this).prop('checked');
+        $('#expansion_by_type input').prop('checked', state);
+    });
+
+    // expand one buttons
+    $('.collapse_row').live('click', function() {
+        collapse_row($(this).parents().parents().first());
+    });
+    $('.expand_row').live('click', function() {
+        expand_row($(this).parents().parents().first());
+    });
+    // remove 1 buttons
+    $('.remove_row').live('click', function() {
+        var tr = $(this).parents().parents().first();
+        tr.hide(0, function() {
+            $(tr).remove();
+        });
+    });
 });
