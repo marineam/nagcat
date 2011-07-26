@@ -1,0 +1,3 @@
+The files in pieces are combined to make "jquery.comb.js". Then the combined
+file is run through http://closure-compiler.appspot.com/home with the setting
+"simple" to create "jquery.comb.min.js" which is used in railroad.

@@ -23,6 +23,35 @@
 // TODO: Find a way to remove global variable?
 base = 0;
 
+/******* Misc helper functions *******/
+// Give strings a format function.
+// Use it like this
+//    "Hello {0}, how are you this fine {1}?".format(user_name, time_of_day);
+//    Returns "Hello Mike, how are you this fine morning?"
+String.prototype.format = function() {
+    var formatted = this;
+    for (var i = 0; i < arguments.length; i++) {
+        var regexp = new RegExp('\\{'+i+'\\}', 'gi');
+        formatted = formatted.replace(regexp, arguments[i]);
+    }
+    return formatted;
+}
+
+// An efficient function to unique values from a list
+Array.prototype.uniqueList = function() {
+    var oldList = this;
+    var uniqDict = {}
+    var uniqList = []
+
+    for (var i=0; i<oldList.length; i++) {
+        uniqDict[oldList[i]] = true;
+    }
+    for (var k in uniqDict) {
+        uniqList.push(k);
+    }
+    return uniqList;
+}
+
 /******* FLOT HELPER FUNCTIONS *******/
 $.plot.formatDate = function(d, fmt, monthNames) {
     var leftPad = function(n) {
@@ -716,36 +745,6 @@ function localStorageClear() {
     }
     return false;
 }
-
-/******* Misc helper functions *******/
-// Give strings a format function.
-// Use it like this
-//    "Hello {0}, how are you this fine {1}?".format(user_name, time_of_day);
-//    Returns "Hello Mike, how are you this fine morning?"
-String.prototype.format = function() {
-    var formatted = this;
-    for (var i = 0; i < arguments.length; i++) {
-        var regexp = new RegExp('\\{'+i+'\\}', 'gi');
-        formatted = formatted.replace(regexp, arguments[i]);
-    }
-    return formatted;
-}
-
-// An efficient function to unique values from a list
-Array.prototype.uniqueList = function() {
-    var oldList = this;
-    var uniqDict = {}
-    var uniqList = []
-
-    for (var i=0; i<oldList.length; i++) {
-        uniqDict[oldList[i]] = true;
-    }
-    for (var k in uniqDict) {
-        uniqList.push(k);
-    }
-    return uniqList;
-}
-
 /**** Expand/Collapse the graph rows ****/
 function auto_expansion() {
     states = {}
