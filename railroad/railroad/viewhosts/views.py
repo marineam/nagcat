@@ -966,6 +966,8 @@ def graphs(request):
         graphs = json.loads(graphs)
         service_objs = []
         for graph in graphs:
+            if not graph:
+                continue
             so = servicedetail(stat, graph['host'], graph['service'])
             if not so:
                 continue

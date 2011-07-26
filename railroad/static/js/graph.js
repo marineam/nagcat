@@ -301,20 +301,20 @@ function getGraphDataByData(element) {
 }
 
 function fetchAndDrawGraphDataByDiv () {
-    var serviceRows = $('.service_row');
+    var graph_divs = $('.graph_container');
     var ajaxData = [];
-    serviceRows.each(function () {
-        var element = $(this).children('.graph_container').children('.graphInfo');
+    graph_divs.each(function () {
+        var element = $(this).children('.graph');
         var slug = $(element).attr('name');
         graphs = $(slug).each(function (index, element) {
             $(element).attr('id', index);
         });
-        var hostname = $($(element).children('.graph_hostname')).attr('id');
-        var serviceName = $($(element).children('.graph_service_name'))
-            .attr('id');
-        var start = $($(element).children('graph_start')).attr('id');
-        var end = $($(element).children('graph_end')).attr('id');
+        var hostname = $(element).children('.graph_hostname').attr('id');
+        var serviceName = $(element).children('.graph_service_name').attr('id');
+        var start = $(element).children('.graph_start').attr('id');
+        var end = $(element).children('.graph_end').attr('id');
         var uniq = $(element).attr('id');
+
         var data = {
             "host" : hostname,
             "service" : serviceName,
@@ -333,8 +333,12 @@ function fetchAndDrawGraphDataByDiv () {
         dataType: 'json',
         success: function (data, textStatus, XMLHttpRequest) {
             for (var i=0; i < data.length; i++) {
-                var elem = data[i].uniq ? $('.{0} #{1}'.format(data[i].slug
-                    , data[i].uniq)) : $('.{0}'.format(data[i].slug));
+                var elem;
+                if (data[i].uniq) {
+                    elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
+                } else {
+                    elem = $('.{0}'.format(data[i].slug));
+                }
                 if (data[i].data) {
                     drawGraph(elem, data[i]);
                 } else {

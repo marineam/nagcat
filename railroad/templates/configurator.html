@@ -3,6 +3,9 @@
 {% block title %}{{ htmltitle }}{% endblock %}
 
 {% block header %}{{pagetitle}}{% endblock %}
+{% block head %}
+    <script language="javascript" type="text/javascript" src="/railroad-static/js/configurator.js"></script>
+{% endblock %}
 
 {% block content %}
 <div class="data" id="remoteuserid">{{ remoteuserid }}</div>

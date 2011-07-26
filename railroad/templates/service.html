@@ -24,36 +24,32 @@
 
 {% block content %}
 
-<div style="float: left; min-width: 250px; padding-right: 35px">
+<div class="coildisplay">
 <h1>Output</h1><pre>{% filter wordwrap:80 %}{{plugin_output}}
 {{service_output}}{% endfilter %}</pre><h1>Coil File</h1><pre>{% filter wordwrap:80 %}{{coil}}{% endfilter %}</pre>
 </div>
 
-<div class="services">
-<table>
+<div class="graphstack">
 {% if graphable %}
 	{% for time_interval in time_intervals %}
-		<tr>
-			<td width="100"><h2>{{time_interval.0|title}}</h2>
-				<div class="graph_container">
-					<div class="options">
-						<ul>
-							<li class="{{time_interval.0}} selected">{{time_interval.0}}</li>
-							<li class="zoom" style="visibility: hidden">zoomed</li>
-						</ul>
-					</div>
-				<div id="" class="{{slug}} graph" name="{{slug}}">
-                    <div id="{{host_name}}" class="graph_hostname"></div>
-                    <div id="{{service_name}}" class="graph_service_name"></div>
-                    <div id="{{time_interval.1.0}}" class="graph_start"></div>
-                    <div id="{{time_interval.1.1}}" class="graph_end"></div>
-				</div>
-				<div class="legend"></div>
-				</div>
-			</td>
-		</tr>
+        <div class="graph_container">
+			<h2>{{time_interval.0|title}}</h2>
+            <div class="options">
+                Current
+                <input type="button" name="day" value="Day"/>
+                <input type="button" name="week" value="Week"/>
+                <input type="button" name="month" value="Month"/>
+                <input type="button" name="year" value="Year"/>
+            </div>
+            <div class="{{slug}} graph" name="{{slug}}" id="{{forloop.counter}}">
+                <div id="{{host_name}}" class="graph_hostname"></div>
+                <div id="{{service_name}}" class="graph_service_name"></div>
+                <div id="{{time_interval.1.0}}" class="graph_start"></div>
+                <div id="{{time_interval.1.1}}" class="graph_end"></div>
+            </div>
+            <div class="legend"></div>
+        </div>
 	{% endfor %}
 {% endif %}
-</table>
 </div>
 {% endblock %}

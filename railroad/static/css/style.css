@@ -160,18 +160,18 @@ td.status_text {
    padding: 5px;
    width: 360px;
 }
-td.graph_container {
+.graph_container {
     font-size: 10pt;
     text-align: center;
     padding-top: 10px;
     position: relative;
     width: 540px;
 }
-td.graph_container canvas {
+.graph_container canvas {
     position: absolute;
     left: 0; top 0;
 }
-td.graph_container .graphloading {
+.graph_container .graphloading {
     font-size: 1.5em;
     position: relative;
     top: 50px;
@@ -274,7 +274,7 @@ td.graph_container .graphloading {
     clear: left;
     width: 80px;
     margin-bottom: 8px;
-    margin-right: 5px;
+    margin-right: 4px;
 }
 .service_row dd {
     float: left;
@@ -509,4 +509,15 @@ fieldset {
 
 .hint {
     display: none;
+}
+
+/** Service detail page **/
+.coildisplay {
+    width: 350px;
+    float: left;
+    margin: 0 10px;
+}
+.graphstack {
+    margin: 0 10px;
+    float: left;
 }

@@ -14,63 +14,8 @@
  * limitations under the License.
  */
 
-function saveFormPersistence(elemPersist) {
-    var store = {};
-    var value = null;
-    $(elemPersist).find('.persist').each(function(index, element) {
-        if ($(element).is('input')) {
-            if ($(element).attr('type') === 'checkbox') {
-                value = $(element).prop('checked');
-            } else if ($(element).attr('type') === 'radio') {
-                value = $(element).prop('checked');
-            } else if ($(element).attr('type') === 'field') {
-                value = $(element).val();
-            }
-        } else if ($(element).is('select')) {
-            value = $(element).val();
-        }
-
-        if (value != null) {
-            store[$(element).attr('id')] = value;
-        }
-    });
-    var dictName = $(elemPersist).attr('id')
-    localStorageSet(dictName, store)
-    updateDebug();
-}
-
-function restoreFormPersistence(elemPersist) {
-    var form_store = localStorageGet($(elemPersist).attr('id'));
-    for (key in form_store) {
-        element = $(elemPersist).find('#' + key);
-        if ($(element).is('input')) {
-            if ($(element).attr('type') === 'checkbox') {
-                $(element).prop('checked', form_store[key]);
-            } else if ($(element).attr('type') === 'radio') {
-                $(element).prop('checked', form_store[key]);
-            } else if ($(element).attr('type') === 'field') {
-                $(element).val(form_store[key]);
-            }
-        } else if ($(element).is('select')) {
-            $(element).val(form_store[key]);
-        }
-    }
-}
-
 // Execute setup code when page loads
 $(document).ready(function() {
-    /******* AJAX Helpers ******/
-    $('body').ajaxStart(function() {
-        if ($('#loading').length == 0) {
-            $('body').append('<images id="loading" src="/railroad-static/' +
-                'images/loading.gif" style="position: absolute;"/>');
-        }
-    });
-
-    $('body').ajaxStop(function() {
-        $('#loading').remove();
-    });
-
     /**** GRAPH SETUP ****/
 
     // Bind the graph time range selection buttons
@@ -109,12 +54,10 @@ $(document).ready(function() {
         updateZoom(from,to);
     });
 
-    // Initialize the data for any graphs already on the page
-    update_number_graphs();
+    /* Initialize the data for any graphs already on the page. */
     fetchAndDrawGraphDataByDiv();
 
-    /**** CONFIGURATOR SETUP ****/
-
+    /** Debug **/
     $('#debug_check').prop('checked', localStorageGet('debug'));
     updateDebug();
 
@@ -127,81 +70,13 @@ $(document).ready(function() {
         localStorageClear();
     });
 
+    /**** CONFIGURATOR SETUP ****/
 
-    /*** Persistent form settings ***/
-    /* Anything in #configurator with a class of "... persist ..."
-     * will get persistence.
-     */
-    $('#configurator').bind('change', function () {
-        saveFormPersistence($('#configurator'));
-    });
-
+    /*** Preferences persistance ***/
     $('#preference_panel').bind('change', function () {
         saveFormPersistence($('#preference_panel'));
     });
-
-    // Restore persisted objects
-    restoreFormPersistence($('#configurator'));
     restoreFormPersistence($('#preference_panel'));
-
-    // Autocomplete anything with class = "... autocomplete ..."
-    $('.autocomplete').each(function () {
-        $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
-            $(this).attr('name'), minLength: 1, autoFocus: true})
-    });
-
-    //Make it so pressing enter triggers the add graphs button
-    $('#host,#service,#group').live('keypress', function(e) {
-        if (e.keyCode === 13) {
-            $('#add').trigger('click');
-        }
-    });
-
-    $('#service_count').click(function () {
-        $('.service_row').show();
-        console.log(update_hidden_count);
-        update_hidden_count();
-        $(this).siblings().css({'opacity': 1.0}).data('checkp', false);
-    });
-    $('#stats .state_count').bind('click', function() {
-        var buttonClass = $(this).attr('name');
-        var checkp = !$(this).data('checkp');
-        $(this).data('checkp', checkp);
-
-        $('.service_row').each(function(index, element) {
-            if ($(element).children('.status_text').hasClass(buttonClass)) {
-                if (checkp) {
-                    $(element).hide();
-                } else {
-                    $(element).show();
-                }
-            }
-        });
-        update_hidden_count();
-    });
-
-    $('#cleargraphs').click(function () {
-        $('.service_row').remove();
-        update_number_graphs()
-        update_hidden_count();
-    });
-
-    $('.graphcheckbox').change(function () {
-        var checkp = true;
-        var checkboxes = $('.graphcheckbox');
-        checkboxes.each(function (index, element) {
-            if (  ! $(element).prop('checked') ) {
-                checkp = false;
-            }
-        });
-        $('.checkall').prop('checked', checkp);
-    });
-
-    $('#clearform').bind('click', function () {
-        $('#host').val("");
-        $('#group').val("");
-        $('#service').val("");
-    });
 
     $('#localtime, #utc').bind('change', function() {
         // Guarantee that localstorage gets the change before redrawing graphs
@@ -220,77 +95,6 @@ $(document).ready(function() {
         $('#clearform').trigger('click');
         addHTML(fields);
         return false;
-    });
-
-    // Downtime requests
-    $('#configurator .datetimerow input').datetimepicker();
-    $('#configurator #downtime-submit').bind('click', function() {
-        // gather data
-        var expr = '';
-        if ($('#downtime-host').prop('checked')) {
-            var hosts = [];
-            $('.service_row dd[name=host]').each(function(index, element) {
-                hosts.push('host:' + $(element).text().trim());
-            });
-            hosts = hosts.uniqueList();
-            expr = hosts.join(' or ')
-        } else {
-            var hosts = [];
-            var services = [];
-            var objs = [];
-            $('.service_row dd[name=host]').each(function(index, element) {
-                hosts.push('host:"' + $(element).text().trim() + '"');
-            });
-            $('.service_row dd[name=service]').each(function(index, element) {
-                services.push('service:"' + $(element).text().trim() + '"');
-            });
-            for (var i=0; i<hosts.length; i++) {
-                objs.push(hosts[i] + ' and ' + services[i]);
-            }
-            objs = objs.uniqueList();
-            expr = objs.join(' or ')
-        }
-
-        if (!expr) {
-            console.log('no graphs')
-            return;
-        }
-
-        var from = $('#downtime-from').datepicker('getDate');
-        var to = $('#downtime-to').datepicker('getDate');
-        if (!(from && to)) {
-            console.log('invalid dates');
-            return;
-        }
-        from = Math.round(from.getTime() / 1000.0);
-        to = Math.round(to.getTime() / 1000.0);
-
-        var comment = $('#downtime-comment').prop('value');
-        if (!expr) {
-            console.log('no comment');
-            return;
-        }
-
-        var user = $('#remoteuserid').text().trim();
-
-        var args = [expr, from, to, user, comment]
-        var data = {
-            'url': 'http://localhost:8080',
-            'command': 'scheduleDowntime',
-            'args': JSON.stringify(args),
-        }
-
-        $.ajax({
-            url: '/railroad/ajax/xmlrpc',
-            data: data,
-            dataType: 'text',
-            success: function(cancellationCode) {
-                    console.log(cancellationCode);
-                },
-            error: function () {
-                console.log('error');
-            }
-        });
     });
 
     // *************************** Row manipulations ***************************
@@ -326,8 +130,6 @@ $(document).ready(function() {
         });
     });
 
-
-
     // Start the AJAX graph refreshes
     setTimeout(autoFetchData, 600 * 1000);
 
@@ -337,102 +139,5 @@ $(document).ready(function() {
         var hintText = $(element).text().trim().replace(/  +/, ' ');
         $('<div class="sprite info"></div>').insertBefore(element).attr('title', hintText);
         $(element).remove();
-    });
-
-    /****** Tool bar stuff *****/
-    $('#check_controls input[type=checkbox]').bind('click', function(event) {
-        $('.service_row .controls input[type=checkbox]').prop('checked',
-            $(this).prop('checked'));
-        // Don't trigger the click event of the parent
-        event.stopPropagation();
-    });
-
-    var allChecked = function(func) {
-        $('.service_row').each(function(index, elem) {
-            if ($(elem).children('.controls').children('input')
-                    .prop('checked')) {
-                func(elem);
-            }
-        });
-        $('.service_row .controls input[type=checkbox]').prop('checked', false);
-        $('#checkall input').prop('checked', false);
-    }
-
-    var bindMenu = function(button, menu) {
-        var pos = $(button).offset();
-        var height = $(button).height();
-        $(menu).position({my: 'left top', at: 'left bottom', of: $(button)}).hide();
-        $(button).bind('click', function() {
-            $(menu).toggle();
-        });
-    }
-
-    bindMenu($('#checkall'), $('#selectall.menu'));
-    $('#selectall.menu li').bind('click', function(e) {
-        switch ($(this).attr('name')) {
-            case 'all':
-                $('.service_row .controls input[type=checkbox]')
-                    .prop('checked', true);
-                break;
-            case 'none':
-                $('.service_row .controls input[type=checkbox]')
-                    .prop('checked', false);
-                break;
-            case 'state_ok':
-            case 'state_warning':
-            case 'state_critical':
-            case 'state_unknown':
-                var button = this;
-                $('.service_row').each(function(index, elem) {
-                    var className = $(button).attr('name');
-                    if ($(elem).children('.status_text').hasClass(className)) {
-                        $(elem).children('.controls').children('input')
-                            .prop('checked', true);
-                    }
-                });
-                break;
-        }
-        $('.graphcheckbox').trigger('change');
-        $('#selectall.menu').hide();
-    });
-
-    $('#remove_checked').bind('click', function() {
-        allChecked(function(elem) {$(elem).remove();});
-        update_number_graphs();
-    });
-    $('#expand_checked').bind('click', function() {
-        allChecked(expand_row);
-    });
-    $('#collapse_checked').bind('click', function() {
-        allChecked(collapse_row);
-    });
-
-    bindMenu($('#sortby'), $('#sortbymenu'));
-    $('#sortbymenu li').bind('click', function(e) {
-        var name = $(this).attr('name');
-        sortGraphs(name, !!$('#sortdirection').data('ascending'));
-
-        $('#sortbymenu').hide();
-        $('#sortby').data('lastSort', name);
-    });
-    $('#sortdirection').bind('click', function(e) {
-        var name = $('#sortby').data('lastSort');
-        if (!name) {
-            name = 'host';
-        }
-
-        var ascend = !$(this).data('ascending');
-        $(this).data('ascending', ascend);
-        $(this).children('div').toggleClass('arrow_s_line')
-                               .toggleClass('arrow_n_line');
-
-        sortGraphs(name, ascend);
-    });
-
-    $('#preferences').bind('click', function() {
-        $('#preference_panel').toggle();
-    });
-    $('#close_preferences').bind('click', function() {
-        $('#preference_panel').toggle();
     });
 });
