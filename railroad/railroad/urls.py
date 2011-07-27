@@ -26,6 +26,11 @@ urlpatterns = patterns('',
         '(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/?$',
         'railroad.parserrd.views.index'),
 
+    # Permalinks
+    (r'^permalink/generate/', 'railroad.permalink.views.generate_link'),
+    (r'^permalink/(?P<link>[A-Za-z0-9_\-]+)$', 
+        'railroad.permalink.views.retrieve_link'),
+
     # Viewers
     (r'^graphs/?$', 'railroad.viewhosts.views.graphs'),
     (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$',

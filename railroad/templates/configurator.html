@@ -8,6 +8,11 @@
 {% endblock %}
 
 {% block content %}
+<label for="permalink">Permalink</label>
+<input id="permalink" type="text" class="permalink"></input>
+<ul class="liButtons">
+    <li id="generateLink">Generate Link</li>
+</ul>
 <div class="data" id="remoteuserid">{{ remoteuserid }}</div>
 
 {% include "form.html" %}

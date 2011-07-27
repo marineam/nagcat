@@ -322,7 +322,7 @@ fieldset {
     margin: 0px;
     overflow: hidden;
 }
-.form_button > li {
+.liButtons > li {
     display: inline;
     margin: 0;
     list-style: none outside none;
@@ -335,7 +335,7 @@ fieldset {
     margin-right: -1px;
     border-radius: 2px;
 }
-.form_button  {
+.liButtons  {
     display: inline;
     margin: 3px 6px 3px 0;
 }

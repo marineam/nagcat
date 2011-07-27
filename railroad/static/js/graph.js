@@ -438,6 +438,7 @@ function addHTML(ajaxData) {
 
             var services = $('.service_row');
             services.each(function (index, elemRow) {
+                //$(elemRow).find('.graphInfo').attr('id', index);
                 collapse_or_expand(elemRow);
             });
 
@@ -842,5 +843,22 @@ function generateState() {
         var service = getGraphDataByData($(elemGraph));
         servicesList.push(service);
     });
-    return servicesList;
+    return JSON.stringify(servicesList);
 }
+
+function generateLink() {
+    servicesList = generateState()
+    $.ajax({
+        data: {"services" :servicesList },
+        url: '/railroad/permalink/generate/',
+        type: 'POST',
+        success: function (link, textStatus, XMLHttpRequest) {
+            console.log(link);
+        },
+        error: function (error, textStatus, XMLHttpRequest) {
+            console.log("there was an error");
+        },
+    });
+}
+
+
