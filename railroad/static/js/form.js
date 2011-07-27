@@ -21,37 +21,34 @@ $(document).ready(function() {
     // Bind the graph time range selection buttons
     $('.options input[type=button]').live('click', function() {
         var dateRangeButton = this;
-        var dates = $(dateRangeButton).parent().siblings('.daterange');
 
         if ($('#sync').prop('checked')) {
             var from = $('input[name=from]');
             var to = $('input[name=to]');
         } else {
+            var dates = $(dateRangeButton).parent().siblings('.daterange');
             var from = $(dates).children('[name=from]');
             var to = $(dates).children('[name=to]');
         }
 
-        to.datetimepicker('setDate', new Date());
-        from.datetimepicker('setDate', new Date());
+        var toDate = new Date();
+        var fromDate = new Date();
 
-        var newDate = from.datetimepicker('getDate');
         if ($(dateRangeButton).attr('name') == 'day') {
-            newDate.setDate(newDate.getDate()-1);
-            from.datetimepicker('setDate', newDate)
+            fromDate.setDate(fromDate.getDate()-1);
         } else if ($(dateRangeButton).attr('name') == 'week') {
-            newDate.setDate(newDate.getDate()-7);
-            from.datetimepicker('setDate', newDate)
+            fromDate.setDate(fromDate.getDate()-7);
         } else if ($(dateRangeButton).attr('name') == 'month') {
-            newDate.setMonth(newDate.getMonth()-1);
-            from.datetimepicker('setDate', newDate)
+            fromDate.setMonth(fromDate.getMonth()-1);
         } else if ($(dateRangeButton).attr('name') == 'year') {
-            newDate.setFullYear(newDate.getFullYear()-1);
-            from.datetimepicker('setDate', newDate)
+            fromDate.setFullYear(fromDate.getFullYear()-1);
         }
 
-        to.datetimepicker('refresh')
-        from.datetimepicker('refresh')
-        updateZoom(from,to);
+        var dateFormat = 'MM/dd/yyyy HH:mm';
+        from.val(fromDate.toString(dateFormat))
+        to.val(toDate.toString(dateFormat))
+
+        updateZoom(from.first().parent().siblings('.graph'), fromDate, toDate);
     });
 
     /* Initialize the data for any graphs already on the page. */

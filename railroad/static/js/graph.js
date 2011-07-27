@@ -537,7 +537,11 @@ function drawGraph (elemGraph, data) {
     var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
     var datePickers = $(elemGraphDates).datetimepicker({
         onClose: function(selectedDate) {
-            updateZoom(datePickers[0], datePickers[1]);
+            updateZoom(datePickers[0].parent().siblings('.graph').first(),
+                       datePickers[0].datetimepicker('getDate'),
+                       datePickers[1].datetimepicker('getDate'));
+    var start = $(from).datetimepicker('getDate').getTime();
+    var end = $(to).datetimepicker('getDate').getTime();
         },
         changeMonth: true,
         changeYear: true,
@@ -568,12 +572,8 @@ function showTooltip(x, y, label) {
         .css({'left': x, 'top': y});
 }
 
-function updateZoom(from, to) {
-    var start = $(from).datetimepicker('getDate').getTime();
-    var end = $(to).datetimepicker('getDate').getTime();
-
-    var graph = $(from).parent().siblings('.graph').first();
-    $(graph).trigger('plotselected', {'xaxis': {'from': start, 'to': end}});
+function updateZoom(graph, from, to) {
+    $(graph).trigger('plotselected', {'xaxis': {'from': from, 'to': to}});
 }
 
 // Automatically fetch new data for graphs that have the class 'ajax'
