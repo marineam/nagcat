@@ -357,16 +357,6 @@ def index(request):
     return HttpResponse(t.render(c))
 
 
-def error404(request):
-    """Returns the 404 page"""
-    t = loader.get_template('404.html')
-    stat, obj = parse()
-    context_data = {}
-    context_data = add_hostlist(stat, obj, context_data)
-
-    return HttpResponse(t.render(c))
-
-
 def graphpage(request, host=None, service=None):
     """Returns a page of graphs matching specific filter criteria."""
 

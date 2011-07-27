@@ -14,9 +14,6 @@
 
 from django.conf.urls.defaults import *
 
-# Set our custom 404 handler to make sure the sidebar works
-handler404 = 'railroad.viewhosts.views.error404'
-
 urlpatterns = patterns('',
     # Index page
     (r'^$', 'railroad.viewhosts.views.index'),
@@ -51,4 +48,5 @@ urlpatterns = patterns('',
     (r'^ajax/autocomplete/(?P<context>\w+)$',
         'railroad.ajax.autocomplete.autocomplete'),
     (r'^ajax/xmlrpc$', 'railroad.ajax.xmlrpc.xmlrpc'),
+    (r'^404$', 'django.views.defaults.page_not_found'),
 )
