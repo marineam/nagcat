@@ -288,11 +288,13 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
     # Given hosts and services, we already have a list of all hosts for the
     # listed services, we want to filter out hosts that weren't listed.
     if all_hosts and services:
+        new_services = []
         for s in service_list:
             for h in all_hosts:
                 if fnmatch(s['host_name'], h):
-                    service_list.append(s)
+                    new_services.append(s)
                     break
+        service_list = new_services
 
 
     # Find out whether each service object is graphable or not
