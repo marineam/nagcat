@@ -288,10 +288,9 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
     # Given hosts and services, we already have a list of all hosts for the
     # listed services, we want to filter out hosts that weren't listed.
     if all_hosts and services:
-        service_lists = []
         for s in service_list:
             for h in all_hosts:
-                if fnmatch(service['host_name'], h):
+                if fnmatch(s['host_name'], h):
                     service_list.append(s)
                     break
 
@@ -960,8 +959,6 @@ def graphs(request):
     res = source.get('res', None)
     uniq = source.get('uniq', None)
 
-    string = ""
-
     if graphs:
         graphs = json.loads(graphs)
         service_objs = []
@@ -1008,17 +1005,17 @@ def graphs(request):
 
     return HttpResponse(json.dumps(response))
 
-# From http://flask.pocoo.org/snippets/5/
-_punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+')
-
 
 def slugify(text, delim=u''):
     """
     Generates a slug that will only use ASCII, be all lowercase, have no
     spaces, and otherwise be nice for filenames, identifiers, and urls.
+
+    From http://flask.pocoo.org/snippets/5/
     """
     result = []
-    for word in _punct_re.split(text.lower()):
+    splits = re.split(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.]+', text.lower())
+    for word in splits:
         word = normalize('NFKD', unicode(word)).encode('ascii', 'ignore')
         if word:
             result.append(word)
