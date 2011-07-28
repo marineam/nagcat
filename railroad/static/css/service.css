@@ -1,0 +1,18 @@
+/** Service detail page **/
+.coildisplay {
+    width: 350px;
+    margin: 0 10px;
+}
+.graphgrid {
+    margin: 20px;
+    overflow: hidden;
+}
+
+.graphgrid .graph_container {
+    float: left;
+    width: 450px;
+}
+
+.graphgrid .graph {
+    width: 400px;
+}

@@ -1,36 +1,26 @@
 {% extends "base.html" %}
+{% load services %}
+
+{% block head %}
+<link rel="stylesheet" href="/railroad-static/css/service.css" type="text/css">
+{% endblock head %}
 
 {% block title %}Service detail: {{host_name}} &gt; {{service_name}}{% endblock %}
 
 {% block header %}
-<a href="/railroad/configurator/host/{{host_name}}">
-{% ifequal host_state '0' %}
-	<span class="greenbg">
-{% else %}
-	<span class="redbg">
-{% endifequal %}
-{{host_name}}</span></a> &gt; 
-{% ifequal service_state '0' %}
-	<span class="greenbg">
-{% else %}
-	{% ifequal service_state '1' %}
-		<span class="yellowbg">
-	{% else %}
-		<span class="redbg">
-	{% endifequal %}
-{% endifequal %}
-{{service_name}}</span>
+    <a href="/railroad/configurator/host/{{host_name}}"
+        class="status_text state_{{ host_state|state_name|lower }}">
+        {{host_name}}
+    </a> &gt;
+    <span class="status_text state_{{ service_state|state_name|lower }}">
+        {{service_name}}
+    </span>
 {% endblock %}
 
 {% block content %}
 
-<div class="coildisplay">
-<h1>Output</h1><pre>{% filter wordwrap:80 %}{{plugin_output}}
-{{service_output}}{% endfilter %}</pre><h1>Coil File</h1><pre>{% filter wordwrap:80 %}{{coil}}{% endfilter %}</pre>
-</div>
-
-<div class="graphstack">
 {% if graphable %}
+<div class="graphgrid">
 	{% for time_interval in time_intervals %}
         <div class="graph_container">
 			<h2>{{time_interval.0|title}}</h2>
@@ -50,6 +40,12 @@
             <div class="legend"></div>
         </div>
 	{% endfor %}
-{% endif %}
 </div>
+{% endif %}
+
+<div class="coildisplay">
+<h1>Output</h1><pre>{% filter wordwrap:80 %}{{plugin_output}}
+{{service_output}}{% endfilter %}</pre><h1>Coil File</h1><pre>{% filter wordwrap:80 %}{{coil}}{% endfilter %}</pre>
+</div>
+
 {% endblock %}
