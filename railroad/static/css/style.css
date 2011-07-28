@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright 2010 ITA Software, Inc.
+* Copyright 2010 ITA Software, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ dl { margin: 0; }
     border: 1px solid black;
     padding: 5px;
     min-height: 600px;
+    overflow: hidden;
 }
 
 #header {
@@ -61,16 +62,16 @@ dl { margin: 0; }
     float: left;
 }
 #header ul li {
-    display: inline;
-    margin: 3px 0 3px 3px;
+    display: inline-block;
+    margin-right: 3px;
     padding: 0 20px;
 }
 #header #preferences {
-    margin: 0 3px 3px 3px;
-    display: inline;
     background-color: #DDD;
     position: absolute;
     right: 0;
+    top: 0;
+    margin: 0;
 }
 #header #title {
     font-weight: bold;
@@ -350,14 +351,14 @@ fieldset {
 }
 .left input[type=text] {
     float: left;
-    width: 370px;
+    width: 365px;
 }
 .right input[type=text]{
     float: left;
-    width: 325px;
+    width: 315px;
 }
 #configurator .datetimerow input[type=text] {
-    width: 140px;
+    width: 135px;
     float: left;
 }
 #configurator .datetimerow .to {
