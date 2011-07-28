@@ -701,7 +701,11 @@ def meta(request):
 
         response.append(so)
 
-    return HttpResponse(json.dumps(so))
+    return HttpResponse(json.dumps(response))
+
+
+def data(request):
+    pass
 
 
 def customgraph(request):

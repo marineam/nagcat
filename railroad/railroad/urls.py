@@ -25,7 +25,7 @@ urlpatterns = patterns('',
 
     # Permalinks
     (r'^permalink/generate/', 'railroad.permalink.views.generate_link'),
-    (r'^permalink/(?P<link>[A-Za-z0-9_\-]+)$', 
+    (r'^permalink/(?P<link>[A-Za-z0-9_\-]+)$',
         'railroad.permalink.views.retrieve_link'),
 
     # Viewers
@@ -36,7 +36,6 @@ urlpatterns = patterns('',
     (r'^viewgroup/(?P<group>[^/]+)/(?P<test>.+)/(?P<alias>.+)$',
         'railroad.viewhosts.views.groupservice'),
     # Configurator and helper functions for AJAX
-    (r'^c/(?P<id>\d+)$', 'railroad.viewhosts.views.directurl'),
     (r'^configurator$', 'railroad.viewhosts.views.directconfigurator'),
     (r'^configurator/graph$', 'railroad.viewhosts.views.customgraph'),
     (r'^configurator/host/(?P<hosts>\w+)$',

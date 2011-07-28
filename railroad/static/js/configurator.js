@@ -203,9 +203,9 @@ $(document).ready(function() {
 
     // Handle configurator form submissions
     $('#configurator #add').bind('click', function() {
-        fields = $('#configurator').serialize();
+        var fields = $('#configurator').serialize();
         $('#clearform').trigger('click');
-        addHTML(fields);
+        getServiceObjs(fields);
         return false;
     });
 
@@ -240,5 +240,27 @@ $(document).ready(function() {
         tr.hide(0, function() {
             $(tr).remove();
         });
+    });
+
+    /********** Page manipulations **********/
+    // Note that page numbers are 0 based.
+    $('#nextpage').bind('click', function() {
+        var page = $('#graphs').data('curpage');
+        var totalpages = parseInt($('#totalpages').text());
+        var disabled = !!$(this).data('disabed');
+        if (!disabled && page < totalpages) {
+            page += 1;
+            $('#graphs').data('curpage', page);
+            selectServiceObjs();
+        }
+    });
+    $('#prevpage').bind('click', function() {
+        var page = $('#graphs').data('curpage');
+        var disabled = !!$(this).data('disabed');
+        if (!disabled && page > 0) {
+            page -= 1;
+            $('#graphs').data('curpage', page);
+            selectServiceObjs();
+        }
     });
 });

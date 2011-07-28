@@ -403,21 +403,18 @@ function getGraphDataByDiv(element) {
     };
     return data;
 }
-function addHTML(ajaxData) {
-    var graphWarningThreshold = 100;
-    if (localStorageGet('preference_panel')) {
-        if (localStorageGet('preference_panel')['graphWarningTreshold']) {
-            graphWarningTreshold =
-                localStorageGet('preference_panel')['graphWarningThreshold'];
-        }
-    }
+function getServiceObjs(ajaxData) {
     $.ajax({
         data: ajaxData,
-        url: '/railroad/configurator/graph',
+        url: '/railroad/configurator/meta',
         type: 'POST',
         async: true,
-        dataType: 'html',
-        success: function (html, textStatus, XMLHttpRequest) {
+        dataType: 'json',
+        success: function (meta, textStatus, XMLHttpRequest) {
+            $('#graphs').data('meta', meta);
+            selectServiceObjs();
+            return;
+
             html = html.trim();
             if (!html) {
                 console.log('No html returned!');
@@ -437,16 +434,13 @@ function addHTML(ajaxData) {
             $(html).appendTo('#graphs');
             update_number_graphs();
 
-
             var services = $('.service_row');
             services.each(function (index, elemRow) {
                 //$(elemRow).find('.graphInfo').attr('id', index);
                 collapse_or_expand(elemRow);
             });
 
-
             fetchAndDrawGraphDataByDiv();
-
         },
         error: function () {
             console.log('failed to add graph html');
@@ -454,6 +448,40 @@ function addHTML(ajaxData) {
     });
 }
 
+function selectServiceObjs() {
+    var perpage = 5;
+    var curpage = $('#graphs').data('curpage');
+    if (!curpage) {
+        curpage = 0;
+        $('#graphs').data('curpage', 0);
+    }
+
+    var meta = $('#graphs').data('meta');
+    var start = curpage * perpage;
+    var end = Math.min(start+perpage, meta.length);
+
+    var htmlToAdd = ''
+    for (var i=start; i<end; i++) {
+        htmlToAdd += meta[i].html;
+    }
+    $('#graphs').html('');
+    $(htmlToAdd).appendTo('#graphs');
+    update_number_graphs();
+
+    $('#curpage').text(curpage);
+    var totalpages = Math.floor(meta.length / perpage);
+    $('#totalpages').text(totalpages);
+    if (curpage >= totalpages) {
+        $('#nextpage').data('disable', true).css({'opacity': 0.25});
+    } else {
+        $('#nextpage').data('disable', false).css({'opacity': 1.0});
+    }
+    if (curpage <= 0) {
+        $('#prevpage').data('disable', true).css({'opacity': 0.25});
+    } else {
+        $('#prevpage').data('disable', false).css({'opacity': 1.0});
+    }
+}
 
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
