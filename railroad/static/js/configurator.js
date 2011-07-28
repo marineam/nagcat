@@ -194,13 +194,6 @@ $(document).ready(function() {
         sortGraphs(name, ascend);
     });
 
-    $('#preferences').bind('click', function() {
-        $('#preference_panel').toggle();
-    });
-    $('#close_preferences').bind('click', function() {
-        $('#preference_panel').toggle();
-    });
-
     $('#check_controls input[type=checkbox]').bind('click', function(event) {
         $('.service_row .controls input[type=checkbox]').prop('checked',
             $(this).prop('checked'));
