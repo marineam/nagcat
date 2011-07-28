@@ -671,6 +671,39 @@ def form(request):
     return HttpResponse(t.render(c))
 
 
+def meta(request):
+    """
+    Get a bunch of json metadata for a request.
+    """
+    stat, obj = parse()
+    source = request.POST if request.POST else request.GET
+
+    groups = source.get('group', '')
+    hosts = source.get('host', '')
+    services = source.get('service', '')
+
+    response = []
+    graph_template = loader.get_template('graph.html')
+
+    for graph in get_graphs(stat, obj, hosts, groups, services):
+        so = {
+            'host': graph['host_name'],
+            'service': graph['service_description'],
+            'isGraphable': graph['is_graphable'],
+            'html': render_to_response('graph.html', graph).content,
+        }
+
+        if so['isGraphable']:
+            so.update({
+                'start': graph['start'],
+                'end': graph['end'],
+            })
+
+        response.append(so)
+
+    return HttpResponse(json.dumps(so))
+
+
 def customgraph(request):
     """Returns graph(s) per request
 
@@ -935,6 +968,8 @@ def formstate(request):
         state['ready'] = True
 
     return HttpResponse(json.dumps(stripstate(state)))
+
+
 
 
 def graphs(request):
