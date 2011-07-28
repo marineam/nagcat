@@ -210,7 +210,7 @@ $(document).ready(function() {
 
     // Handle configurator form submissions
     $('#configurator #add').bind('click', function() {
-        fields = $('#configurator').formSerialize();
+        fields = $('#configurator').serialize();
         $('#clearform').trigger('click');
         addHTML(fields);
         return false;

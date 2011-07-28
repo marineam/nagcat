@@ -94,4 +94,22 @@ $(document).ready(function() {
         $('<div class="sprite info"></div>').insertBefore(element).attr('title', hintText);
         $(element).remove();
     });
+
+    // Permalink setup
+    $('#generateLink').click(function () {
+        servicesList = generateState()
+        $.ajax({
+            data: {"services" :servicesList },
+            url: '/railroad/permalink/generate/',
+            type: 'POST',
+            success: function (link, textStatus, XMLHttpRequest) {
+            var text = window.location.protocol + "//" + window.location.host +
+                "/railroad/permalink/" + link;
+                $('#permalink').val(text);
+            },
+            error: function (error, textStatus, XMLHttpRequest) {
+                console.log("there was an error");
+            },
+        });
+    });
 });

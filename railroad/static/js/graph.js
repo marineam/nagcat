@@ -333,13 +333,15 @@ function fetchAndDrawGraphDataByDiv () {
     var graph_divs = $('.graph_container');
     var ajaxData = [];
     graph_divs.each(function () {
-        var element = $(this).children('.graph');
+        var element = $(this).children('.graphInfo');
         var slug = $(element).attr('name');
         graphs = $(slug).each(function (index, element) {
             $(element).attr('id', index);
         });
         var hostname = $(element).children('.graph_hostname').attr('id');
+        $(element).data('host', hostname);
         var serviceName = $(element).children('.graph_service_name').attr('id');
+        $(element).data('service', serviceName);
         var start = $(element).children('.graph_start').attr('id');
         var end = $(element).children('.graph_end').attr('id');
         var uniq = $(element).attr('id');
@@ -441,6 +443,7 @@ function addHTML(ajaxData) {
                 //$(elemRow).find('.graphInfo').attr('id', index);
                 collapse_or_expand(elemRow);
             });
+
 
             fetchAndDrawGraphDataByDiv();
 
@@ -846,19 +849,5 @@ function generateState() {
     return JSON.stringify(servicesList);
 }
 
-function generateLink() {
-    servicesList = generateState()
-    $.ajax({
-        data: {"services" :servicesList },
-        url: '/railroad/permalink/generate/',
-        type: 'POST',
-        success: function (link, textStatus, XMLHttpRequest) {
-            console.log(link);
-        },
-        error: function (error, textStatus, XMLHttpRequest) {
-            console.log("there was an error");
-        },
-    });
-}
 
 
