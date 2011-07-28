@@ -24,13 +24,6 @@
 	{% for time_interval in time_intervals %}
         <div class="graph_container">
 			<h2>{{time_interval.0|title}}</h2>
-            <div class="options">
-                Current
-                <input type="button" name="day" value="Day"/>
-                <input type="button" name="week" value="Week"/>
-                <input type="button" name="month" value="Month"/>
-                <input type="button" name="year" value="Year"/>
-            </div>
             <div class="{{slug}} graph graphInfo" name="{{slug}}" id="{{forloop.counter}}">
                 <div id="{{host_name}}" class="graph_hostname"></div>
                 <div id="{{service_name}}" class="graph_service_name"></div>
