@@ -671,16 +671,8 @@ def form(request):
     return HttpResponse(t.render(c))
 
 
-def meta(request):
-    """
-    Get a bunch of json metadata for a request.
-    """
+def real_meta(hosts='', services='', groups=''):
     stat, obj = parse()
-    source = request.POST if request.POST else request.GET
-
-    groups = source.get('group', '')
-    hosts = source.get('host', '')
-    services = source.get('service', '')
 
     response = []
     graph_template = loader.get_template('graph.html')
@@ -702,11 +694,21 @@ def meta(request):
 
         response.append(so)
 
-    return HttpResponse(json.dumps(response))
+    return response
 
 
-def data(request):
-    pass
+def meta(request):
+    """
+    Get a bunch of json metadata for a request.
+    """
+    stat, obj = parse()
+    source = request.POST if request.POST else request.GET
+
+    groups = source.get('group', '')
+    hosts = source.get('host', '')
+    services = source.get('service', '')
+
+    return HttpResponse(json.dumps(real_meta(hosts, services, groups)))
 
 
 def customgraph(request):
@@ -798,30 +800,28 @@ def directconfigurator(request):
 def hostconfigurator(request, hosts):
     """Returns a configurator page with graphs on it"""
     stat, obj = parse()
-    service_list = get_graphs(stat, obj, hosts)
-    return configurator(request, stat, obj, loaded_graphs=service_list)
+    service_list = real_meta(hosts)
+    return configurator(request, stat, obj, graphs=service_list)
 
 
 def serviceconfigurator(request, service):
     """Returns a configurator page with graphs on it"""
     stat, obj = parse()
-    service_list = get_graphs(stat, obj, "", "", service)
-    return configurator(request, stat, obj, loaded_graphs=service_list)
+    service_list = real_meta(services=service)
+    return configurator(request, stat, obj, graphs=service_list)
 
 
 def configurator(request, stat, obj, htmltitle='Configurator',
-                     pagetitle='Configurator', loaded_graphs=[],
-                     page_state=''):
+        pagetitle='Configurator', graphs=[], page_state=''):
     """Returns a configurator page
     Loads specified graphs, sets specified htmltitle and pagetitle, and
     displays the configurator form
     """
     context_data = {
-        'loaded_graphs': loaded_graphs,
+        'json_services': json.dumps(graphs),
         'htmltitle': htmltitle,
         'pagetitle': pagetitle,
         'page_state': page_state,
-        'graphs': True,
     }
     if 'REMOTE_USER' in request.META and request.META['REMOTE_USER']:
         context_data['remoteuserid'] = request.META['REMOTE_USER']

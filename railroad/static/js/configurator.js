@@ -265,4 +265,14 @@ $(document).ready(function() {
             selectServiceObjs();
         }
     });
+
+    /********** Load preloaded graphs onto the page **********/
+    var json = $('#json_services').text();
+    json = unescape(json).trim();
+    console.log(json);
+    if (json) {
+        var meta = $.parseJSON(json);
+        $('#graphs').data('meta', meta);
+        selectServiceObjs();
+    }
 });

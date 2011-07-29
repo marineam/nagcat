@@ -414,7 +414,6 @@ function getServiceObjs(ajaxData) {
             $('#graphs').data('meta', meta);
             selectServiceObjs();
 
-
             var numServices = meta.length;
             if ( numServices > 100) {
                 var confText = 'You asked to add {0} graphs'.format(numServices)
