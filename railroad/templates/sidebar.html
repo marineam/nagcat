@@ -1,6 +1,5 @@
 {% block sidebar %}
 <div id="sidebar">
-{# TODO: Kill the extra ul, it makes no sense #}
 <div class="biglist">
 {% for elem in sidebar %}
     <div class="listheader"><a href="{% url railroad.viewhosts.views.group elem.0 %}">{{elem.0}}</a></div>

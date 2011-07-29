@@ -9,11 +9,11 @@ import base64
 import random
 import datetime
 
-BASE64_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
+BASE64 = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
 LINK_LENGTH = 6
 
 def random_b64_string(length):
-    return ''.join(random.choice(BASE64_LETTERS) for _ in range(length))
+    return ''.join(random.choice(BASE64) for _ in range(length))
 
 def is_duplicate_page(link):
     try:
@@ -23,17 +23,17 @@ def is_duplicate_page(link):
         return False
 
 def generate_link(request):
-    """Given a list of services, generates a permanent link at which the page can be viewed again by others"""
-
+    """
+    Given a list of services, generates a permanent link at which the page
+    can be viewed again by others.
+    """
     stat, obj = views.parse()
-
     source = request.POST if request.POST else request.GET
 
     services = source.get('services', '')
 
-    link = random_b64_string(LINK_LENGTH)
-
-    while is_duplicate_page(link):
+    link = ''
+    while not link or is_duplicate_page(link):
         link = random_b64_string(LINK_LENGTH)
 
     page = ConfiguratorPage(link=link, creation=datetime.datetime.now())

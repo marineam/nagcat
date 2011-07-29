@@ -27,6 +27,8 @@ class ConfiguratorPage(models.Model):
 
     def save_services(self,service_dict):
         for s in service_dict:
+            if not s:
+                continue
             host = s['host']
             service = s['service']
             if s.has_key('start'):

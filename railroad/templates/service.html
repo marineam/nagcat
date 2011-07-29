@@ -8,6 +8,7 @@
 {% block title %}Service detail: {{host_name}} &gt; {{service_name}}{% endblock %}
 
 {% block header %}
+    <h1>
     <a href="/railroad/configurator/host/{{host_name}}"
         class="status_text state_{{ host_state|state_name|lower }}">
         {{host_name}}
@@ -15,6 +16,7 @@
     <span class="status_text state_{{ service_state|state_name|lower }}">
         {{service_name}}
     </span>
+    </h1>
 {% endblock %}
 
 {% block content %}

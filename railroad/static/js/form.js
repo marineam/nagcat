@@ -91,25 +91,40 @@ $(document).ready(function() {
     var hint_timeout = null;
     $('.hint').each(function(index, element) {
         var hintText = $(element).text().trim().replace(/  +/, ' ');
-        $('<div class="sprite info"></div>').insertBefore(element).attr('title', hintText);
+        $('<div class="sprite info"></div>').insertBefore(element)
+            .attr('title', hintText);
         $(element).remove();
     });
 
     // Permalink setup
     $('#generateLink').click(function () {
-        servicesList = generateState()
+        $('#generateLink').before(
+            '<img src="/railroad-static/images/loading.gif" ' +
+            'id="permalinkLoading" />');
+        servicesList = generateState();
         $.ajax({
             data: {"services" :servicesList },
             url: '/railroad/permalink/generate/',
             type: 'POST',
             success: function (link, textStatus, XMLHttpRequest) {
-            var text = window.location.protocol + "//" + window.location.host +
-                "/railroad/permalink/" + link;
-                $('#permalink').val(text);
-            },
+                    var text = window.location.protocol + "//" +
+                        window.location.host + "/railroad/permalink/" + link;
+                    $('#generateLink').before('<label>Permalink:</label>' +
+                        '<input id="permalink" type="text"/>');
+                    $('#permalink').val(text).select();
+                    $('#generateLink').remove();
+                    $('#permalinkLoading').remove();
+                },
             error: function (error, textStatus, XMLHttpRequest) {
-                console.log("there was an error");
-            },
+                    console.log("there was an error");
+                    $('#permalinkLoading').remove();
+                    $('#generateLink')
+                        .before('<span class="error">Error</span>');
+                    setTimeout(function() {
+                        $('#generateLink').siblings('.error').fadeOut(1000,
+                            function() { $(this).remove(); });
+                    }, 3000);
+                },
         });
     });
 });

@@ -28,6 +28,7 @@ body {
     display: none;
 }
 
+h1 { display: inline-block; position: static; margin: 0; }
 ul, ol { margin: 0; padding: 0px; list-style: none; }
 p { margin: 0; }
 dl { margin: 0; }
@@ -46,42 +47,46 @@ dl { margin: 0; }
     overflow: hidden;
 }
 
-#header {
-    position: absolute;
-    top: 0px;
-    left: 0px;
+#menu {
+    margin: -5px;
     width: 100%;
     background-color: #EEE;
     overflow: hidden;
 }
-#header ul {
+#menu ul {
     margin: 0;
     padding: 0;
     list-style-type: none;
     font-size: 15pt;
     float: left;
 }
-#header ul li {
+#menu ul li {
     display: inline-block;
     margin-right: 3px;
     padding: 0 20px;
 }
-#header #preferences {
+#menu #preferences {
     background-color: #DDD;
     position: absolute;
     right: 0;
     top: 0;
     margin: 0;
 }
-#header #title {
+#menu #title {
     font-weight: bold;
     padding: 0 5px;
 }
-#header #graph_options {
+#menu #graph_options {
     float: right;
     padding-right: 5px;
     padding-top: 2px;
 }
+
+#header {
+    position: relative;
+    margin: 10px;
+}
+
 #link {
     right: 0.4em;
     top: 1.8em;
@@ -233,16 +238,7 @@ td.status_text {
 .hidden {
     visibility: hidden;
 }
-.empty, .error {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-}
-.empty {
-    top: 100px;
-}
 .error {
-    top: 120px;
     color: red;
 }
 
@@ -324,7 +320,7 @@ fieldset {
     overflow: hidden;
 }
 .liButtons > li {
-    display: inline;
+    display: inline-block;
     margin: 0;
     list-style: none outside none;
     border: 1px solid #AAA;
@@ -335,6 +331,7 @@ fieldset {
     margin-left: 0;
     margin-right: -1px;
     border-radius: 2px;
+    position: static;
 }
 .liButtons  {
     display: inline;
@@ -510,4 +507,9 @@ fieldset {
 
 .hint {
     display: none;
+}
+
+.permalink {
+    position: absolute;
+    right: 0px;
 }

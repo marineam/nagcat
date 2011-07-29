@@ -2,27 +2,27 @@
 
 {% block title %}{{ htmltitle }}{% endblock %}
 
-{% block header %}{{pagetitle}}{% endblock %}
 {% block head %}
     <script language="javascript" type="text/javascript" src="/railroad-static/js/configurator.js"></script>
     <script language="javascript" type="text/javascript" src="/railroad-static/js/graph.js"></script>
 {% endblock %}
 
+{% block header %}
+    <h1>{{pagetitle}}</h1>
+    <ul class="liButtons permalink">
+        <li id="generateLink">Get Permalink</li>
+    </ul>
+{% endblock %}
 {% block content %}
-<label for="permalink">Permalink</label>
-<input id="permalink" type="text" class="permalink"></input>
-<ul class="liButtons">
-    <li id="generateLink">Generate Link</li>
-</ul>
-<div class="data" id="remoteuserid">{{ remoteuserid }}</div>
+    <div class="data" id="remoteuserid">{{ remoteuserid }}</div>
 
-{% include "form.html" %}
+    {% include "form.html" %}
 
-{% include "toolbar.html" %}
+    {% include "toolbar.html" %}
 
-<div class="services">
-<table id="graphs">
-</table>
-</div>
+    <div class="services">
+        <table id="graphs">
+        </table>
+    </div>
 
 {% endblock %}
