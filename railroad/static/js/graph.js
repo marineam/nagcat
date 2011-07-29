@@ -456,7 +456,8 @@ function selectServiceObjs() {
         if (meta[i].jQueryElement) {
             $(meta[i].jQueryElement).appendTo('#graphs');
         } else {
-            $(meta[i].html).appendTo('#graphs');
+            meta[i].jQueryElement= $(meta[i].html);
+            $(meta[i].jQueryElement).appendTo('#graphs');
         }
     }
     $(htmlToAdd).appendTo('#graphs');
@@ -519,55 +520,57 @@ function drawSO() {
             }
         }
     }
-    ajaxData = JSON.stringify(servicesToGraph);
-    console.log(ajaxData);
-    $.ajax({
-        url: '/railroad/graphs',
-        data: 'graphs=' + ajaxData,
-        type: 'POST',
-        async: true,
-        dataType: 'json',
-        success: function (data, textStatus, XMLHttpRequest) {
-            var meta = $('#graphs').data('meta');
-            for (var i=0; i < data.length; i++) {
-                var elem;
-                if (data[i].uniq) {
-                    elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
-                } else {
-                    elem = $('.{0}'.format(data[i].slug));
-                }
-                if (data[i].data) {
-                    drawGraph(elem, data[i]);
-                } else {
-                    $(elem).data('host', data[i].host);
-                    $(elem).data('service', data[i].service);
-                }
-                if (data[i].uniq) {
-                    elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
-                } else {
-                    elem = $('.{0}'.format(data[i].slug));
-                }
-                for (var j=0; j < meta.length; j++) {
+    if (servicesToGraph.length > 0) {
+        ajaxData = JSON.stringify(servicesToGraph);
+        console.log(ajaxData);
+        $.ajax({
+            url: '/railroad/graphs',
+            data: 'graphs=' + ajaxData,
+            type: 'POST',
+            async: true,
+            dataType: 'json',
+            success: function (data, textStatus, XMLHttpRequest) {
+                var meta = $('#graphs').data('meta');
+                for (var i=0; i < data.length; i++) {
+                    var elem;
                     if (data[i].uniq) {
-                        if (meta[j].slug === data[i].slug && meta[j].uniq === data[i].uniq ) {
-                            meta[j].jQueryElement = $(elem).parents('.service_row');
-                            meta[j].isGraphed = true;
-                            meta[j].data = data[i];
-                        }
+                        elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
                     } else {
-                        if (meta[j].slug === data[i].slug) {
-                            meta[j].jQueryElement= $(elem).parents('.service_row');
-                            meta[j].data = data[i];
-                            meta[j].isGraphed = true;
+                        elem = $('.{0}'.format(data[i].slug));
+                    }
+                    if (data[i].data) {
+                        drawGraph(elem, data[i]);
+                    } else {
+                        $(elem).data('host', data[i].host);
+                        $(elem).data('service', data[i].service);
+                    }
+                    if (data[i].uniq) {
+                        elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
+                    } else {
+                        elem = $('.{0}'.format(data[i].slug));
+                    }
+                    for (var j=0; j < meta.length; j++) {
+                        if (data[i].uniq) {
+                            if (meta[j].slug === data[i].slug && meta[j].uniq === data[i].uniq ) {
+                                meta[j].jQueryElement = $(elem).parents('.service_row');
+                                meta[j].isGraphed = true;
+                                meta[j].data = data[i];
+                            }
+                        } else {
+                            if (meta[j].slug === data[i].slug) {
+                                meta[j].jQueryElement= $(elem).parents('.service_row');
+                                meta[j].data = data[i];
+                                meta[j].isGraphed = true;
+                            }
                         }
                     }
                 }
+            },
+            error: function () {
+                console.log('There was an error in obtaining the data for graphs');
             }
-        },
-        error: function () {
-            console.log('There was an error in obtaining the data for graphs');
-        }
-    });
+        });
+    }
 }
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
