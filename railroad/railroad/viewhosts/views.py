@@ -689,6 +689,7 @@ def meta(request):
         so = {
             'host': graph['host_name'],
             'service': graph['service_description'],
+            'slug': slugify(graph['host_name'] + graph['service_description']),
             'isGraphable': graph['is_graphable'],
             'html': render_to_response('graph.html', graph).content,
         }

@@ -413,16 +413,10 @@ function getServiceObjs(ajaxData) {
         success: function (meta, textStatus, XMLHttpRequest) {
             $('#graphs').data('meta', meta);
             selectServiceObjs();
-            return;
 
-            html = html.trim();
-            if (!html) {
-                console.log('No html returned!');
-                return;
-            }
 
-            var numServices = $(html).closest('.service_row').length;
-            if ( numServices > graphWarningThreshold) {
+            var numServices = meta.length;
+            if ( numServices > 100) {
                 var confText = 'You asked to add {0} graphs'.format(numServices)
                     + '. Would you like to continue?';
                 var conf = confirm(confText);
@@ -430,17 +424,6 @@ function getServiceObjs(ajaxData) {
                     return;
                 }
             }
-
-            $(html).appendTo('#graphs');
-            update_number_graphs();
-
-            var services = $('.service_row');
-            services.each(function (index, elemRow) {
-                //$(elemRow).find('.graphInfo').attr('id', index);
-                collapse_or_expand(elemRow);
-            });
-
-            fetchAndDrawGraphDataByDiv();
         },
         error: function () {
             console.log('failed to add graph html');
@@ -449,7 +432,14 @@ function getServiceObjs(ajaxData) {
 }
 
 function selectServiceObjs() {
-    var perpage = 5;
+    var perpage;
+    if (localStorageGet('preference_panel')) {
+        if (localStorageGet('preference_panel')['graphsPerPage']) {
+            perpage = localStorageGet('preference_panel')['graphsPerPage'];
+        }
+    } else {
+        perpage = 25;
+    }
     var curpage = $('#graphs').data('curpage');
     if (!curpage) {
         curpage = 0;
@@ -461,12 +451,18 @@ function selectServiceObjs() {
     var end = Math.min(start+perpage, meta.length);
 
     var htmlToAdd = ''
-    for (var i=start; i<end; i++) {
-        htmlToAdd += meta[i].html;
-    }
     $('#graphs').html('');
+    for (var i=start; i<end; i++) {
+        if (meta[i].jQueryElement) {
+            $(meta[i].jQueryElement).appendTo('#graphs');
+        } else {
+            $(meta[i].html).appendTo('#graphs');
+        }
+    }
     $(htmlToAdd).appendTo('#graphs');
     update_number_graphs();
+    drawSO();
+
 
     $('#curpage').text(curpage);
     var totalpages = Math.floor(meta.length / perpage);
@@ -483,6 +479,96 @@ function selectServiceObjs() {
     }
 }
 
+function drawSO() {
+    var perpage;
+    if (localStorageGet('preference_panel')) {
+        if (localStorageGet('preference_panel')['graphsPerPage']) {
+            perpage = localStorageGet('preference_panel')['graphsPerPage'];
+        }
+    } else {
+        perpage = 25;
+    }
+    var curpage = $('#graphs').data('curpage');
+    if (!curpage) {
+        curpage = 0;
+        $('#graphs').data('curpage', 0);
+    }
+    var meta = $('#graphs').data('meta');
+    var begin = curpage * perpage;
+    var stop = Math.min(begin+perpage, meta.length);
+    var servicesToGraph = [];
+    for (var i=begin; i<stop; i++) {
+        if (meta[i].isGraphable) {
+            if (!meta[i].data || ! meta[i].isGraphed) {
+                var host = meta[i].host;
+                var service = meta[i].service;
+                if (meta[i].isGraphable) {
+                    var start = meta[i].start;
+                    var end = meta[i].end;
+                } else {
+                    var start = 0;
+                    var end = 0;
+                }
+                var serviceDict = {
+                    'host': host,
+                    'service': service,
+                    'start': start,
+                    'end': end,
+                };
+                servicesToGraph.push(serviceDict);
+            }
+        }
+    }
+    ajaxData = JSON.stringify(servicesToGraph);
+    console.log(ajaxData);
+    $.ajax({
+        url: '/railroad/graphs',
+        data: 'graphs=' + ajaxData,
+        type: 'POST',
+        async: true,
+        dataType: 'json',
+        success: function (data, textStatus, XMLHttpRequest) {
+            var meta = $('#graphs').data('meta');
+            for (var i=0; i < data.length; i++) {
+                var elem;
+                if (data[i].uniq) {
+                    elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
+                } else {
+                    elem = $('.{0}'.format(data[i].slug));
+                }
+                if (data[i].data) {
+                    drawGraph(elem, data[i]);
+                } else {
+                    $(elem).data('host', data[i].host);
+                    $(elem).data('service', data[i].service);
+                }
+                if (data[i].uniq) {
+                    elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
+                } else {
+                    elem = $('.{0}'.format(data[i].slug));
+                }
+                for (var j=0; j < meta.length; j++) {
+                    if (data[i].uniq) {
+                        if (meta[j].slug === data[i].slug && meta[j].uniq === data[i].uniq ) {
+                            meta[j].jQueryElement = $(elem).parents('.service_row');
+                            meta[j].isGraphed = true;
+                            meta[j].data = data[i];
+                        }
+                    } else {
+                        if (meta[j].slug === data[i].slug) {
+                            meta[j].jQueryElement= $(elem).parents('.service_row');
+                            meta[j].data = data[i];
+                            meta[j].isGraphed = true;
+                        }
+                    }
+                }
+            }
+        },
+        error: function () {
+            console.log('There was an error in obtaining the data for graphs');
+        }
+    });
+}
 // Plots the data in the given element
 function drawGraph (elemGraph, data) {
     redrawGraph(elemGraph, data)

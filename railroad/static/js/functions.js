@@ -84,3 +84,91 @@ function allChecked(func) {
     $('.service_row .controls input[type=checkbox]').prop('checked', false);
     $('#checkall input').prop('checked', false);
 }
+
+function getSOAJAX(ajaxData) {
+    $.ajax({
+        data: ajaxData,
+        url: '/railroad/configurator/meta',
+        type: 'POST',
+        async: true,
+        dataType: 'json',
+        success: function (meta, textStatus, XMLHttpRequest) {
+            $('#graphs').data('meta', meta);
+            selectServiceObjs();
+            return;
+
+            html = html.trim();
+            if (!html) {
+                console.log('No html returned!');
+                return;
+            }
+
+            var numServices = $(html).closest('.service_row').length;
+            if ( numServices > graphWarningThreshold) {
+                var confText = 'You asked to add {0} graphs'.format(numServices)
+                    + '. Would you like to continue?';
+                var conf = confirm(confText);
+                if (!conf) {
+                    return;
+                }
+            }
+
+            $(html).appendTo('#graphs');
+            update_number_graphs();
+
+            var services = $('.service_row');
+            services.each(function (index, elemRow) {
+                //$(elemRow).find('.graphInfo').attr('id', index);
+                collapse_or_expand(elemRow);
+            });
+
+            fetchAndDrawGraphDataByDiv();
+        },
+        error: function () {
+            console.log('failed to add graph html');
+        }
+    });
+}
+
+function initializeSO(serviceObjects, pageNum, numGraphsOnPage) {
+    var start = (pageNum-1) * numGraphsOnPage;
+    var end = pageNum * numGraphsOnPage - 1;
+    serviceObjects.each(function (index, element) {
+        if (!element['jQueryElement']) {
+            $('.graphs').add(element['HTML']);
+        }
+    });
+}
+
+function selectHTML(serviceObjects, pageNum, numGraphsOnPage) {
+    var start = (pageNum-1) * numGraphsOnPage;
+    var end = pageNum * numGraphsOnPage - 1;
+    var curpage = $('#graphs').data('curpage');
+    if (!curpage) {
+        curpage = 0;
+        $('#graphs').data('curpage', 0);
+    }
+    serviceObjects.each(function (index, element) {
+        if (element['jQueryElement']) {
+            if (index >= start && index <=end) {
+             $(element['jQueryElement']).css('display', 'block');
+            } else {
+             $(element['jQueryElement']).css('display', 'none');
+            }
+        }
+    });
+}
+
+function drawSO(serviceObjects, pageNum, numGraphsOnPage) {
+    var start = (pageNum-1) * numGraphsOnPage;
+    var end = pageNum * numGraphsOnPage  - 1;
+    tempObjectsList = [];
+    serviceObjects.each(function(index, element) {
+        if (element['is_graphable']) {
+            if (! element['data']) {
+                tempObjectsList.push(element);
+            }
+        }
+    });
+}
+

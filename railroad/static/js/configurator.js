@@ -201,11 +201,13 @@ $(document).ready(function() {
         event.stopPropagation();
     });
 
+    serviceObjects = [];
+
     // Handle configurator form submissions
     $('#configurator #add').bind('click', function() {
         var fields = $('#configurator').serialize();
         $('#clearform').trigger('click');
-        getServiceObjs(fields);
+        serviceObjects = getServiceObjs(fields);
         return false;
     });
 

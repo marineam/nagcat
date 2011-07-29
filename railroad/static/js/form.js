@@ -52,7 +52,7 @@ $(document).ready(function() {
     });
 
     /* Initialize the data for any graphs already on the page. */
-    fetchAndDrawGraphDataByDiv();
+    //fetchAndDrawGraphDataByDiv();
 
     /** Debug **/
     $('#debug_check').prop('checked', localStorageGet('debug'));
