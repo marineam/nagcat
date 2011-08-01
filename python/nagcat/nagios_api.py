@@ -251,6 +251,7 @@ class NagiosCommander(object):
         spool_fd, spool_path = tempfile.mkstemp(dir=self.spool_dir)
         try:
             try:
+                os.fchmod(spool_fd, 0644)
                 for cmd in cmd_list:
                     text = self._format_command(cmd_time, *cmd)
                     log.trace("Writing Nagios command to spool: %s", text)
