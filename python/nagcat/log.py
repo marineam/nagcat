@@ -107,7 +107,7 @@ class LogLevelObserver(object):
             # loudly but I don't want them to (well UDP at least). This
             # seemed like an easier option than re-implementing things.
             # Also catch all starting/stopping factory noise if it exists.
-            elif ('log_level' not in event and 'message' in event and
+            elif ('log_level' not in event and event.get('message', None) and
                     (event['message'][0].startswith(
                         'nagcat.plugins.query_ntp.NTPProtocol starting on') or
                     (event['message'][0].startswith('(Port ') and
