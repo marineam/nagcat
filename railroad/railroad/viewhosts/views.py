@@ -40,6 +40,8 @@ from railroad.parserrd.views import get_data
 
 DAY = 86400 # 1 Day in seconds
 
+def json_handle_datetime(obj):
+    return obj.isoformat() if isinstance(obj, datetime) else obj
 
 def is_graphable(host, service):
     """Checks if service of host is graphable (has state or trend)"""
@@ -818,7 +820,7 @@ def configurator(request, stat, obj, htmltitle='Configurator',
     displays the configurator form
     """
     context_data = {
-        'json_services': json.dumps(graphs),
+        'json_services': json.dumps(graphs, default=json_handle_datetime),
         'htmltitle': htmltitle,
         'pagetitle': pagetitle,
         'page_state': page_state,

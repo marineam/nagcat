@@ -521,7 +521,6 @@ function drawSO() {
     }
     if (servicesToGraph.length > 0) {
         ajaxData = JSON.stringify(servicesToGraph);
-        console.log(ajaxData);
         $.ajax({
             url: '/railroad/graphs',
             data: 'graphs=' + ajaxData,
@@ -532,10 +531,13 @@ function drawSO() {
                 var meta = $('#graphs').data('meta');
                 for (var i=0; i < data.length; i++) {
                     var elem;
-                    if (data[i].uniq) {
-                        elem = $('.{0}#{1}'.format(data[i].slug, data[i].uniq));
-                    } else {
-                        elem = $('.{0}'.format(data[i].slug));
+                    for (var j=0; j < meta.length; j++) {
+                        if (data[i].slug === meta[j].slug) {
+                            meta[j].data = data[i];
+                            if (meta[j].jQueryElement) {
+                                elem = meta[j].jQueryElement.find('.graphInfo');
+                            }
+                        }
                     }
                     if (data[i].data) {
                         drawGraph(elem, data[i]);
@@ -551,14 +553,10 @@ function drawSO() {
                     for (var j=0; j < meta.length; j++) {
                         if (data[i].uniq) {
                             if (meta[j].slug === data[i].slug && meta[j].uniq === data[i].uniq ) {
-                                meta[j].jQueryElement = $(elem).parents('.service_row');
                                 meta[j].isGraphed = true;
-                                meta[j].data = data[i];
                             }
                         } else {
                             if (meta[j].slug === data[i].slug) {
-                                meta[j].jQueryElement= $(elem).parents('.service_row');
-                                meta[j].data = data[i];
                                 meta[j].isGraphed = true;
                             }
                         }
@@ -584,7 +582,7 @@ function drawGraph (elemGraph, data) {
             $(elemGraph).siblings('.ylabel').css('display', 'none');
         }
     }
-    $(elemGraph).bind('plotselected', function (event, ranges) {
+    $(elemGraph).live('plotselected', function (event, ranges) {
         if ($('#sync').prop('checked')) {
             graphs = $('.graph');
         } else {
@@ -626,7 +624,7 @@ function drawGraph (elemGraph, data) {
     });
 
     var prevItem = null;
-    $(elemGraph).parent().bind('plothover', function(event, pos, item) {
+    $(elemGraph).parent().live('plothover', function(event, pos, item) {
         if (item) {
             if(item != prevItem) {
                 prevItem = item;
@@ -642,15 +640,25 @@ function drawGraph (elemGraph, data) {
     });
 
     $('.removeSeries').live('click', function () {
+        var meta = $('#graphs').data('meta');
+        var metaIndex;
         var elemGraph = $(this).closest('.legend').siblings('.graph');
-        if (elemGraph.data('data')) {
-            data = elemGraph.data('data');
-            for (var i=0; i < data.data.length; i++) {
-                if (data.data[i].label == $(this).attr('id')) {
-                    data.data[i]['lines']['show'] ^= true; // toggle
-                }
+        for (var i=0; i <meta.length; i++) {
+            if (  meta[i].slug === $(elemGraph).attr('name')) {
+                metaIndex = i;
+                break;
             }
-            redrawGraph(elemGraph, data);
+        }
+        if (metaIndex) {
+        if (meta[metaIndex].data) {
+                data = meta[metaIndex].data;
+                for (var i=0; i < data.data.length; i++) {
+                    if (data.data[i].label == $(this).attr('id')) {
+                        data.data[i]['lines']['show'] ^= true; // toggle
+                    }
+                }
+                redrawGraph(elemGraph, data);
+            }
         }
     });
     // elemGraphDates keeps the line below it < 80 chars
@@ -675,7 +683,16 @@ function drawGraph (elemGraph, data) {
 }
 
 function redrawGraph(element, data) {
+    var meta = $('#graphs').data('meta');
+    var metaIndex;
+    for (var i=0; i < meta.length; i++) {
+        if (meta[i].slug === data.slug) {
+            metaIndex = i;
+            break;
+        }
+    }
     data = formatGraph(element, data);
+    meta[metaIndex].data = data;
     $(element).data('plot', $.plot($(element), data.data, data.options));
     $(element).siblings('.graphloading').text('Rendering Graph...');
 
@@ -684,6 +701,7 @@ function redrawGraph(element, data) {
     $(element).data('end', data.end);
     $(element).data('host', data.host);
     $(element).data('service', data.service);
+    meta[metaIndex].jQueryElement = $(element).closest('.service_row');
 }
 
 function showTooltip(x, y, label) {
@@ -955,14 +973,12 @@ var update_hidden_count = function() {
 }
 
 function generateState() {
-    servicesList = [];
-    services = $('.service_row');
-    services.each(function(index, element) {
-        var elemGraph = $(element).find('.graphInfo');
-        var service = getGraphDataByData($(elemGraph));
-        servicesList.push(service);
-    });
-    return JSON.stringify(servicesList);
+    var meta = $('#graphs').data('meta');
+    for (var i=0; i < meta.length; i++) {
+        meta[i].data = null;
+        meta[i].jQueryElement = null;
+    }
+    return JSON.stringify(meta);
 }
 
 

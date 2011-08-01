@@ -51,7 +51,7 @@ def retrieve_link(request, link):
 
     services = page.load_services()
 
-    loaded_graphs = []
+    graphs = []
 
     for service in services:
         so = views.servicedetail(stat, service['host'], service['service'])
@@ -62,6 +62,6 @@ def retrieve_link(request, link):
             so['slug'] = views.slugify(service['host'] + service['service'])
             so['period'] = 'ajax'
             so['is_graphable'] = views.is_graphable(service['host'], service['service'])
-            loaded_graphs.append(so)
+            graphs.append(so)
 
-    return views.configurator(request,stat,obj,loaded_graphs=loaded_graphs)
+    return views.configurator(request,stat,obj,graphs=graphs)

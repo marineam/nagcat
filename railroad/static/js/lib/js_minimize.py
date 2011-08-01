@@ -14,7 +14,7 @@ for path in sys.argv[1:]:
 
 params = urllib.urlencode([
     ('js_code', js_code),
-    ('compilation_level', 'SIMPLE_OPTIMIZATIONS'),
+    ('compilation_level', 'WHITESPACE_ONLY'),
     ('output_format', 'text'),
     ('output_info', 'compiled_code'),
 ])

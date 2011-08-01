@@ -54,7 +54,7 @@
             <p class="nograph">No graph</p>
         {% endif %}
         {% if is_graphable %}
-        <div class="{{slug}} graphInfo graph ajax"> 
+        <div class="{{slug}} graphInfo graph ajax" name="{{slug}}"> 
             <div id="{{ host_name }}" class="graph_hostname"></div>
             <div id="{{ service_description }}" class="graph_service_name"></div>
             <div id="{{ start }}" class="graph_start"></div>
