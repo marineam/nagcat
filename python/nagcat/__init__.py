@@ -20,7 +20,7 @@ import coil
 
 # Make sure we have the right coil version
 _coil_version = getattr(coil, '__version_info__', (0,0))
-if _coil_version < (0,3,14) or _coil_version <= (0,3,99):
+if _coil_version < (0,3,14) or _coil_version >= (0,3,99):
     raise ImportError("coil 0.3.x >= 0.3.14 is required")
 
 # Require Twisted >= 8.2, older versions had problematic bugs
