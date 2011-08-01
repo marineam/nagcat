@@ -582,45 +582,29 @@ function drawGraph (elemGraph, data) {
             $(elemGraph).siblings('.ylabel').css('display', 'none');
         }
     }
-    $(elemGraph).live('plotselected', function (event, ranges) {
-        if ($('#sync').prop('checked')) {
-            graphs = $('.graph');
-        } else {
-            graphs = $(elemGraph);
-        }
+    $(elemGraph).bind('plotselected', function (event, ranges) {
+        var meta = $('#graphs').data('meta');
         graphs_to_update = [];
-        graphs.each(function(index, element) {
-            $(element).removeClass('ajax');
-            $(element).data('start', parseInt(ranges.xaxis.from / 1000));
-            $(element).data('end', parseInt(ranges.xaxis.to / 1000));
-            if ( $(element).data('data')) {
-                graphs_to_update.push(getGraphDataByData(element));
+        if ($('#sync').prop('checked')) {
+            for (var i=0; i < meta.length; i++) {
+                graphs_to_update.push(meta[i]);
             }
-        });
-        // If there are graphs we need new data for, fetch new data!
-        if ( graphs_to_update.length > 0 ) {
-            ajaxcall = JSON.stringify(graphs_to_update);
-            $.ajax ({
-                url: '/railroad/graphs',
-                data: {'graphs': ajaxcall},
-                type: 'POST',
-                async: true,
-                dataType: 'json',
-                success: function (data, textStatus, XMLHttpRequest) {
-                    for (var i=0; i < data.length; i++) {
-                        if (data[i].data) {
-                            elemGraph = $('.{0}'.format(data[i]['slug']));
-                            redrawGraph(elemGraph, data[i]);
-                            if(data[i].options.yaxis.label) {
-                            }
-                        }
-                    }
-                },
-               error: function (XMLHttpRequest, textStatus, errorThrown) {
-                    alert ("Something went wrong in getting new data");
+        } else {
+            for (var i=0; i< meta.length; i++) {
+                if (meta[i].slug === $(elemGraph).attr('name')) {
+                    graphs_to_update.push(meta[i]);
                 }
-            });
+            }
         }
+        for (var i=0; i < graphs_to_update.length; i++) {
+            if (graphs_to_update[i]['isGraphable']) {
+                graphs_to_update[i]['start'] = ranges.xaxis.from / 1000;
+                graphs_to_update[i]['end'] = ranges.xaxis.to / 1000;
+                graphs_to_update[i]['data'] = null;
+                graphs_to_update[i]['isGraphed'] = false;
+            }
+        }
+            drawSO();
     });
 
     var prevItem = null;
