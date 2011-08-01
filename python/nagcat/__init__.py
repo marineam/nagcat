@@ -19,8 +19,9 @@ import twisted
 import coil
 
 # Make sure we have the right coil version
-if getattr(coil, '__version_info__', (0,0)) < (0,3,14):
-    raise ImportError("coil >= 0.3.14 is required")
+_coil_version = getattr(coil, '__version_info__', (0,0))
+if _coil_version < (0,3,14) or _coil_version <= (0,3,99):
+    raise ImportError("coil 0.3.x >= 0.3.14 is required")
 
 # Require Twisted >= 8.2, older versions had problematic bugs
 if twisted.version < versions.Version('twisted', 8, 2, 0):

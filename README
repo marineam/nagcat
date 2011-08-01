@@ -50,17 +50,17 @@ REQUIREMENTS
 Strict requirements:
 
 - Python >= 2.4 (>= 2.5 recommended)
-- Twisted >= 2.5 (>= 8.2 recommended)
-- Coil >= 0.3.5
+- Twisted >= 8.2
+- Coil 0.3.x >= 0.3.14
   http://code.google.com/p/coil
 
 Optional:
 
 - PyOpenSSL (for HTTPS support)
+- netsnmp (for SNMP support)
 - lxml (for XPath filter support)
 - rrdtool (for graphing)
-- pynetsnmp (for SNMP querys)
-  http://svn.zenoss.org/svn/trunk/pynetsnmp/
+- cx_Oracle
 
 
 
