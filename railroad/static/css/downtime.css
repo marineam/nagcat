@@ -1,0 +1,13 @@
+.downtimerow {
+    overflow: hidden;
+}
+.downtime {
+    margin: 15px;
+    float: left;
+}
+
+li {
+    list-style: none;
+    margin-left: 15px;
+}
+li li { list-style: circle; margin-left: 30px; }

@@ -43,6 +43,8 @@ urlpatterns = patterns('',
     (r'^configurator/service/(?P<service>(\w+\s*)+)$',
         'railroad.viewhosts.views.serviceconfigurator'),
 
+    (r'^downtime', 'railroad.viewhosts.views.downtime'),
+
     # New, more flexible, awesomeness
     (r'^configurator/meta$', 'railroad.viewhosts.views.meta'),
     (r'^configurator/service_meta$', 'railroad.viewhosts.views.service_page_meta'),

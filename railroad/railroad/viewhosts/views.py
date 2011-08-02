@@ -123,14 +123,22 @@ def parse():
 
     # Convert unix times to python datetimes.
 
-    DATE_OBJS = ['last_state_change', 'last_time_critical',
+    SERVICE_DATE_OBJS = ['last_state_change', 'last_time_critical',
             'last_hard_state_change', 'last_update', 'last_time_ok',
             'last_check', 'next_check']
     for s in stat['service']:
         s['state_duration'] = (int(time.time()) -
             int(s['last_state_change']))
-        for key in DATE_OBJS:
+        for key in SERVICE_DATE_OBJS:
             s[key] = datetime.utcfromtimestamp(int(s[key]))
+
+    DOWNTIME_DATE_OBJS = ['entry_time', 'start_time', 'end_time']
+    for dt in stat['hostdowntime']:
+        for key in DOWNTIME_DATE_OBJS:
+            dt[key] = datetime.utcfromtimestamp(int(dt[key]))
+    for dt in stat['servicedowntime']:
+        for key in DOWNTIME_DATE_OBJS:
+            dt[key] = datetime.utcfromtimestamp(int(dt[key]))
 
     # / in group names break urls, replace with - which are safer
     for group in obj['hostgroup']:
@@ -1090,3 +1098,58 @@ def slugify(text, delim=u''):
         if word:
             result.append(word)
     return unicode(delim.join(result))
+
+
+def parse_comment(comment):
+    """Parses the real comment, and an expr and key from a nagnet comment."""
+    comment, key, expr = (re.match(
+        r'(.*?)(?: key:([A-Za-z0-9\-_]*))?(?: expr:(.*))?$',
+        comment).groups())
+
+    return comment, key, expr
+
+
+def downtime(request):
+    """List downtimes."""
+    stat, obj = parse()
+
+    downtimes = {}
+
+    for dt in stat['servicedowntime'] + stat['hostdowntime']:
+        dt['comment'], dt['key'], dt['expr'] = parse_comment(dt['comment'])
+
+        if dt['key'] in downtimes:
+            downtimes[dt['key']]['hosts_services'].append({
+                'host': dt['host_name'],
+                'service': dt['service_description']
+            })
+            downtimes[dt['key']]['count'] += 1
+        else:
+            if 'service_description' in dt:
+                hs = {
+                    'host': dt['host_name'],
+                    'service': dt['service_description'],
+                }
+            else:
+                hs = {
+                    'host': dt['host_name'],
+                    'service': 'All services',
+                }
+
+            downtimes[dt['key']] = {
+                'hosts_services': [hs],
+                'comment': dt['comment'],
+                'expr': dt['expr'],
+                'key': dt['key'],
+                'author': dt['author'],
+                'entry_time': dt['entry_time'],
+                'start_time': dt['start_time'],
+                'end_time': dt['end_time'],
+                'count': 1,
+            }
+
+    c = {
+        'downtimes': downtimes.values(),
+    }
+
+    return render_to_response('downtime.html', c)

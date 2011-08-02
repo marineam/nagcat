@@ -28,7 +28,7 @@ body {
     display: none;
 }
 
-h1 { display: inline-block; position: static; margin: 0; }
+h1, h2, h3 { display: inline-block; position: static; margin: 0; }
 ul, ol { margin: 0; padding: 0px; list-style: none; }
 p { margin: 0; }
 dl { margin: 0; }
@@ -394,12 +394,14 @@ fieldset {
     background: url('/railroad-static/images/ui-icons_222222_256x240.png') no-repeat;
     display: inline-block;
 }
-.open_tri_s { background-position: -64px 0px; }
 .arrow_e { background-position: -32px -32px; }
 .arrow_n_line { background-position: -192px -32px; }
 .arrow_s_line { background-position: -224px -32px; }
-.info { background-position: -16px -142px; }
 .close { background-position:  -32px -192px; }
+.info { background-position: -16px -142px; }
+.open_tri_s { background-position: -64px 0px; }
+.tri_e { background-position: -32px -16px; }
+.tri_s { background-position: -64px -16px; }
 
 .arrow_e.hover:hover { background-position: -32px -48px; }
 
@@ -507,4 +509,11 @@ fieldset {
 .permalink {
     position: absolute;
     right: 0px;
+}
+
+.twirler .target {
+    cursor: hand;
+}
+.twirler ul {
+    display: none;
 }
