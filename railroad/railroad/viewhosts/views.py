@@ -20,6 +20,7 @@ import re
 import time
 import pickle
 import re
+import time
 from unicodedata import normalize
 from datetime import datetime
 from fnmatch import fnmatch
@@ -41,7 +42,7 @@ from railroad.parserrd.views import get_data
 DAY = 86400 # 1 Day in seconds
 
 def json_handle_datetime(obj):
-    return obj.isoformat() if isinstance(obj, datetime) else obj
+    return time.mktime(obj.timetuple()) if isinstance(obj, datetime) else obj
 
 def is_graphable(host, service):
     """Checks if service of host is graphable (has state or trend)"""
@@ -1110,20 +1111,20 @@ def parse_comment(comment):
 
 
 def downtime(request):
-    """List downtimes."""
+    """List downtime."""
     stat, obj = parse()
 
-    downtimes = {}
+    downtime = {}
 
     for dt in stat['servicedowntime'] + stat['hostdowntime']:
         dt['comment'], dt['key'], dt['expr'] = parse_comment(dt['comment'])
 
-        if dt['key'] in downtimes:
-            downtimes[dt['key']]['hosts_services'].append({
+        if dt['key'] in downtime:
+            downtime[dt['key']]['hosts_services'].append({
                 'host': dt['host_name'],
                 'service': dt['service_description']
             })
-            downtimes[dt['key']]['count'] += 1
+            downtime[dt['key']]['count'] += 1
         else:
             if 'service_description' in dt:
                 hs = {
@@ -1136,7 +1137,7 @@ def downtime(request):
                     'service': 'All services',
                 }
 
-            downtimes[dt['key']] = {
+            downtime[dt['key']] = {
                 'hosts_services': [hs],
                 'comment': dt['comment'],
                 'expr': dt['expr'],
@@ -1149,7 +1150,9 @@ def downtime(request):
             }
 
     c = {
-        'downtimes': downtimes.values(),
+        'downtime': downtime.values(),
+        'json_downtime': json.dumps(downtime.values(),
+            default=json_handle_datetime),
     }
 
     return render_to_response('downtime.html', c)

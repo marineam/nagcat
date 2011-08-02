@@ -2,17 +2,22 @@
 {% load services %}
 
 {%block head %}
-<link rel="stylesheet" href="/railroad-static/css/downtime.css" type="text/css">
+<link rel="stylesheet" href="/railroad-static/css/downtime.css" type="text/css"/>
+<script type="text/javascript" language="javascript" src="/railroad-static/js/downtime.js"></script>
 {% endblock %}
 
 {% block header %}
-<h1>Downtimes</h1>
+<h1>Downtime</h1>
 {% endblock %}
 
 {% block content %}
-    {% for dt in downtimes %}
+    <div id="downtimegraph">
+        {{ json_downtime }}
+    </div>
+
+    {% for dt in downtime %}
         {% cycle '<div class="downtime">' '</div>' as even %}
-        <div class="downtime">
+        <div class="downtime" id="{{dt.expr}}">
             <h3>{{ dt.expr }}</h3>
             <ul>
                 <li>{{ dt.start_time|pretty_daterange:dt.end_time }}</li>
