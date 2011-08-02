@@ -598,8 +598,8 @@ function drawGraph (elemGraph, data) {
         }
         for (var i=0; i < graphs_to_update.length; i++) {
             if (graphs_to_update[i]['isGraphable']) {
-                graphs_to_update[i]['start'] = ranges.xaxis.from / 1000;
-                graphs_to_update[i]['end'] = ranges.xaxis.to / 1000;
+                graphs_to_update[i]['start'] = parseInt(ranges.xaxis.from / 1000);
+                graphs_to_update[i]['end'] = parseInt(ranges.xaxis.to / 1000);
                 graphs_to_update[i]['data'] = null;
                 graphs_to_update[i]['isGraphed'] = false;
             }
