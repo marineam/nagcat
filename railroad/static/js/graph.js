@@ -649,9 +649,11 @@ function drawGraph (elemGraph, data) {
     var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
     var datePickers = $(elemGraphDates).datetimepicker({
         onClose: function(selectedDate) {
-            updateZoom(datePickers[0].parent().siblings('.graph').first(),
-                       datePickers[0].datetimepicker('getDate'),
-                       datePickers[1].datetimepicker('getDate'));
+            updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
+                       $(datePickers[0]).datetimepicker('getDate'),
+                       $(datePickers[1]).datetimepicker('getDate'));
+    var from = $(elemGraphDates)[0];
+    var to = $(elemGraphDates)[1];
     var start = $(from).datetimepicker('getDate').getTime();
     var end = $(to).datetimepicker('getDate').getTime();
         },
