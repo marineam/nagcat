@@ -387,11 +387,6 @@ fieldset {
         text-align: center;
 }
 
-#debug {
-    font-size: 0.6em;
-    opacity: 0.4;
-}
-
 /* CSS Sprites */
 .sprite {
     width: 16px;

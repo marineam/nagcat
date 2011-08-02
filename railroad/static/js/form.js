@@ -54,19 +54,6 @@ $(document).ready(function() {
     /* Initialize the data for any graphs already on the page. */
     //fetchAndDrawGraphDataByDiv();
 
-    /** Debug **/
-    $('#debug_check').prop('checked', localStorageGet('debug'));
-    updateDebug();
-
-    $('#debug_check').change(function () {
-        localStorageSet('debug', $('#debug_check').prop('checked'));
-        updateDebug();
-    });
-
-    $('#debug a').live('click', function() {
-        localStorageClear();
-    });
-
     /*** Preferences persistance ***/
     $('#preference_panel').bind('change', function () {
         saveFormPersistence($('#preference_panel'));
