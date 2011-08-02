@@ -9,36 +9,33 @@ $(document).ready(function() {
 
     for (var i=0; i<downtime.length; i++) {
         var dt = downtime[i]
+        var y = downtime.length - i;
         flot_data.push({
             'label': dt.expr,
-            'data': [
+            'data': [[
                 new Date(dt.start_time * 1000),
-                dt.key,
+                y,
                 new Date(dt.end_time * 1000),
                 dt.expr,
-            ],
+            ]],
         });
-        yaxis_bits.push([i+1, dt.expr]);
+        yaxis_bits.push([y, dt.expr]);
         if (dt.start_time < min_date) {
             min_date = dt.start_time;
         }
-        if (dt.max_time > max_date) {
+        if (dt.end_time > max_date) {
             max_date = dt.end_time;
         }
     }
     min_date = new Date(min_date * 1000);
     max_date = new Date(max_date * 1000);
 
-    if (min_date < new Date()) {
-        min_date = new Date();
-    }
-
     var flot_options = {
         "series": {
             "gantt": {
                 "active": true,
                 "show": true,
-                "barHeight": 5,
+                "barHeight": .5,
             },
         },
         "xaxis": {
@@ -51,7 +48,14 @@ $(document).ready(function() {
             "max": yaxis_bits.length+0.5,
             "ticks": yaxis_bits,
         },
+        "grid": {
+            "hoverable": true,
+            "clickable": true
+        },
+        "legend": {
+            "show": false,
+        }
     }
 
-    $.plot($('#downtimegraph'), flot_data, flot_options);
+    var plot = $.plot($('#downtimegraph'), flot_data, flot_options);
 });
