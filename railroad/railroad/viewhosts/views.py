@@ -721,6 +721,7 @@ def real_meta(hosts='', services='', groups=''):
             'slug': slugify(graph['host_name'] + graph['service_description']),
             'isGraphable': graph['is_graphable'],
             'html': render_to_response('graph.html', graph).content,
+            'state': graph['current_state'],
         }
 
         if so['isGraphable']:

@@ -927,16 +927,30 @@ function expand_row(row) {
 }
 
 function update_number_graphs() {
-    $('#stats #service_count').html('{0} Services'.format(
-        $('.service_row').length));
-    $('#stats .state_ok').html('{0}'.format(
-        $('.service_row .state_ok').length));
-    $('#stats .state_warning').html('{0}'.format(
-        $('.service_row .state_warning').length));
-    $('#stats .state_critical').html('{0}'.format(
-        $('.service_row .state_critical').length));
-    $('#stats .state_unknown').html('{0}'.format(
-        $('.service_row .state_unknown').length));
+    var state_ok_count = 0;
+    var state_warning_count = 0;
+    var state_critical_count = 0;
+    var state_unknown_count = 0;
+    var states = [state_ok_count, state_warning_count,
+        state_critical_count, state_unknown_count];
+    var meta = $('#graphs').data('meta');
+    if (meta) {
+        for (var i=0; i < meta.length; i++) {
+            if (meta[i].state) {
+                states[meta[i].state]++;
+            }
+        }
+        $('#stats #service_count').html('{0} Services'.format(
+            meta.length));
+        $('#stats .state_ok').html('{0}'.format(
+            states[0]));
+        $('#stats .state_warning').html('{0}'.format(
+            states[1]));
+        $('#stats .state_critical').html('{0}'.format(
+            states[2]));
+        $('#stats .state_unknown').html('{0}'.format(
+            states[3]));
+    }
 }
 
 var update_hidden_count = function() {
