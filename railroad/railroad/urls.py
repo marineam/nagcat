@@ -45,6 +45,7 @@ urlpatterns = patterns('',
 
     # New, more flexible, awesomeness
     (r'^configurator/meta$', 'railroad.viewhosts.views.meta'),
+    (r'^configurator/service_meta$', 'railroad.viewhosts.views.service_page_meta'),
 
     # Stuff for AJAX
     (r'^ajax/autocomplete/(?P<context>\w+)$',

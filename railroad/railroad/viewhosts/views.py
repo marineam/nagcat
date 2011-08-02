@@ -510,7 +510,6 @@ def host(request, host):
     return configurator(request, stat, obj,
         'Host Detail: %s' % host, host, loaded_graphs, page_state)
 
-
 def service(request, host, service):
     """Returns a page showing service details of specified service of host"""
     t = loader.get_template('service.html')
@@ -534,8 +533,21 @@ def service(request, host, service):
         coilstring = open(coilfile).read()
 
     time_intervals = get_time_intervals()
+
+    graphs = []
+    for x in time_intervals:
+        temp_dict = {
+            "host": host,
+            "service":  service,
+            "end" : x[1][0],
+            "start": x[1][1],
+            "uniq": time_intervals.index(x),
+        }
+        graphs.append(temp_dict)
+
     context_data = {
         'host_name': host,
+        'json_services': json.dumps({'host': host, 'service': service}),
         'slug': slugify(host + service),
         'host_state': host_detail.get('current_state', ''),
         'service_name': service,
@@ -672,6 +684,29 @@ def form(request):
     c = Context(context_data)
     return HttpResponse(t.render(c))
 
+def real_service_page_meta(request):
+    source = request.POST if request.POST else request.GET
+    host = source.get('host', '')
+    service = source.get('service', '')
+    time_intervals = get_time_intervals()
+    graphs = []
+    for time in time_intervals:
+        so = {
+            'host': host,
+            'service': service,
+            'slug': slugify(host + service),
+            'start': time[1][0],
+            'end': time[1][1],
+            'title': time[0],
+            'uniq': time_intervals.index(time)
+        }
+        html = render_to_response('service_graph.html', so).content
+        so['html'] = html
+        graphs.append(so)
+    return graphs
+
+def service_page_meta(request):
+    return HttpResponse(json.dumps(real_service_page_meta(request)))
 
 def real_meta(hosts='', services='', groups=''):
     stat, obj = parse()
