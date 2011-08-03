@@ -244,14 +244,14 @@ function selectServiceObjs() {
     });
 
     if (curpage >= totalpages) {
-        $('#nextpage').data('disable', true).css({'opacity': 0.25});
+        $('#nextpage').data('disabled', true).css({'opacity': 0.25});
     } else {
-        $('#nextpage').data('disable', false).css({'opacity': 1.0});
+        $('#nextpage').data('disabled', false).css({'opacity': 1.0});
     }
     if (curpage <= 0) {
-        $('#prevpage').data('disable', true).css({'opacity': 0.25});
+        $('#prevpage').data('disabled', true).css({'opacity': 0.25});
     } else {
-        $('#prevpage').data('disable', false).css({'opacity': 1.0});
+        $('#prevpage').data('disabled', false).css({'opacity': 1.0});
     }
 }
 
