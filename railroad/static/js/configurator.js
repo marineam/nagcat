@@ -247,7 +247,7 @@ $(document).ready(function() {
     });
     $('#prevpage').bind('click', function() {
         var page = $('#graphs').data('curpage');
-        var enabled = !!$(this).data('disabled');
+        var enabled = !$(this).data('disabled');
         if (enabled && page > 0) {
             page -= 1;
             $('#graphs').data('curpage', page);
