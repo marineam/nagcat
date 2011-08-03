@@ -31,30 +31,38 @@ $(document).ready(function() {
     max_date = new Date(max_date * 1000);
 
     var flot_options = {
-        "series": {
-            "gantt": {
-                "active": true,
-                "show": true,
-                "barHeight": .5,
+        series: {
+            gantt: {
+                active: true,
+                show: true,
+                barHeight: .5,
             },
         },
-        "xaxis": {
-            "min": min_date,
-            "max": max_date,
-            "mode": "time",
+        xaxis: {
+            min: min_date,
+            max: max_date,
+            mode: "time",
         },
-        "yaxis": {
-            "min": 0.5,
-            "max": yaxis_bits.length+0.5,
-            "ticks": yaxis_bits,
+        yaxis: {
+            min: 0.5,
+            max: yaxis_bits.length+0.5,
+            ticks: yaxis_bits,
         },
-        "grid": {
-            "hoverable": true,
-            "clickable": true
+        grid: {
+            hoverable: true,
+            clickable: true,
+            markings: [{
+                color: "#FF0000",
+                lineWidth: 2,
+                xaxis: {
+                    from: new Date(),
+                    to: new Date(),
+                },
+            }],
         },
-        "legend": {
-            "show": false,
-        }
+        legend: {
+            show: false,
+        },
     }
 
     var plot = $.plot($('#downtimegraph'), flot_data, flot_options);

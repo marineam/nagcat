@@ -1154,5 +1154,6 @@ def downtime(request):
         'json_downtime': json.dumps(downtime.values(),
             default=json_handle_datetime),
     }
+    add_hostlist(stat, obj, c)
 
     return render_to_response('downtime.html', c)
