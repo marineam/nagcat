@@ -21,6 +21,7 @@ class ConfiguratorPage(models.Model):
     link = models.CharField(max_length=20)
     services = models.ManyToManyField(Service)
     creation = models.DateTimeField('date created')
+    user = models.CharField(max_length=30)
 
     def __unicode__(self):
         return self.link

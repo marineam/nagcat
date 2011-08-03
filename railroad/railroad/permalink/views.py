@@ -31,12 +31,16 @@ def generate_link(request):
     source = request.POST if request.POST else request.GET
 
     services = source.get('services', '')
+    if 'REMOTE_USER' in request.META and request.META['REMOTE_USER']:
+        user = request.META['REMOTE_USER']
+    else:
+        user = 'anonymous railroad user'
 
     link = ''
     while not link or is_duplicate_page(link):
         link = random_b64_string(LINK_LENGTH)
 
-    page = ConfiguratorPage(link=link, creation=datetime.datetime.now())
+    page = ConfiguratorPage(link=link, creation=datetime.datetime.now(), user=user)
     page.save() # Gives it a primary key, id
     page.save_services(json.loads(services))
     page.save()
