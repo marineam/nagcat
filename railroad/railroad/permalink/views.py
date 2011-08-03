@@ -1,5 +1,5 @@
 from django.http import HttpResponse, HttpRequest, Http404
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render_to_response
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from railroad.permalink.models import Service, ConfiguratorPage
@@ -54,14 +54,15 @@ def retrieve_link(request, link):
     graphs = []
 
     for service in services:
-        so = views.servicedetail(stat, service['host'], service['service'])
-        if so:
-            so['start'] = service['start']
-            so['end'] = service['end']
-            so['uniq'] = service['uniq']
-            so['slug'] = views.slugify(service['host'] + service['service'])
-            so['period'] = 'ajax'
-            so['is_graphable'] = views.is_graphable(service['host'], service['service'])
-            graphs.append(so)
+        service['isGraphable'] = views.is_graphable(service['host'],
+            service['service'])
+        service['slug'] = views.slugify(service['host'] + service['service'])
+        servicedetail = views.servicedetail(stat, service['host'],
+            service['service'])
+        servicedetail['is_graphable'] = views.is_graphable(service['host'],
+            service['service'])
+        html = render_to_response("graph.html",servicedetail).content
+        service['html'] = html
+        graphs.append(service)
 
     return views.configurator(request,stat,obj,graphs=graphs)
