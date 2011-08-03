@@ -224,9 +224,9 @@ function selectServiceObjs() {
     var totalpages = Math.floor(meta.length / perpage);
     $('#graphs').data('totalpages', totalpages);
     var totalgraphs = meta.length
-    $('#totalpages').text(meta.length);
-    $('#firstgraph').text(curpage * perpage);
-    $('#lastgraph').text((curpage + 1) * perpage);
+    $('#totalgraphs').text(meta.length);
+    $('#firstgraph').text(curpage * perpage + 1);
+    $('#lastgraph').text(Math.min(totalgraphs, (curpage + 1) * perpage));
     $('#totalgraphs').text(totalgraphs);
 
     var prevItem = null;
@@ -266,18 +266,22 @@ function selectServiceObjs() {
                 graphs_to_update[i]['isGraphed'] = false;
             }
         }
-            drawSO();
+        drawSO();
     });
 
     if (curpage >= totalpages) {
         $('#nextpage').data('disabled', true).css({'opacity': 0.25});
+        $('#nextpage .sprite').removeClass('hover');
     } else {
         $('#nextpage').data('disabled', false).css({'opacity': 1.0});
+        $('#nextpage .sprite').addClass('hover');
     }
     if (curpage <= 0) {
         $('#prevpage').data('disabled', true).css({'opacity': 0.25});
+        $('#prevpage .sprite').removeClass('hover');
     } else {
         $('#prevpage').data('disabled', false).css({'opacity': 1.0});
+        $('#prevpage .sprite').addClass('hover');
     }
 }
 

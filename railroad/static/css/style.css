@@ -394,9 +394,10 @@ fieldset {
     background: url('/railroad-static/images/ui-icons_222222_256x240.png') no-repeat;
     display: inline-block;
 }
-.arrow_e { background-position: -32px -32px; }
 .arrow_n_line { background-position: -192px -32px; }
 .arrow_s_line { background-position: -224px -32px; }
+.arrow_e { background-position: -32px -32px; }
+.arrow_w { background-position: -96px -32px; }
 .close { background-position:  -32px -192px; }
 .info { background-position: -16px -142px; }
 .open_tri_s { background-position: -64px 0px; }
@@ -404,6 +405,7 @@ fieldset {
 .tri_s { background-position: -64px -16px; }
 
 .arrow_e.hover:hover { background-position: -32px -48px; }
+.arrow_w.hover:hover { background-position: -96px -48px; }
 
 /* Toolbar */
 #toolbar {
