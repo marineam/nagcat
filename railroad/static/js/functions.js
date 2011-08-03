@@ -159,7 +159,7 @@ var sorts = {
             return NaN;
         }
     }),
-    'duration': makeComparer(function(e) {
+    'duration': makeComparer(function(so) {
         return so['duration'];
     })
 }
@@ -324,12 +324,14 @@ function drawSO() {
         getData(servicesToGraph, function(data) {
             var meta = $('#graphs').data('meta');
             for (var i=0; i<meta.length; i++) {
-                var elem = meta[i].jQueryElement.find('.graphInfo');
-                elem = $('.' + meta[i]['slug']);
+                var elem = $('.graph.' + meta[i]['slug']);
                 // If the graph is on the page
                 if (elem.length > 0) {
                     if (meta[i].data) {
-                        drawGraph(elem, meta[i].data);
+                        if (!meta[i].isGraphed) {
+                            drawGraph(elem, meta[i].data);
+                            meta[i].isGraphed = true;
+                        }
                     } else {
                         $(elem).data('host', meta[i].host);
                         $(elem).data('service', meta[i].service);
@@ -441,5 +443,5 @@ function redrawGraph(element, data) {
     $(element).data('end', data.end);
     $(element).data('host', data.host);
     $(element).data('service', data.service);
-    meta[metaIndex].jQueryElement = $(element).closest('.service_row');
+    //meta[metaIndex].jQueryElement = $(element).closest('.service_row');
 }
