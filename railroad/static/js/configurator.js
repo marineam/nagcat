@@ -118,15 +118,26 @@ $(document).ready(function() {
             'args': JSON.stringify(args),
         }
 
+        $('#downtime-submit').parent().after(
+            '<img src="/railroad-static/images/loading.gif" ' +
+            'id="downtimeLoading" />');
+
         $.ajax({
             url: '/railroad/ajax/xmlrpc',
             data: data,
             dataType: 'text',
             success: function(cancellationCode) {
-                    console.log(cancellationCode);
-                },
+                console.log(cancellationCode);
+                $('#downtimeLoading').after(('<span class="cancelcode">' +
+                    'Success! Cancellation code: {0}</span>')
+                    .format(cancellationCode));
+                $('#downtimeLoading').remove();
+            },
             error: function () {
                 console.log('error');
+                $('#downtimeLoading').after(
+                    '<span class="error">There was an error.</span>');
+                $('#downtimeLoading').remove();
             }
         });
     });

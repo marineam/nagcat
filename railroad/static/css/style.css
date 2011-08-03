@@ -240,6 +240,7 @@ td.status_text {
 }
 .error {
     color: red;
+    font-size: 0.8em;
 }
 
 /* Service listings */
@@ -361,6 +362,9 @@ fieldset {
 #configurator .datetimerow .to {
     width: 18px;
     margin: 0 10px;
+}
+.cancelcode {
+    font-size: 0.8em;
 }
 
 /* Filtering */
