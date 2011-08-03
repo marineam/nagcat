@@ -220,8 +220,12 @@ function selectServiceObjs() {
     drawSO();
 
     var totalpages = Math.floor(meta.length / perpage);
-    $('#totalpages').text(totalpages);
-    $('#curpage').text(curpage);
+    $('#graphs').data('totalpages', totalpages);
+    var totalgraphs = meta.length
+    $('#totalpages').text(meta.length);
+    $('#firstgraph').text(curpage * perpage);
+    $('#lastgraph').text((curpage + 1) * perpage);
+    $('#totalgraphs').text(totalgraphs);
 
     var prevItem = null;
     $('.graph').parent().bind('plothover', function(event, pos, item) {

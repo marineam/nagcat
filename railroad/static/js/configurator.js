@@ -232,7 +232,12 @@ $(document).ready(function() {
     // Note that page numbers are 0 based.
     $('#nextpage').bind('click', function() {
         var page = $('#graphs').data('curpage');
-        var totalpages = parseInt($('#totalpages').text());
+        var totalpages;
+        if ($('#graphs').data('totalpages')) {
+            totalpages = $('#graphs').data('totalpages');
+        } else {
+            totalpages = 1;
+        }
         var enabled = !$(this).data('disabed');
         if (enabled && page < totalpages) {
             page += 1;
