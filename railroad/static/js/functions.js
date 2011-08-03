@@ -153,11 +153,13 @@ var sorts = {
         return so['state'];
     })),
     'value': makeComparer(function(so) {
+        var value;
         if (so['isGraphable']) {
-            return so['data'][so['data'].length-1];
+            value = so['data'][so['data'].length-1];
         } else {
-            return NaN;
+            value = NaN;
         }
+        return value;
     }),
     'duration': makeComparer(function(so) {
         return so['duration'];
@@ -241,6 +243,30 @@ function selectServiceObjs() {
         } else {
             $('#tooltip').remove();
         }
+    });
+    $('.graph').parent().bind('plotselected', function (event, ranges) {
+        var meta = $('#graphs').data('meta');
+        graphs_to_update = [];
+        if ($('#sync').prop('checked')) {
+            for (var i=0; i < meta.length; i++) {
+                graphs_to_update.push(meta[i]);
+            }
+        } else {
+            for (var i=0; i< meta.length; i++) {
+                if (meta[i].slug === $(elemGraph).attr('name')) {
+                    graphs_to_update.push(meta[i]);
+                }
+            }
+        }
+        for (var i=0; i < graphs_to_update.length; i++) {
+            if (graphs_to_update[i]['isGraphable']) {
+                graphs_to_update[i]['start'] = parseInt(ranges.xaxis.from / 1000);
+                graphs_to_update[i]['end'] = parseInt(ranges.xaxis.to / 1000);
+                graphs_to_update[i]['data'] = null;
+                graphs_to_update[i]['isGraphed'] = false;
+            }
+        }
+            drawSO();
     });
 
     if (curpage >= totalpages) {
@@ -354,30 +380,6 @@ function drawGraph (elemGraph, data) {
             $(elemGraph).siblings('.ylabel').css('display', 'none');
         }
     }
-    $(elemGraph).bind('plotselected', function (event, ranges) {
-        var meta = $('#graphs').data('meta');
-        graphs_to_update = [];
-        if ($('#sync').prop('checked')) {
-            for (var i=0; i < meta.length; i++) {
-                graphs_to_update.push(meta[i]);
-            }
-        } else {
-            for (var i=0; i< meta.length; i++) {
-                if (meta[i].slug === $(elemGraph).attr('name')) {
-                    graphs_to_update.push(meta[i]);
-                }
-            }
-        }
-        for (var i=0; i < graphs_to_update.length; i++) {
-            if (graphs_to_update[i]['isGraphable']) {
-                graphs_to_update[i]['start'] = parseInt(ranges.xaxis.from / 1000);
-                graphs_to_update[i]['end'] = parseInt(ranges.xaxis.to / 1000);
-                graphs_to_update[i]['data'] = null;
-                graphs_to_update[i]['isGraphed'] = false;
-            }
-        }
-            drawSO();
-    });
 
     $('.removeSeries').live('click', function () {
         var meta = $('#graphs').data('meta');
