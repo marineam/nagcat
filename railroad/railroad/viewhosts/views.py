@@ -731,6 +731,7 @@ def real_meta(hosts='', services='', groups=''):
             'isGraphable': graph['is_graphable'],
             'html': render_to_response('graph.html', graph).content,
             'state': graph['current_state'],
+            'duration': graph['state_duration'],
         }
 
         if so['isGraphable']:
@@ -755,7 +756,8 @@ def meta(request):
     hosts = source.get('host', '')
     services = source.get('service', '')
 
-    return HttpResponse(json.dumps(real_meta(hosts, services, groups)))
+    return HttpResponse(json.dumps(real_meta(hosts, services, groups)),
+            content_type='application/json')
 
 
 def customgraph(request):
@@ -1082,7 +1084,7 @@ def graphs(request):
 
     response.sort(key=lambda r: r['service'])
 
-    return HttpResponse(json.dumps(response))
+    return HttpResponse(json.dumps(response), content_type="application/json")
 
 
 def slugify(text, delim=u''):

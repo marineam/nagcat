@@ -85,59 +85,19 @@ function allChecked(func) {
     $('#checkall input').prop('checked', false);
 }
 
-function getSOAJAX(ajaxData) {
-    $.ajax({
-        data: ajaxData,
-        url: '/railroad/configurator/meta',
-        type: 'POST',
-        async: true,
-        dataType: 'json',
-        success: function (meta, textStatus, XMLHttpRequest) {
-            $('#graphs').data('meta', meta);
-            selectServiceObjs();
-            return;
-
-            html = html.trim();
-            if (!html) {
-                console.log('No html returned!');
-                return;
-            }
-
-            var numServices = $(html).closest('.service_row').length;
-            if ( numServices > graphWarningThreshold) {
-                var confText = 'You asked to add {0} graphs'.format(numServices)
-                    + '. Would you like to continue?';
-                var conf = confirm(confText);
-                if (!conf) {
-                    return;
-                }
-            }
-
-            $(html).appendTo('#graphs');
-            update_number_graphs();
-
-            var services = $('.service_row');
-            services.each(function (index, elemRow) {
-                //$(elemRow).find('.graphInfo').attr('id', index);
-                collapse_or_expand(elemRow);
-            });
-
-            fetchAndDrawGraphDataByDiv();
-        },
-        error: function () {
-            console.log('failed to add graph html');
-        }
-    });
-}
-
-function initializeSO(serviceObjects, pageNum, numGraphsOnPage) {
-    var start = (pageNum-1) * numGraphsOnPage;
-    var end = pageNum * numGraphsOnPage - 1;
-    serviceObjects.each(function (index, element) {
-        if (!element['jQueryElement']) {
-            $('.graphs').add(element['HTML']);
-        }
-    });
+function getAllData(callback) {
+    var sos = [];
+    var meta = $('#graphs').data('meta');
+    for (var i=0; i<meta.length; i++) {
+        var so = meta[i];
+        sos.push({
+            'host': so['host'],
+            'service': so['service'],
+            'start': so['start'],
+            'end': so['end'],
+        });
+    }
+    getData(sos, callback);
 }
 
 function selectHTML(serviceObjects, pageNum, numGraphsOnPage) {
@@ -159,16 +119,323 @@ function selectHTML(serviceObjects, pageNum, numGraphsOnPage) {
     });
 }
 
-function drawSO(serviceObjects, pageNum, numGraphsOnPage) {
-    var start = (pageNum-1) * numGraphsOnPage;
-    var end = pageNum * numGraphsOnPage  - 1;
-    tempObjectsList = [];
-    serviceObjects.each(function(index, element) {
-        if (element['is_graphable']) {
-            if (! element['data']) {
-                tempObjectsList.push(element);
+// Sort the graphs.
+function reverse(func) {
+    var f = function(a,b) {
+        return func(b,a);
+    }
+    f.usesData = func.usesData;
+    return f;
+}
+function makeComparer(val) {
+    var f = function(a, b) {
+        var va = val(a);
+        var vb = val(b);
+        if (va > vb) {
+            return 1;
+        } else if (va < vb) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+    f.usesData = false;
+    return f;
+}
+var sorts = {
+    'service': makeComparer(function(so) {
+        return so['service'].toLowerCase().trim();
+    }),
+    'host': makeComparer(function(so) {
+        return so['host'].toLowerCase().trim();
+    }),
+    'status': reverse(makeComparer(function(so) {
+        return so['state'];
+    })),
+    'value': makeComparer(function(so) {
+        if (so['isGraphable']) {
+            return so['data'][so['data'].length-1];
+        } else {
+            return NaN;
+        }
+    }),
+    'duration': makeComparer(function(e) {
+        return so['duration'];
+    })
+}
+sorts['value'].usesData = true;
+
+function sortGraphs(name, reversed) {
+    var sorter = sorts[name];
+    if (reversed) {
+        sorter = reverse(sorter);
+    }
+
+    var finishSort = function() {
+        var meta = $('#graphs').data('meta');
+        meta.sort(sorter);
+        $('graphs').data('meta', meta);
+        selectServiceObjs();
+    }
+
+    if (sorter.usesData) {
+        getAllData(finishSort);
+    } else {
+        finishSort();
+    }
+}
+
+/* Data and graph manipulation and loading */
+function selectServiceObjs() {
+    var perpage;
+    if (localStorageGet('preference_panel')) {
+        if (localStorageGet('preference_panel')['graphsPerPage']) {
+            perpage = localStorageGet('preference_panel')['graphsPerPage'];
+            perpage = parseInt(perpage);
+        }
+    } else {
+        perpage = 25;
+    }
+    var curpage = $('#graphs').data('curpage');
+    if (!curpage) {
+        curpage = 0;
+        $('#graphs').data('curpage', 0);
+    }
+
+    var meta = $('#graphs').data('meta');
+    var start = curpage * perpage;
+    var end = Math.min(start+perpage, meta.length);
+
+    $('#graphs').html('');
+    for (var i=0; i<meta.length; i++) {
+        if (!meta[i].jQueryElement) {
+            meta[i].jQueryElement = $(meta[i].html);
+        }
+    }
+
+    for (var i=start; i<end; i++) {
+        $(meta[i].jQueryElement).appendTo('#graphs');
+    }
+    update_number_graphs();
+    drawSO();
+
+    var totalpages = Math.floor(meta.length / perpage);
+    $('#totalpages').text(totalpages);
+    $('#curpage').text(curpage);
+
+    var prevItem = null;
+    $('.graph').parent().bind('plothover', function(event, pos, item) {
+        if (item) {
+            if(item != prevItem) {
+                prevItem = item;
+                var label = '<h3>{0} - {2}</h3><p>({1})</p>'.format(
+                    item.series.label, new Date(pos.x).toString(),
+                    numberFormatter(pos.y))
+
+                showTooltip(item.pageX, item.pageY, label);
             }
+        } else {
+            $('#tooltip').remove();
+        }
+    });
+
+    if (curpage >= totalpages) {
+        $('#nextpage').data('disable', true).css({'opacity': 0.25});
+    } else {
+        $('#nextpage').data('disable', false).css({'opacity': 1.0});
+    }
+    if (curpage <= 0) {
+        $('#prevpage').data('disable', true).css({'opacity': 0.25});
+    } else {
+        $('#prevpage').data('disable', false).css({'opacity': 1.0});
+    }
+}
+
+function getData(ajaxData, callBack) {
+    ajaxData = JSON.stringify(ajaxData);
+    $.ajax({
+        url: '/railroad/graphs',
+        data: {graphs: ajaxData},
+        type: 'POST',
+        async: true,
+        dataType: 'json',
+        success: function (data, textStatus, XMLHttpRequest) {
+            var meta = $('#graphs').data('meta');
+            for (var i=0; i < data.length; i++) {
+                for (var j=0; j < meta.length; j++) {
+                    if (data[i].slug === meta[j].slug) {
+                        meta[j].data = data[i];
+                    }
+                }
+            }
+            callBack(data);
+        },
+        error: function () {
+            console.log('There was an error in obtaining the data for graphs');
         }
     });
 }
 
+function drawSO() {
+    var perpage;
+    if (localStorageGet('preference_panel')) {
+        if (localStorageGet('preference_panel')['graphsPerPage']) {
+            perpage = localStorageGet('preference_panel')['graphsPerPage'];
+        }
+    } else {
+        perpage = 25;
+    }
+    var curpage = $('#graphs').data('curpage');
+    if (!curpage) {
+        curpage = 0;
+        $('#graphs').data('curpage', 0);
+    }
+    var meta = $('#graphs').data('meta');
+    var begin = curpage * perpage;
+    var stop = Math.min(begin+perpage, meta.length);
+    var servicesToGraph = [];
+    for (var i=begin; i<stop; i++) {
+        if (meta[i].isGraphable) {
+            if (!meta[i].data || ! meta[i].isGraphed) {
+                var host = meta[i].host;
+                var service = meta[i].service;
+                if (meta[i].isGraphable) {
+                    var start = meta[i].start;
+                    var end = meta[i].end;
+                } else {
+                    var start = 0;
+                    var end = 0;
+                }
+                var serviceDict = {
+                    'host': host,
+                    'service': service,
+                    'start': start,
+                    'end': end,
+                };
+                servicesToGraph.push(serviceDict);
+            }
+        }
+    }
+    if (servicesToGraph.length > 0) {
+        getData(servicesToGraph, function(data) {
+            var meta = $('#graphs').data('meta');
+            for (var i=0; i<meta.length; i++) {
+                var elem = meta[i].jQueryElement.find('.graphInfo');
+                elem = $('.' + meta[i]['slug']);
+                // If the graph is on the page
+                if (elem.length > 0) {
+                    if (meta[i].data) {
+                        drawGraph(elem, meta[i].data);
+                    } else {
+                        $(elem).data('host', meta[i].host);
+                        $(elem).data('service', meta[i].service);
+                    }
+                }
+            }
+        });
+    }
+}
+// Plots the data in the given element
+function drawGraph (elemGraph, data) {
+    redrawGraph(elemGraph, data)
+    if(data.options.yaxis.label) {
+    // if there isn't already a ylabel
+        if (elemGraph.siblings('.ylabel').length == 0) {
+            $(elemGraph).before('<div class="ylabel">' +
+                data.options.yaxis.label + '</div>');
+        }
+        if ( $(elemGraph).css('display') === 'none' ) {
+            $(elemGraph).siblings('.ylabel').css('display', 'none');
+        }
+    }
+    $(elemGraph).bind('plotselected', function (event, ranges) {
+        var meta = $('#graphs').data('meta');
+        graphs_to_update = [];
+        if ($('#sync').prop('checked')) {
+            for (var i=0; i < meta.length; i++) {
+                graphs_to_update.push(meta[i]);
+            }
+        } else {
+            for (var i=0; i< meta.length; i++) {
+                if (meta[i].slug === $(elemGraph).attr('name')) {
+                    graphs_to_update.push(meta[i]);
+                }
+            }
+        }
+        for (var i=0; i < graphs_to_update.length; i++) {
+            if (graphs_to_update[i]['isGraphable']) {
+                graphs_to_update[i]['start'] = parseInt(ranges.xaxis.from / 1000);
+                graphs_to_update[i]['end'] = parseInt(ranges.xaxis.to / 1000);
+                graphs_to_update[i]['data'] = null;
+                graphs_to_update[i]['isGraphed'] = false;
+            }
+        }
+            drawSO();
+    });
+
+    $('.removeSeries').live('click', function () {
+        var meta = $('#graphs').data('meta');
+        var metaIndex;
+        var elemGraph = $(this).closest('.legend').siblings('.graph');
+        for (var i=0; i <meta.length; i++) {
+            if (  meta[i].slug === $(elemGraph).attr('name')) {
+                metaIndex = i;
+                break;
+            }
+        }
+        if (metaIndex) {
+        if (meta[metaIndex].data) {
+                data = meta[metaIndex].data;
+                for (var i=0; i < data.data.length; i++) {
+                    if (data.data[i].label == $(this).attr('id')) {
+                        data.data[i]['lines']['show'] ^= true; // toggle
+                    }
+                }
+                redrawGraph(elemGraph, data);
+            }
+        }
+    });
+    // elemGraphDates keeps the line below it < 80 chars
+    var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
+    var datePickers = $(elemGraphDates).datetimepicker({
+        onClose: function(selectedDate) {
+            updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
+                       $(datePickers[0]).datetimepicker('getDate'),
+                       $(datePickers[1]).datetimepicker('getDate'));
+    var from = $(elemGraphDates)[0];
+    var to = $(elemGraphDates)[1];
+    var start = $(from).datetimepicker('getDate').getTime();
+    var end = $(to).datetimepicker('getDate').getTime();
+        },
+        changeMonth: true,
+        changeYear: true,
+    });
+    $(datePickers[0]).datetimepicker('setDate',
+            new Date(elemGraph.data('start') * 1000));
+    $(datePickers[1]).datetimepicker('setDate',
+            new Date(elemGraph.data('end') * 1000));
+
+    $(elemGraph).siblings('.graphloading').remove();
+}
+
+function redrawGraph(element, data) {
+    var meta = $('#graphs').data('meta');
+    var metaIndex;
+    for (var i=0; i < meta.length; i++) {
+        if (meta[i].slug === data.slug) {
+            metaIndex = i;
+            break;
+        }
+    }
+    data = formatGraph(element, data);
+    meta[metaIndex].data = data;
+    $(element).data('plot', $.plot($(element), data.data, data.options));
+    $(element).siblings('.graphloading').text('Rendering Graph...');
+
+    $(element).data('data', data);
+    $(element).data('start', data.start);
+    $(element).data('end', data.end);
+    $(element).data('host', data.host);
+    $(element).data('service', data.service);
+    meta[metaIndex].jQueryElement = $(element).closest('.service_row');
+}

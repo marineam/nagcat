@@ -228,28 +228,13 @@ $(document).ready(function() {
         $('#expansion_by_type input').prop('checked', state);
     });
 
-    // expand one buttons
-    $('.collapse_row').live('click', function() {
-        collapse_row($(this).parents().parents().first());
-    });
-    $('.expand_row').live('click', function() {
-        expand_row($(this).parents().parents().first());
-    });
-    // remove 1 buttons
-    $('.remove_row').live('click', function() {
-        var tr = $(this).parents().parents().first();
-        tr.hide(0, function() {
-            $(tr).remove();
-        });
-    });
-
     /********** Page manipulations **********/
     // Note that page numbers are 0 based.
     $('#nextpage').bind('click', function() {
         var page = $('#graphs').data('curpage');
         var totalpages = parseInt($('#totalpages').text());
-        var disabled = !!$(this).data('disabed');
-        if (!disabled && page < totalpages) {
+        var enabled = !$(this).data('disabed');
+        if (enabled && page < totalpages) {
             page += 1;
             $('#graphs').data('curpage', page);
             selectServiceObjs();
@@ -257,8 +242,8 @@ $(document).ready(function() {
     });
     $('#prevpage').bind('click', function() {
         var page = $('#graphs').data('curpage');
-        var disabled = !!$(this).data('disabed');
-        if (!disabled && page > 0) {
+        var enabled = !!$(this).data('disabed');
+        if (enabled && page > 0) {
             page -= 1;
             $('#graphs').data('curpage', page);
             selectServiceObjs();
