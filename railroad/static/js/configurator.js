@@ -38,9 +38,8 @@ $(document).ready(function() {
     });
 
     $('#cleargraphs').click(function () {
-        $('.service_row').remove();
-        update_number_graphs()
-        update_hidden_count();
+        $('#graphs').data('meta', []);
+        selectServiceObjs();
     });
 
     $('.graphcheckbox').change(function () {
