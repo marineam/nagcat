@@ -17,6 +17,25 @@
 /* This file should be for function definitions only, there should be no side
  * effects from running this file. */
 
+Array.prototype.removeMatching = function(func) {
+    var arr = this;
+    var i = 0;
+    var offset=0;
+    while (i+offset < arr.length) {
+        if (offset > 0) {
+            arr[i] = arr[i+offset];
+        }
+        if (func(arr[i])) {
+            offset += 1;
+            arr[i] = arr[i+offset];
+        } else {
+            i += 1;
+        }
+    }
+    arr.length -= offset;
+    return arr.length;
+}
+
 /********** Form Persistence **********/
 
 /* Save the state of the given form into localstorage. */

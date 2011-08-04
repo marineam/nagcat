@@ -172,8 +172,27 @@ $(document).ready(function() {
     });
 
     $('#remove_checked').bind('click', function() {
-        allChecked(function(elem) {$(elem).remove();});
-        update_number_graphs();
+        var toRemove = [];
+        var count = 0;
+        $('.service_row').each(function(index, element) {
+            if ($(element).find('.graphcheckbox').prop('checked')) {
+                console.log($(element));
+                toRemove.push($(element).find('.graphInfo'));
+            }
+        });
+        if (toRemove.length > 0) {
+            var meta = $('#graphs').data('meta');
+            meta.removeMatching(function(e) {
+                for (var i=0; i<toRemove.length; i++) {
+                    if (toRemove[i].hasClass(e['slug'])) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            selectServiceObjs();
+        }
+        $('#checkall input').prop('checked', false);
     });
     $('#expand_checked').bind('click', function() {
         allChecked(expand_row);
