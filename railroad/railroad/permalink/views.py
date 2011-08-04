@@ -82,7 +82,7 @@ def list_links(request):
     stat,obj = views.parse()
 
     user = get_user(request)
-    page = ConfiguratorPage.objects.filter(user=user)
+    page = ConfiguratorPage.objects.filter(user=user).order_by('-creation')
     template = loader.get_template('permalinks.html')
     services = stat['service']
 
