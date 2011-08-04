@@ -1,10 +1,14 @@
 $(document).ready(function() {
     $('#preferences').bind('click', function() {
         $('#preference_panel').toggle();
+        if ($('#preference_panel').css('display') === "none") {
+            setTimeout(redrawOnClosePreference, 500);
+        }
     });
 
     $('#close_preferences').bind('click', function() {
         $('#preference_panel').toggle();
+        setTimeout(redrawOnClosePreference, 500);
     });
 
     $('.twirler').prepend('<div class="sprite tri_e"></div>');

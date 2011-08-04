@@ -100,24 +100,6 @@ function getAllData(callback) {
     getData(sos, callback);
 }
 
-function selectHTML(serviceObjects, pageNum, numGraphsOnPage) {
-    var start = (pageNum-1) * numGraphsOnPage;
-    var end = pageNum * numGraphsOnPage - 1;
-    var curpage = $('#graphs').data('curpage');
-    if (!curpage) {
-        curpage = 0;
-        $('#graphs').data('curpage', 0);
-    }
-    serviceObjects.each(function (index, element) {
-        if (element['jQueryElement']) {
-            if (index >= start && index <=end) {
-             $(element['jQueryElement']).css('display', 'block');
-            } else {
-             $(element['jQueryElement']).css('display', 'none');
-            }
-        }
-    });
-}
 
 // Sort the graphs.
 function reverse(func) {
@@ -186,6 +168,19 @@ function sortGraphs(name, reversed) {
         finishSort();
     }
 }
+function redrawOnClosePreference() {
+    if ($('#preference_panel').data('changed') && $('.service_row').length > 0) {
+        var meta = $('#graphs').data('meta');
+        if (meta) {
+            for (var i=0; i < meta.length; i++) {
+                meta[i].data = null;
+                meta[i].isGraphed = false;
+            }
+            selectServiceObjs();
+        }
+        $('#preference_panel').data('changed', null);
+    }
+}
 
 /* Data and graph manipulation and loading */
 function selectServiceObjs() {
@@ -208,15 +203,49 @@ function selectServiceObjs() {
     var start = curpage * perpage;
     var end = Math.min(start+perpage, meta.length);
 
+    $('.service_row').each(function (index, element) {
+        for (var i=0; i< meta.length; i++) {
+            if ($(element).find('.graphInfo').attr('name') == meta[i].slug) {
+                meta[i].jQueryData = $(element).find('.graphInfo').data();
+            }
+        }
+    });
+
     $('#graphs').html('');
     for (var i=0; i<meta.length; i++) {
-        if (!meta[i].jQueryElement) {
+        if (!meta[i].jQueryElement || !meta[i].data || !meta[i].isGraphed) {
             meta[i].jQueryElement = $(meta[i].html);
         }
     }
 
     for (var i=start; i<end; i++) {
         $(meta[i].jQueryElement).appendTo('#graphs');
+        if (meta[i].jQueryData) {
+            for (key in meta[i].jQueryData) {
+                $('.{0}'.format(meta[i].slug)).data(key, meta[i].jQueryData[key]);
+            }
+        }
+        var elemGraph = $('.{0}'.format(meta[i].slug));
+        var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
+        var datePickers = $(elemGraphDates).datetimepicker({
+            onClose: function(selectedDate) {
+                updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
+                           $(datePickers[0]).datetimepicker('getDate'),
+                           $(datePickers[1]).datetimepicker('getDate'));
+        var from = $(elemGraphDates)[0];
+        var to = $(elemGraphDates)[1];
+        var start = $(from).datetimepicker('getDate').getTime();
+        var end = $(to).datetimepicker('getDate').getTime();
+            },
+            changeMonth: true,
+            changeYear: true,
+        });
+        $(datePickers[0]).datetimepicker('setDate',
+                new Date(elemGraph.data('start') * 1000));
+        $(datePickers[1]).datetimepicker('setDate',
+                new Date(elemGraph.data('end') * 1000));
+
+        $(elemGraph).siblings('.graphloading').remove();
     }
     update_number_graphs();
     drawSO();
@@ -245,6 +274,7 @@ function selectServiceObjs() {
         }
     });
     $('.graph').parent().bind('plotselected', function (event, ranges) {
+        var elemGraph = $(this).children('.graph');
         var meta = $('#graphs').data('meta');
         graphs_to_update = [];
         if ($('#sync').prop('checked')) {

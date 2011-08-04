@@ -57,6 +57,7 @@ $(document).ready(function() {
     /*** Preferences persistance ***/
     $('#preference_panel').bind('change', function () {
         saveFormPersistence($('#preference_panel'));
+        $('#preference_panel').data('changed', true);
     });
     restoreFormPersistence($('#preference_panel'));
 
