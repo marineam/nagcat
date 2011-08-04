@@ -101,7 +101,6 @@ def delete_link(request, link):
     user = get_user(request)
     if user == page.user:
         page.delete()
-        return HttpResponse("The link " + link + " has been deleted")
+        return HttpResponse(user, content_type='text/plain')
     else:
-        return HttpResponse("You are not " +
-            "the owner, and therefore cannot delete this link")
+        return Http404()

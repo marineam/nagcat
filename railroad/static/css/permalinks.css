@@ -33,6 +33,6 @@ p {
     width: 150px;
 }
 
-.delete {
+.delete,.delete_link {
     width: 150px;
 }

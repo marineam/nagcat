@@ -4,6 +4,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="/railroad-static/css/permalinks.css" type="text/css">
+<script language="javascript" type="text/javascript" src="/railroad-static/js/permalinks.js"></script>
 {% endblock %}
 {% block header %}
 <h1>Permalinks</h1>
@@ -39,8 +40,8 @@
                 <td class="num_services">
                     <p>{{ permalink.num_services }}</p>
                 </td>
-                <td class="delete">
-                    <a href="{% url railroad.permalink.views.delete_link permalink.link %}">Delete link</a>
+                <td class="delete_link">
+                    <a href="#" name="{{permalink.link}}">Delete link</a>
             </tr>
             {% endfor %}
         </tbody>
