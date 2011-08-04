@@ -109,14 +109,20 @@ function getAllData(callback) {
     var meta = $('#graphs').data('meta');
     for (var i=0; i<meta.length; i++) {
         var so = meta[i];
-        sos.push({
-            'host': so['host'],
-            'service': so['service'],
-            'start': so['start'],
-            'end': so['end'],
-        });
+        if (!so['data']) {
+            sos.push({
+                'host': so['host'],
+                'service': so['service'],
+                'start': so['start'],
+                'end': so['end'],
+            });
+        }
     }
-    getData(sos, callback);
+    if (sos.length) {
+        getData(sos, callback);
+    } else {
+        callback([]);
+    }
 }
 
 
@@ -153,20 +159,10 @@ var sorts = {
     'status': reverse(makeComparer(function(so) {
         return so['state'];
     })),
-    'value': makeComparer(function(so) {
-        var value;
-        if (so['isGraphable']) {
-            value = so['data'][so['data'].length-1];
-        } else {
-            value = NaN;
-        }
-        return value;
-    }),
     'duration': makeComparer(function(so) {
         return so['duration'];
     })
 }
-sorts['value'].usesData = true;
 
 function sortGraphs(name, reversed) {
     var sorter = sorts[name];

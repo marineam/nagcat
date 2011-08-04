@@ -228,21 +228,21 @@ def hostnames_by_group(stat, obj, group_name):
 def hostlist_by_service(stat, service):
     """Returns a list of hosts possessing the specified service"""
     all_services = servicelist(stat)
-    return [hostdetail(stat, s['host_name']) for s in all_services  \
+    return [hostdetail(stat, s['host_name']) for s in all_services
                                 if s['service_description'] == service]
 
 
 def hostnames_by_service(stat, service):
     """Returns a list of hosts (names) possessing the specified service"""
     all_services = servicelist(stat)
-    return [s['host_name'] for s in all_services    \
+    return [s['host_name'] for s in all_services
                                 if fnmatch(s['service_description'], service)]
 
 
 def servicelist_by_host(stat, host):
     """Returns a list of services possessed by the specified host"""
     all_services = servicelist(stat)
-    return [service for service in all_services \
+    return [service for service in all_services
                                 if fnmatch(service['host_name'], host)]
 
 
@@ -724,6 +724,12 @@ def real_meta(hosts='', services='', groups=''):
     graph_template = loader.get_template('graph.html')
 
     for graph in get_graphs(stat, obj, hosts, groups, services):
+        # Django doesn't like variables that start with _.
+        if '_TEST' in graph:
+            graph['nagcat_template'] = graph['_TEST'].split(';', 1)[-1]
+        else:
+            graph['nagcat_template'] = ''
+
         so = {
             'host': graph['host_name'],
             'service': graph['service_description'],
@@ -732,6 +738,7 @@ def real_meta(hosts='', services='', groups=''):
             'html': render_to_response('graph.html', graph).content,
             'state': graph['current_state'],
             'duration': graph['state_duration'],
+            'nagcat_template': graph['nagcat_template'],
         }
 
         if so['isGraphable']:
