@@ -249,7 +249,7 @@ $(document).ready(function() {
         } else {
             totalpages = 1;
         }
-        var enabled = !$(this).data('disabled');
+        var enabled = !$(this).data('enabled');
         if (enabled && page < totalpages) {
             page += 1;
             $('#graphs').data('curpage', page);
@@ -258,7 +258,7 @@ $(document).ready(function() {
     });
     $('#prevpage').bind('click', function() {
         var page = $('#graphs').data('curpage');
-        var enabled = !$(this).data('disabled');
+        var enabled = !$(this).data('enabled');
         if (enabled && page > 0) {
             page -= 1;
             $('#graphs').data('curpage', page);

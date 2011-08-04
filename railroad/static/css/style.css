@@ -523,3 +523,7 @@ fieldset {
 .twirler ul {
     display: none;
 }
+
+#pages {
+    display: none;
+}

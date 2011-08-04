@@ -270,19 +270,26 @@ function selectServiceObjs() {
     });
 
     if (curpage >= totalpages) {
-        $('#nextpage').data('disabled', true).css({'opacity': 0.25});
+        $('#nextpage').data('enabled', false).css({'opacity': 0.25});
         $('#nextpage .sprite').removeClass('hover');
     } else {
-        $('#nextpage').data('disabled', false).css({'opacity': 1.0});
+        $('#nextpage').data('enabled', true).css({'opacity': 1.0});
         $('#nextpage .sprite').addClass('hover');
     }
     if (curpage <= 0) {
-        $('#prevpage').data('disabled', true).css({'opacity': 0.25});
+        $('#prevpage').data('enabled', false).css({'opacity': 0.25});
         $('#prevpage .sprite').removeClass('hover');
     } else {
-        $('#prevpage').data('disabled', false).css({'opacity': 1.0});
+        $('#prevpage').data('enabled', true).css({'opacity': 1.0});
         $('#prevpage .sprite').addClass('hover');
     }
+
+    if (!$('#prevpage').data('enabled') && !$('#nextpage').data('enabled')) {
+        $('#pages').hide();
+    } else {
+        $('#pages').show();
+    }
+
 }
 
 function getData(ajaxData, callBack) {
