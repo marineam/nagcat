@@ -103,4 +103,4 @@ def delete_link(request, link):
         return HttpResponse("The link " + link + " has been deleted")
     else:
         return HttpResponse("You are not " +
-            "the owner, and there for cannot delete this link")
+            "the owner, and therefore cannot delete this link")
