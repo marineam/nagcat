@@ -1,0 +1,38 @@
+p {
+    padding: 10px;
+}
+
+#permalink_table {
+    border-collapse: collapse;
+}
+
+.permalink_row {
+    padding-bottom: 5px;
+    font-size: 10pt;
+    text-align: center;
+}
+
+.permalink_row_header {
+    font-weight: bold;
+}
+
+.permalink_row td {
+    border: 1px solid #888888;
+    padding: 5px;
+}
+
+.link_code {
+    width: 200px;
+}
+
+.creation {
+    width: 200px;
+}
+
+.num_services {
+    width: 150px;
+}
+
+.delete {
+    width: 150px;
+}

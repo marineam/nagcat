@@ -65,5 +65,10 @@ class ConfiguratorPage(models.Model):
             service_list.append(service)
         return service_list
 
+    def num_services(self):
+        return len(self.load_services())
+
+
+
 
 
