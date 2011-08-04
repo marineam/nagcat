@@ -89,6 +89,7 @@ def list_links(request):
     context_data = {'services': services}
     context_data = views.add_hostlist(stat, obj, context_data)
     context_data['configurator_page'] = page
+    context_data['user'] = user
     c = Context(context_data)
 
     return HttpResponse(template.render(c))
