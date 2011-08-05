@@ -371,6 +371,8 @@ function drawSO() {
     if (localStorageGet('preference_panel')) {
         if (localStorageGet('preference_panel')['graphsPerPage']) {
             perpage = localStorageGet('preference_panel')['graphsPerPage'];
+        } else {
+            perpage = 25;
         }
     } else {
         perpage = 25;
