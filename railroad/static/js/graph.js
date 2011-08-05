@@ -258,8 +258,8 @@ function labelFormatter(label, series) {
         // graph doesn't have cur,max,min,avg, so skip them.
     }
 
-    var out = ('<input type="checkbox" id="{0}" class="removeSeries"{1}>' +
-               '{0}{2}</input>').format(label, checked, stats);
+    var out = ('<input type="checkbox" id="{0}" class="removeSeries"{1}/>' +
+               '{0}{2}').format(label, checked, stats);
 
     return out;
 }

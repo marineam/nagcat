@@ -199,14 +199,12 @@ function redrawOnClosePreference() {
 
 /* Data and graph manipulation and loading */
 function selectServiceObjs() {
-    var perpage;
+    var perpage = 25;
     if (localStorageGet('preference_panel')) {
         if (localStorageGet('preference_panel')['graphsPerPage']) {
             perpage = localStorageGet('preference_panel')['graphsPerPage'];
             perpage = parseInt(perpage);
         }
-    } else {
-        perpage = 25;
     }
     var curpage = $('#graphs').data('curpage');
     if (!curpage) {
@@ -228,7 +226,7 @@ function selectServiceObjs() {
 
     $('.service_row').hide();
     for (var i=0; i<meta.length; i++) {
-        if (!meta[i].jQueryElement/* || !meta[i].data || !meta[i].isGraphed*/) {
+        if (!meta[i].jQueryElement) {
             meta[i].jQueryElement = $(meta[i].html);
         }
     }
@@ -241,10 +239,11 @@ function selectServiceObjs() {
             meta[i].onPage = true;
         }
         var elemGraph = $('.{0}'.format(meta[i].slug));
-        var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
+        var elemGraphDates = $(elemGraph).siblings('.daterange')
+            .children('input');
         var datePickers = $(elemGraphDates).datetimepicker({
             onClose: function(selectedDate) {
-                updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
+               updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
                            $(datePickers[0]).datetimepicker('getDate'),
                            $(datePickers[1]).datetimepicker('getDate'));
         var from = $(elemGraphDates)[0];
