@@ -1,4 +1,8 @@
 $(document).ready(function() {
+    if ($('#downtimegraph').length == 0) {
+        // There is no downtime to schedule
+        return;
+    }
     var downtime = JSON.parse($('#downtimegraph').text());
     $('#downtimegraph').text('');
 

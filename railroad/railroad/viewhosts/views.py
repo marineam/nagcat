@@ -134,12 +134,14 @@ def parse():
             s[key] = datetime.utcfromtimestamp(int(s[key]))
 
     DOWNTIME_DATE_OBJS = ['entry_time', 'start_time', 'end_time']
-    for dt in stat['hostdowntime']:
-        for key in DOWNTIME_DATE_OBJS:
-            dt[key] = datetime.utcfromtimestamp(int(dt[key]))
-    for dt in stat['servicedowntime']:
-        for key in DOWNTIME_DATE_OBJS:
-            dt[key] = datetime.utcfromtimestamp(int(dt[key]))
+    if 'hostdowntime' in stat:
+        for dt in stat['hostdowntime']:
+            for key in DOWNTIME_DATE_OBJS:
+                dt[key] = datetime.utcfromtimestamp(int(dt[key]))
+    if 'servicedowntime' in stat:
+        for dt in stat['servicedowntime']:
+            for key in DOWNTIME_DATE_OBJS:
+                dt[key] = datetime.utcfromtimestamp(int(dt[key]))
 
     # / in group names break urls, replace with - which are safer
     for group in obj['hostgroup']:
@@ -1124,8 +1126,13 @@ def downtime(request):
     stat, obj = parse()
 
     downtime = {}
+    nag_dts = []
+    if 'servicedowntime' in stat:
+        nag_dts += stat['servicedowntime']
+    if 'hostdowntime' in stat:
+        nag_dts += stat['hostdowntime']
 
-    for dt in stat['servicedowntime'] + stat['hostdowntime']:
+    for dt in nag_dts:
         dt['comment'], dt['key'], dt['expr'] = parse_comment(dt['comment'])
 
         if dt['key'] in downtime:
