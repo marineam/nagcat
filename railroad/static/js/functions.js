@@ -256,9 +256,9 @@ function selectServiceObjs() {
             changeYear: true,
         });
         $(datePickers[0]).datetimepicker('setDate',
-                new Date(elemGraph.data('start') * 1000));
+                new Date(meta[i].start * 1000));
         $(datePickers[1]).datetimepicker('setDate',
-                new Date(elemGraph.data('end') * 1000));
+                new Date(meta[i].end * 1000));
 
         $(elemGraph).siblings('.graphloading').remove();
     }
