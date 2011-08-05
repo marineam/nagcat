@@ -34,6 +34,12 @@ class HTTPQueryTestCase(QueryTestCase):
         d.addBoth(self.assertEquals, "hello\n")
         return d
 
+    def testNoSlash(self):
+        self.config['path'] = 'other'
+        d = self.startQuery(self.config)
+        d.addBoth(self.assertEquals, "other\n")
+        return d
+
     def testPost(self):
         d = self.startQuery(self.config, data="post data")
         d.addBoth(self.assertEquals, "post data")

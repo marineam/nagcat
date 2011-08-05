@@ -33,6 +33,12 @@ class Root(resource.Resource):
         request.content.seek(0, 0)
         return request.content.read()
 
+class Other(resource.Resource):
+    """Just another page for the dummy web server"""
+
+    def render_GET(self, request):
+        return "other\n";
+
 class RPC2(xmlrpc.XMLRPC):
 
     def xmlrpc_echo1(self, x):
@@ -50,6 +56,7 @@ class HTTP(server.Site):
     def __init__(self):
         root = resource.Resource()
         root.putChild("", Root())
+        root.putChild("other", Other())
         root.putChild("RPC2", RPC2())
         server.Site.__init__(self, root)
 

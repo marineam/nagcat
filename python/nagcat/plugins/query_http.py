@@ -55,6 +55,10 @@ class HTTPQuery(query.Query):
         if headers:
             headers.expand()
 
+        # path should always start with a / so insert one to be nice
+        if not self.conf['path'].startswith('/'):
+            self.conf['path'] = '/%s' % self.conf['path']
+
         # Some versions of twisted will send Host twice if it is in the
         # headers dict. Instead we set factory.host.
         if self.conf['port'] == self.port:
