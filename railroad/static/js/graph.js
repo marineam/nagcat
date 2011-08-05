@@ -413,16 +413,6 @@ function getServiceObjs(ajaxData) {
         success: function (meta, textStatus, XMLHttpRequest) {
             $('#graphs').data('meta', meta);
             selectServiceObjs();
-
-            var numServices = meta.length;
-            if ( numServices > 100) {
-                var confText = 'You asked to add {0} graphs'.format(numServices)
-                    + '. Would you like to continue?';
-                var conf = confirm(confText);
-                if (!conf) {
-                    return;
-                }
-            }
         },
         error: function () {
             console.log('failed to add graph html');

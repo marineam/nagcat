@@ -226,19 +226,19 @@ function selectServiceObjs() {
         }
     });
 
-    $('#graphs').html('');
+    $('.service_row').hide();
     for (var i=0; i<meta.length; i++) {
-        if (!meta[i].jQueryElement || !meta[i].data || !meta[i].isGraphed) {
+        if (!meta[i].jQueryElement/* || !meta[i].data || !meta[i].isGraphed*/) {
             meta[i].jQueryElement = $(meta[i].html);
         }
     }
 
     for (var i=start; i<end; i++) {
-        $(meta[i].jQueryElement).appendTo('#graphs');
-        if (meta[i].jQueryData) {
-            for (key in meta[i].jQueryData) {
-                $('.{0}'.format(meta[i].slug)).data(key, meta[i].jQueryData[key]);
-            }
+        if (!!meta[i].onPage) {
+            $(meta[i].jQueryElement).show();
+        } else {
+            $(meta[i].jQueryElement).appendTo('#graphs');
+            meta[i].onPage = true;
         }
         var elemGraph = $('.{0}'.format(meta[i].slug));
         var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
@@ -437,9 +437,9 @@ function drawGraph (elemGraph, data) {
         }
     }
 
-    $('.removeSeries').live('click', function () {
+    $('.removeSeries').live('click', function() {
         var meta = $('#graphs').data('meta');
-        var metaIndex;
+        var metaIndex = -1;
         var elemGraph = $(this).closest('.legend').siblings('.graph');
         for (var i=0; i <meta.length; i++) {
             if (  meta[i].slug === $(elemGraph).attr('name')) {
@@ -447,16 +447,18 @@ function drawGraph (elemGraph, data) {
                 break;
             }
         }
-        if (metaIndex) {
+        if (metaIndex == -1) {
+            // The graph must have been removed. Fugettaboutit
+            return
+        }
         if (meta[metaIndex].data) {
-                data = meta[metaIndex].data;
-                for (var i=0; i < data.data.length; i++) {
-                    if (data.data[i].label == $(this).attr('id')) {
-                        data.data[i]['lines']['show'] ^= true; // toggle
-                    }
+            data = meta[metaIndex].data;
+            for (var i=0; i < data.data.length; i++) {
+                if (data.data[i].label == $(this).attr('id')) {
+                    data.data[i]['lines']['show'] ^= true; // toggle
                 }
-                redrawGraph(elemGraph, data);
             }
+            redrawGraph(elemGraph, data);
         }
     });
     // elemGraphDates keeps the line below it < 80 chars
@@ -490,6 +492,10 @@ function redrawGraph(element, data) {
             metaIndex = i;
             break;
         }
+    }
+    if (metaIndex == -1) {
+        // The graph must have been removed. Fugettaboutit
+        return
     }
     data = formatGraph(element, data);
     meta[metaIndex].data = data;
