@@ -199,6 +199,8 @@ function redrawOnClosePreference() {
 
 /* Data and graph manipulation and loading */
 function selectServiceObjs() {
+    var meta = $('#graphs').data('meta');
+
     var perpage = 25;
     if (localStorageGet('preference_panel')) {
         if (localStorageGet('preference_panel')['graphsPerPage']) {
@@ -209,10 +211,13 @@ function selectServiceObjs() {
     var curpage = $('#graphs').data('curpage');
     if (!curpage) {
         curpage = 0;
-        $('#graphs').data('curpage', 0);
+        $('#graphs').data('curpage', curpage);
+    }
+    if (curpage > meta.length) {
+        curpage = meta.length;
+        $('#graphs').data('curpage', curpage);
     }
 
-    var meta = $('#graphs').data('meta');
     var start = curpage * perpage;
     var end = Math.min(start+perpage, meta.length);
 
@@ -446,7 +451,7 @@ function drawGraph (elemGraph, data) {
                 break;
             }
         }
-        if (metaIndex == -1) {
+        if (!meta[metaIndex]) {
             // The graph must have been removed. Fugettaboutit
             return
         }
@@ -492,7 +497,7 @@ function redrawGraph(element, data) {
             break;
         }
     }
-    if (metaIndex == -1) {
+    if (!meta[metaIndex]) {
         // The graph must have been removed. Fugettaboutit
         return
     }
