@@ -260,26 +260,30 @@ $(document).ready(function() {
     /********** Page manipulations **********/
     // Note that page numbers are 0 based.
     $('#nextpage').bind('click', function() {
-        var page = $('#graphs').data('curpage');
-        var totalpages;
-        if ($('#graphs').data('totalpages')) {
-            totalpages = $('#graphs').data('totalpages');
+        var start = $('#graphs').data('start');
+        var totalgraphs;
+        if ( $('#graphs').data('meta') ) {
+            totalgraphs = $('#graphs').data('meta').length;
         } else {
-            totalpages = 1;
+            console.log ('There was an error determining how many' +
+                ' total graphs there are');
+            return;
         }
+        var perpage = getPerPage();
         var enabled = !!$(this).data('enabled');
-        if (enabled && page < totalpages) {
-            page += 1;
-            $('#graphs').data('curpage', page);
+        if (enabled && start < totalgraphs) {
+            start += perpage;
+            $('#graphs').data('start', start);
             selectServiceObjs();
         }
     });
     $('#prevpage').bind('click', function() {
-        var page = $('#graphs').data('curpage');
+        var start = $('#graphs').data('start');
         var enabled = !!$(this).data('enabled');
-        if (enabled && page > 0) {
-            page -= 1;
-            $('#graphs').data('curpage', page);
+        var perpage = getPerPage();
+        if (enabled && start > 0) {
+            start -= perpage;
+            $('#graphs').data('start', start);
             selectServiceObjs();
         }
     });

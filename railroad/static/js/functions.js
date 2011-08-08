@@ -197,10 +197,7 @@ function redrawOnClosePreference() {
     }
 }
 
-/* Data and graph manipulation and loading */
-function selectServiceObjs() {
-    var meta = $('#graphs').data('meta');
-
+function getPerPage() {
     var perpage = 25;
     if (localStorageGet('preference_panel')) {
         if (localStorageGet('preference_panel')['graphsPerPage']) {
@@ -208,17 +205,20 @@ function selectServiceObjs() {
             perpage = parseInt(perpage);
         }
     }
-    var curpage = $('#graphs').data('curpage');
-    if (!curpage) {
-        curpage = 0;
-        $('#graphs').data('curpage', curpage);
-    }
-    if (curpage > meta.length) {
-        curpage = meta.length;
-        $('#graphs').data('curpage', curpage);
+    return perpage;
+}
+
+/* Data and graph manipulation and loading */
+function selectServiceObjs() {
+    var meta = $('#graphs').data('meta');
+
+    var perpage = getPerPage();
+    var start = $('#graphs').data('start');
+    if (!start || start <= 0) {
+        start = 1;
+        $('#graphs').data('start', start);
     }
 
-    var start = curpage * perpage;
     var end = Math.min(start+perpage, meta.length);
 
     $('.service_row').each(function (index, element) {
@@ -273,8 +273,8 @@ function selectServiceObjs() {
     $('#graphs').data('totalpages', totalpages);
     var totalgraphs = meta.length
     $('#totalgraphs').text(meta.length);
-    $('#firstgraph').text(curpage * perpage + 1);
-    $('#lastgraph').text(Math.min(totalgraphs, (curpage + 1) * perpage));
+    $('#firstgraph').text(start);
+    $('#lastgraph').text(Math.min(totalgraphs, (start + perpage)));
     $('#totalgraphs').text(totalgraphs);
 
     var prevItem = null;
@@ -318,14 +318,14 @@ function selectServiceObjs() {
         drawSO();
     });
 
-    if (curpage >= totalpages) {
+    if (start >= totalgraphs-perpage) {
         $('#nextpage').data('enabled', false).css({'opacity': 0.25});
         $('#nextpage .sprite').removeClass('hover');
     } else {
         $('#nextpage').data('enabled', true).css({'opacity': 1.0});
         $('#nextpage .sprite').addClass('hover');
     }
-    if (curpage <= 0) {
+    if (start <= 1) {
         $('#prevpage').data('enabled', false).css({'opacity': 0.25});
         $('#prevpage .sprite').removeClass('hover');
     } else {
@@ -367,23 +367,13 @@ function getData(ajaxData, callBack) {
 }
 
 function drawSO() {
-    var perpage;
-    if (localStorageGet('preference_panel')) {
-        if (localStorageGet('preference_panel')['graphsPerPage']) {
-            perpage = localStorageGet('preference_panel')['graphsPerPage'];
-        } else {
-            perpage = 25;
-        }
-    } else {
-        perpage = 25;
-    }
-    var curpage = $('#graphs').data('curpage');
-    if (!curpage) {
-        curpage = 0;
-        $('#graphs').data('curpage', 0);
+    var perpage = getPerPage();
+    var begin = $('#graphs').data('start');
+    if (!begin || begin <= 0) {
+        begin = 1;
+        $('#graphs').data('starte', begin);
     }
     var meta = $('#graphs').data('meta');
-    var begin = curpage * perpage;
     var stop = Math.min(begin+perpage, meta.length);
     var servicesToGraph = [];
     for (var i=begin; i<stop; i++) {
