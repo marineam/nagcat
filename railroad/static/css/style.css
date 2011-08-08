@@ -498,6 +498,15 @@ fieldset {
     z-index: 8;
 }
 
+#closePermalinkDescription {
+    display: inline;
+    position: absolute;
+}
+#permalinkDiv p {
+    position: relative;
+    left: 20px;
+}
+
 #preference_panel {
     display: none;
     border: 1px solid black;

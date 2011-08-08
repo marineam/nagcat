@@ -346,6 +346,10 @@ $(document).ready(function() {
     setTimeout(autoFetchData, 60 * 1000);
 
     // Permalink setup
+    $('#closePermalinkDescription').click(function () {
+        $('#permalinkDiv').hide();
+    });
+
     $('#generateLink').click(function () {
         if (!$('#generateLink').data('description')) {
             $('#permalinkDiv').show();
