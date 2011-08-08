@@ -200,7 +200,7 @@ def servicelist_by_description(stat, service_description):
     """Returns a list of service objects with the specified name"""
     all_services = servicelist(stat)
     return [service for service in all_services \
-                if service['service_description'] == service_description]
+                if service['service_description'].lower() == service_description.lower()]
 
 
 def servicedetail(stat, host, service_alias):
@@ -209,7 +209,7 @@ def servicedetail(stat, host, service_alias):
     for service in all_services:
         # Do glob based matching (ie: 'ab*' will match 'abcd')
         if (fnmatch(service['host_name'], host) and
-                fnmatch(service['service_description'], service_alias)):
+                fnmatch(service['service_description'].lower(), service_alias.lower())):
             return service
 
 
@@ -231,28 +231,28 @@ def hostlist_by_service(stat, service):
     """Returns a list of hosts possessing the specified service"""
     all_services = servicelist(stat)
     return [hostdetail(stat, s['host_name']) for s in all_services
-                                if s['service_description'] == service]
+                                if s['service_description'].lower() == service.lower()]
 
 
 def hostnames_by_service(stat, service):
     """Returns a list of hosts (names) possessing the specified service"""
     all_services = servicelist(stat)
     return [s['host_name'] for s in all_services
-                                if fnmatch(s['service_description'], service)]
+                                if fnmatch(s['service_description'].lower(), service.lower())]
 
 
 def servicelist_by_host(stat, host):
     """Returns a list of services possessed by the specified host"""
     all_services = servicelist(stat)
     return [service for service in all_services
-                                if fnmatch(service['host_name'], host)]
+                                if fnmatch(service['host_name'].lower(), host.lower())]
 
 
 def servicenames_by_host(stat, host):
     """Returns a list of services (names) possessed by the specified host"""
     all_services = servicelist(stat)
     return [service['service_description'] for service in all_services  \
-                                if service['host_name'] == host]
+                                if service['host_name'].lower() == host.lower()]
 
 
 def get_graphs(stat, obj, hosts='', groups='', services='',
