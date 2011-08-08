@@ -203,7 +203,7 @@ $(document).ready(function() {
             case 'state_critical':
             case 'state_unknown':
                 var button = this;
-                $('.service_row').filter('visible').each(function(index, elem) {
+                $('.service_row').filter(':visible').each(function(index, elem) {
                     var className = $(button).attr('name');
                     if ($(elem).children('.status_text').hasClass(className)) {
                         $(elem).children('.controls').children('input')
