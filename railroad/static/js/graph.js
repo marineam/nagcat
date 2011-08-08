@@ -423,7 +423,7 @@ function getServiceObjs(ajaxData) {
 function showTooltip(x, y, label) {
     $('#tooltip').remove()
     $('<div id="tooltip">{0}</div>'.format(label)).appendTo('body')
-        .css({'left': x, 'top': y});
+        .css({'left': x+5, 'top': y+5});
 }
 
 function updateZoom(graph, from, to) {
