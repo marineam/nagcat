@@ -172,7 +172,6 @@ function saveFormPersistence(elemPersist) {
     });
     var dictName = $(elemPersist).attr('id')
     localStorageSet(dictName, store)
-    updateDebug();
 }
 
 /* Restore the state of the given form from localstorage. */
@@ -818,7 +817,6 @@ function localStorageSet(key, value) {
     if (localStorageSupport()) {
         var json = JSON.stringify(value)
         localStorage[key] = json;
-        updateDebug();
         return true;
     }
     // Should we try other methods of storing data?
@@ -842,7 +840,6 @@ function localStorageGet(key) {
 function localStorageClear() {
     if (localStorageSupport()) {
         localStorage.clear();
-        updateDebug();
         return true;
     }
     return false;
