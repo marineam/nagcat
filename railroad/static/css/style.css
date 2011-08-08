@@ -488,6 +488,18 @@ fieldset {
     padding: 5px;
 }
 
+#permalinkDiv {
+    display: none;
+    border: 1px solid black;
+    position: absolute;
+    right: 130px;
+    top: 0px;
+    background-color: #DDD;
+    z-index: 8;
+    width: 500px;
+    height: 500px;
+}
+
 #preference_panel {
     display: none;
     border: 1px solid black;

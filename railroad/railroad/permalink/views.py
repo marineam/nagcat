@@ -39,13 +39,15 @@ def generate_link(request):
     source = request.POST if request.POST else request.GET
 
     services = source.get('services', '')
+    description = source.get('description', '')
     user = get_user(request)
 
     link = ''
     while not link or is_duplicate_page(link):
         link = random_b64_string(LINK_LENGTH)
 
-    page = ConfiguratorPage(link=link, creation=datetime.datetime.now(), user=user)
+    page = ConfiguratorPage(link=link, creation=datetime.datetime.now(), user=user,
+        description=description)
     page.save() # Gives it a primary key, id
     page.save_services(json.loads(services))
     page.save()

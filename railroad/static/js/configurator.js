@@ -347,33 +347,40 @@ $(document).ready(function() {
 
     // Permalink setup
     $('#generateLink').click(function () {
-        $('#generateLink').before(
-            '<img src="/railroad-static/images/loading.gif" ' +
-            'id="permalinkLoading" />');
-        servicesList = generateState();
-        $.ajax({
-            data: {"services" :servicesList },
-            url: '/railroad/permalink/generate/',
-            type: 'POST',
-            success: function (link, textStatus, XMLHttpRequest) {
-                    var text = window.location.protocol + "//" +
-                        window.location.host + "/railroad/permalink/" + link;
-                    $('#generateLink').before('<label>Permalink:</label>' +
-                        '<input id="permalink" type="text"/>');
-                    $('#permalink').val(text).select();
-                    $('#generateLink').remove();
-                    $('#permalinkLoading').remove();
-                },
-            error: function (error, textStatus, XMLHttpRequest) {
-                    console.log("there was an error");
-                    $('#permalinkLoading').remove();
-                    $('#generateLink')
-                        .before('<span class="error">Error</span>');
-                    setTimeout(function() {
-                        $('#generateLink').siblings('.error').fadeOut(1000,
-                            function() { $(this).remove(); });
-                    }, 3000);
-                },
-        });
+        if (!$('#generateLink').data('description')) {
+            $('#permalinkDiv').show();
+            $('#generateLink').data('description', true);
+        } else {
+            $('#permalinkDiv').hide();
+            $('#generateLink').before(
+                '<img src="/railroad-static/images/loading.gif" ' +
+                'id="permalinkLoading" />');
+            servicesList = generateState();
+            $.ajax({
+                data: {"services" :servicesList,
+                    description: $('#permalinkDescription').val()},
+                url: '/railroad/permalink/generate/',
+                type: 'POST',
+                success: function (link, textStatus, XMLHttpRequest) {
+                        var text = window.location.protocol + "//" +
+                            window.location.host + "/railroad/permalink/" + link;
+                        $('#generateLink').before('<label>Permalink:</label>' +
+                            '<input id="permalink" type="text"/>');
+                        $('#permalink').val(text).select();
+                        $('#generateLink').remove();
+                        $('#permalinkLoading').remove();
+                    },
+                error: function (error, textStatus, XMLHttpRequest) {
+                        console.log("there was an error");
+                        $('#permalinkLoading').remove();
+                        $('#generateLink')
+                            .before('<span class="error">Error</span>');
+                        setTimeout(function() {
+                            $('#generateLink').siblings('.error').fadeOut(1000,
+                                function() { $(this).remove(); });
+                        }, 3000);
+                    },
+            });
+        }
     });
 });
