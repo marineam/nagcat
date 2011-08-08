@@ -246,23 +246,32 @@ function selectServiceObjs() {
         var elemGraph = $('.{0}'.format(meta[i].slug));
         var elemGraphDates = $(elemGraph).siblings('.daterange')
             .children('input');
+
+        var startDate = new Date(meta[i].start * 1000);
+        var endDate = new Date(meta[i].end * 1000);
+        var tz;
+        if ($('#localtime').prop('checked')) {
+            tz = getTimezoneString(new Date());
+        } else  {
+            tz = '+0000';
+            var offset = new Date().getTimezoneOffset();
+            startDate.add({minutes: offset});
+            endDate.add({minutes: offset});
+        }
         var datePickers = $(elemGraphDates).datetimepicker({
+            timeFormat: 'hh:mm z',
+            timezoneList: [tz],
             onClose: function(selectedDate) {
-               updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
+                updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
                            $(datePickers[0]).datetimepicker('getDate'),
                            $(datePickers[1]).datetimepicker('getDate'));
-        var from = $(elemGraphDates)[0];
-        var to = $(elemGraphDates)[1];
-        var start = $(from).datetimepicker('getDate').getTime();
-        var end = $(to).datetimepicker('getDate').getTime();
             },
             changeMonth: true,
             changeYear: true,
         });
-        $(datePickers[0]).datetimepicker('setDate',
-                new Date(meta[i].start * 1000));
-        $(datePickers[1]).datetimepicker('setDate',
-                new Date(meta[i].end * 1000));
+
+        $(datePickers[0]).datetimepicker('setDate', startDate);
+        $(datePickers[1]).datetimepicker('setDate', endDate);
 
         $(elemGraph).siblings('.graphloading').remove();
     }
@@ -457,25 +466,6 @@ function drawGraph (elemGraph, data) {
             redrawGraph(elemGraph, data);
         }
     });
-    // elemGraphDates keeps the line below it < 80 chars
-    var elemGraphDates = $(elemGraph).siblings('.daterange').children('input');
-    var datePickers = $(elemGraphDates).datetimepicker({
-        onClose: function(selectedDate) {
-            updateZoom($(datePickers[0]).parent().siblings('.graph').first(),
-                       $(datePickers[0]).datetimepicker('getDate'),
-                       $(datePickers[1]).datetimepicker('getDate'));
-    var from = $(elemGraphDates)[0];
-    var to = $(elemGraphDates)[1];
-    var start = $(from).datetimepicker('getDate').getTime();
-    var end = $(to).datetimepicker('getDate').getTime();
-        },
-        changeMonth: true,
-        changeYear: true,
-    });
-    $(datePickers[0]).datetimepicker('setDate',
-            new Date(elemGraph.data('start') * 1000));
-    $(datePickers[1]).datetimepicker('setDate',
-            new Date(elemGraph.data('end') * 1000));
 
     $(elemGraph).siblings('.graphloading').remove();
 }
@@ -504,4 +494,20 @@ function redrawGraph(element, data) {
     $(element).data('host', data.host);
     $(element).data('service', data.service);
     //meta[metaIndex].jQueryElement = $(element).closest('.service_row');
+}
+
+function getTimezoneString(date) {
+    var timezoneString = (date.getTimezoneOffset() / -60);
+    var sign = '';
+    if (timezoneString > 0) {
+        sign = '+';
+    } else if (timezoneString < 0) {
+        sign = '-';
+    }
+    if (Math.abs(timezoneString) < 10) {
+        timezoneString = '{0}0{1}00'.format(sign, Math.abs(timezoneString));
+    } else {
+        timezoneString = '{0}{1}00'.format(sign, Math.abs(timezoneString));
+    }
+    return timezoneString;
 }

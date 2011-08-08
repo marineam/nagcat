@@ -44,9 +44,10 @@ $(document).ready(function() {
             fromDate.setFullYear(fromDate.getFullYear()-1);
         }
 
-        var dateFormat = 'MM/dd/yyyy HH:mm';
-        from.val(fromDate.toString(dateFormat))
-        to.val(toDate.toString(dateFormat))
+        var dateFormat = 'MM/dd/yyyy HH:mm ';
+        var timezoneString = getTimezoneString(fromDate);
+        from.val(fromDate.toString(dateFormat) + timezoneString)
+        to.val(toDate.toString(dateFormat) + timezoneString)
 
         updateZoom(from.first().parent().siblings('.graph'), fromDate, toDate);
     });
