@@ -496,8 +496,6 @@ fieldset {
     top: 0px;
     background-color: #DDD;
     z-index: 8;
-    width: 500px;
-    height: 500px;
 }
 
 #preference_panel {
