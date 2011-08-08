@@ -316,7 +316,7 @@ $(document).ready(function() {
         }
         var perpage = getPerPage();
         var enabled = !!$(this).data('enabled');
-        if (enabled && start < totalgraphs) {
+        if (enabled && start <= totalgraphs - perpage) {
             start += perpage;
             $('#graphs').data('start', start);
             selectServiceObjs();
