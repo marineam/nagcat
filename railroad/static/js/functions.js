@@ -452,7 +452,7 @@ function selectServiceObjs() {
         drawSO();
     });
 
-    if (start >= totalgraphs-perpage) {
+    if (start >= totalgraphs) {
         $('#nextpage').data('enabled', false).css({'opacity': 0.25});
         $('#nextpage .sprite').removeClass('hover');
     } else {
