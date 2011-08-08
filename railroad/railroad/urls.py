@@ -18,10 +18,6 @@ urlpatterns = patterns('',
     # Index page
     (r'^$', 'railroad.viewhosts.views.index'),
 
-    # parserrd backend
-    (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/'
-        '(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/?$',
-        'railroad.parserrd.views.index'),
 
     # Permalinks
     (r'^permalink/generate/', 'railroad.permalink.views.generate_link'),
@@ -46,13 +42,13 @@ urlpatterns = patterns('',
     (r'^configurator/service/(?P<service>(\w+\s*)+)$',
         'railroad.viewhosts.views.serviceconfigurator'),
 
+    # Downtime page
     (r'^downtime', 'railroad.viewhosts.views.downtime'),
 
-    # New, more flexible, awesomeness
-    (r'^configurator/meta$', 'railroad.viewhosts.views.meta'),
-    (r'^configurator/service_meta$', 'railroad.viewhosts.views.service_page_meta'),
-
     # Stuff for AJAX
+    (r'^configurator/meta$', 'railroad.viewhosts.views.meta'),
+    (r'^configurator/service_meta$',
+        'railroad.viewhosts.views.service_page_meta'),
     (r'^ajax/autocomplete/(?P<context>\w+)$',
         'railroad.ajax.autocomplete.autocomplete'),
     (r'^ajax/xmlrpc$', 'railroad.ajax.xmlrpc.xmlrpc'),
