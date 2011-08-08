@@ -403,7 +403,7 @@ function selectServiceObjs() {
     var totalgraphs = meta.length
     $('#totalgraphs').text(meta.length);
     $('#firstgraph').text(start);
-    $('#lastgraph').text(Math.min(totalgraphs, (start + perpage)));
+    $('#lastgraph').text(Math.min(totalgraphs, (end)));
     $('#totalgraphs').text(totalgraphs);
 
     var prevItem = null;
