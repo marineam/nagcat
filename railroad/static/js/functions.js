@@ -339,7 +339,7 @@ function selectServiceObjs() {
         $('#graphs').data('start', start);
     }
 
-    var end = Math.min(start+perpage, meta.length);
+    var end = Math.min(start+perpage-1, meta.length);
 
     $('.service_row').each(function (index, element) {
         for (var i=0; i< meta.length; i++) {
@@ -505,7 +505,7 @@ function drawSO() {
         $('#graphs').data('starte', begin);
     }
     var meta = $('#graphs').data('meta');
-    var stop = Math.min(begin+perpage, meta.length);
+    var stop = Math.min(begin+perpage-1, meta.length);
     var servicesToGraph = [];
     for (var i=begin-1; i<stop; i++) {
         if (meta[i].isGraphable) {
