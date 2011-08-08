@@ -236,7 +236,7 @@ function selectServiceObjs() {
         }
     }
 
-    for (var i=start; i<end; i++) {
+    for (var i=start; i<=end; i++) {
         if (!!meta[i].onPage) {
             $(meta[i].jQueryElement).show();
         } else {
@@ -385,7 +385,7 @@ function drawSO() {
     var meta = $('#graphs').data('meta');
     var stop = Math.min(begin+perpage, meta.length);
     var servicesToGraph = [];
-    for (var i=begin; i<stop; i++) {
+    for (var i=begin; i<=stop; i++) {
         if (meta[i].isGraphable) {
             if (!meta[i].data || ! meta[i].isGraphed) {
                 var host = meta[i].host;
