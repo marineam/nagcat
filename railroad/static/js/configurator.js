@@ -1,6 +1,51 @@
 $(document).ready(function() {
     update_number_graphs();
 
+    // Bind the graph time range selection buttons
+    $('.options input[type=button]').live('click', function() {
+        var dateRangeButton = this;
+
+        if ($('#sync').prop('checked')) {
+            var from = $('input[name=from]');
+            var to = $('input[name=to]');
+        } else {
+            var dates = $(dateRangeButton).parent().siblings('.daterange');
+            var from = $(dates).children('[name=from]');
+            var to = $(dates).children('[name=to]');
+        }
+
+        var toDate = new Date();
+        var fromDate = new Date();
+
+        if ($(dateRangeButton).attr('name') == 'day') {
+            fromDate.setDate(fromDate.getDate()-1);
+        } else if ($(dateRangeButton).attr('name') == 'week') {
+            fromDate.setDate(fromDate.getDate()-7);
+        } else if ($(dateRangeButton).attr('name') == 'month') {
+            fromDate.setMonth(fromDate.getMonth()-1);
+        } else if ($(dateRangeButton).attr('name') == 'year') {
+            fromDate.setFullYear(fromDate.getFullYear()-1);
+        }
+
+        var dateFormat = 'MM/dd/yyyy HH:mm ';
+        var timezoneString = getTimezoneString(fromDate);
+        from.val(fromDate.toString(dateFormat) + timezoneString)
+        to.val(toDate.toString(dateFormat) + timezoneString)
+
+        updateZoom(from.first().parent().siblings('.graph'), fromDate, toDate);
+    });
+
+    $('#localtime, #utc').bind('change', function() {
+        // Guarantee that localstorage gets the change before redrawing graphs
+        $('#configurator').trigger('change');
+        graphs = $('.graph');
+        graphs.each(function(index, element) {
+            if ($(element).data('data')) {
+                redrawGraph(element, $(element).data('data'));
+            }
+        });
+    });
+
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
@@ -296,4 +341,39 @@ $(document).ready(function() {
         $('#graphs').data('meta', meta);
         selectServiceObjs();
     }
+
+    // Start the AJAX graph refreshes
+    setTimeout(autoFetchData, 60 * 1000);
+
+    // Permalink setup
+    $('#generateLink').click(function () {
+        $('#generateLink').before(
+            '<img src="/railroad-static/images/loading.gif" ' +
+            'id="permalinkLoading" />');
+        servicesList = generateState();
+        $.ajax({
+            data: {"services" :servicesList },
+            url: '/railroad/permalink/generate/',
+            type: 'POST',
+            success: function (link, textStatus, XMLHttpRequest) {
+                    var text = window.location.protocol + "//" +
+                        window.location.host + "/railroad/permalink/" + link;
+                    $('#generateLink').before('<label>Permalink:</label>' +
+                        '<input id="permalink" type="text"/>');
+                    $('#permalink').val(text).select();
+                    $('#generateLink').remove();
+                    $('#permalinkLoading').remove();
+                },
+            error: function (error, textStatus, XMLHttpRequest) {
+                    console.log("there was an error");
+                    $('#permalinkLoading').remove();
+                    $('#generateLink')
+                        .before('<span class="error">Error</span>');
+                    setTimeout(function() {
+                        $('#generateLink').siblings('.error').fadeOut(1000,
+                            function() { $(this).remove(); });
+                    }, 3000);
+                },
+        });
+    });
 });
