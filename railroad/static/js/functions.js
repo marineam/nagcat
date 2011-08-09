@@ -462,7 +462,6 @@ function selectServiceObjs() {
             if (graphs_to_update[i]['isGraphable']) {
                 graphs_to_update[i]['start'] = parseInt(ranges.xaxis.from / 1000);
                 graphs_to_update[i]['end'] = parseInt(ranges.xaxis.to / 1000);
-                graphs_to_update[i]['data'] = null;
                 graphs_to_update[i]['isGraphed'] = false;
             }
         }
@@ -506,6 +505,9 @@ function getData(ajaxData, callBack) {
             for (var i=0; i < data.length; i++) {
                 for (var j=0; j < meta.length; j++) {
                     if (data[i].slug === meta[j].slug) {
+                        if (meta[j].data) {
+                            data[i] = compareData(meta[j].data, data[i]);
+                        }
                         meta[j].data = data[i];
                     }
                 }
@@ -895,6 +897,26 @@ function getGraphDataByData(element) {
         }
     }
     return data
+}
+
+function compareData(oldData, newData) {
+    /* This function, given a set of old data, and new data,
+     * will make sure that all of the data lines in the old and new
+     * have matching  show attributes
+     */
+    if (oldData.host === newData.host) {
+        if (oldData.service === newData.service) {
+            for (var i=0; i < oldData.data.length; i++) {
+                for (var j=0; j < newData.data.length; j++) {
+                    if (oldData.data[i].label === newData.data[j].label) {
+                        newData.data[j].lines = oldData.data[i].lines
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return newData;
 }
 
 // Automatically fetch new data for graphs.
