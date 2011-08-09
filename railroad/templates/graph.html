@@ -42,10 +42,12 @@
         {% if is_graphable %}
             <div class="options">
                 Current
-                <input type="button" name="day" value="Day"/>
-                <input type="button" name="week" value="Week"/>
-                <input type="button" name="month" value="Month"/>
-                <input type="button" name="year" value="Year"/>
+                <ul class="liButtons">
+                    <li name="day" class="currentTime">Day</li>
+                    <li name="week"class="currentTime">Week</li>
+                    <li name="month"class="currentTime">Month</li>
+                    <li name="year"class="currentTime">Year</li>
+                </ul>
             </div>
             <div class="daterange">
                 From <input type="text" name="from"/>

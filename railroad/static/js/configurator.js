@@ -2,14 +2,14 @@ $(document).ready(function() {
     update_number_graphs();
 
     // Bind the graph time range selection buttons
-    $('.options input[type=button]').live('click', function() {
+    $('.options .currentTime').live('click', function() {
         var dateRangeButton = this;
 
         if ($('#sync').prop('checked')) {
             var from = $('input[name=from]');
             var to = $('input[name=to]');
         } else {
-            var dates = $(dateRangeButton).parent().siblings('.daterange');
+            var dates = $(dateRangeButton).parent().parent().siblings('.daterange');
             var from = $(dates).children('[name=from]');
             var to = $(dates).children('[name=to]');
         }
@@ -41,7 +41,7 @@ $(document).ready(function() {
         from.val(fromDate.toString(dateFormat) + timezoneString)
         to.val(toDate.toString(dateFormat) + timezoneString)
 
-        updateZoom(from.first().parent().siblings('.graph'), fromDate, toDate);
+        updateZoom(from.first().parent().siblings('.graph').parent(), fromDate, toDate);
     });
 
     $('#localtime, #utc').bind('change', function() {
