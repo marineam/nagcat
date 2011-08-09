@@ -419,6 +419,7 @@ function selectServiceObjs() {
     }
     update_number_graphs();
     drawSO();
+    auto_expansion();
 
     var totalpages = Math.floor(meta.length / perpage);
     $('#graphs').data('totalpages', totalpages);
@@ -805,7 +806,9 @@ function collapse_row(row) {
     var container = $(row).children('.graph_container').first();
     container.children().not('p').hide();
     if ($(container).children('.nograph').length < 1) {
-        container.append('<p class="graphcollapsed">Graph Collapsed</p>');
+        if ($(container).children('p').length < 1) {
+            container.append('<p class="graphcollapsed">Graph Collapsed</p>');
+        }
     }
     $(row).find('.status_text dt').hide();
     $(row).find('.status_text dd').css({'width':'auto', 'margin-right':'10px'})
