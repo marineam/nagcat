@@ -120,6 +120,10 @@ $(document).ready(function() {
     makeDatetimePicker($('#downtime-from').first());
     makeDatetimePicker($('#downtime-to').last());
     $('#configurator #downtime-submit').bind('click', function() {
+        $('#downtime-submit').parent().after(
+            '<img src="/railroad-static/images/loading.gif" ' +
+            'id="downtimeLoading" />');
+
         // gather data
         var expr = '';
         if ($('#downtime-host').prop('checked')) {
@@ -154,16 +158,26 @@ $(document).ready(function() {
         var from = $('#downtime-from').datepicker('getDate');
         var to = $('#downtime-to').datepicker('getDate');
 
+        var now = new Date();
+        if (!(from && to) || from < now || to < now) {
+            $('#downtimeLoading').after('<span id="downtimeError" class="error">' +
+                'You must enter a future date.</span>');
+            $('#downtimeLoading').remove();
+
+            setTimeout(function() {
+                $('#downtimeError').fadeOut(function() {
+                    $('#downtimeError').remove();
+                });
+            }, 5000);
+            console.log('invalid dates');
+            return;
+        }
+
         // Correct for time zones, since the datetimepicker doesn't store the
         // time zone. *glare*
         if ($('#utc').prop('checked')) {
             from.setTimezoneOffset(0);
             to.setTimezoneOffset(0);
-        }
-
-        if (!(from && to)) {
-            console.log('invalid dates');
-            return;
         }
         from = Math.round(from.getTime() / 1000.0);
         to = Math.round(to.getTime() / 1000.0);
@@ -181,10 +195,6 @@ $(document).ready(function() {
             'command': 'scheduleDowntime',
             'args': JSON.stringify(args),
         }
-
-        $('#downtime-submit').parent().after(
-            '<img src="/railroad-static/images/loading.gif" ' +
-            'id="downtimeLoading" />');
 
         $.ajax({
             url: '/railroad/ajax/xmlrpc',
