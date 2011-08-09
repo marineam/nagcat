@@ -355,6 +355,7 @@ function makeDatetimePicker(elem, date, onClose) {
 function setupGraph(metadata) {
     if (!!metadata.onPage) {
         $(metadata.jQueryElement).show();
+        $(metadata.jQueryElement).appendTo('#graphs');
     } else {
         $(metadata.jQueryElement).appendTo('#graphs');
         metadata.onPage = true;
