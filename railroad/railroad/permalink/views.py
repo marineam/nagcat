@@ -73,6 +73,7 @@ def retrieve_link(request, link):
         servicedetail['is_graphable'] = views.is_graphable(service['host'],
             service['service'])
         servicedetail['slug'] = service['slug']
+        service['duration'] = servicedetail['state_duration']
         html = render_to_response("graph.html",servicedetail).content
         service['html'] = html
         graphs.append(service)
