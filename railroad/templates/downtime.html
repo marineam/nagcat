@@ -17,7 +17,7 @@
         </div>
         {% for dt in downtime %}
             {% cycle '<div class="downtimerow">' '</div>' as even %}
-            <div class="downtime" id="{{dt.expr}}">
+            <div class="downtime" id="{{dt.key}}">
                 <h3>{{ dt.expr }}</h3>
                 <ul>
                     <li>{{ dt.start_time|pretty_daterange:dt.end_time }}</li>

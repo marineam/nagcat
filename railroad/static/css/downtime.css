@@ -1,16 +1,21 @@
 #downtimegraph {
     width: 850px;
     height: 250px;;
-    border: 1px solid black;
     margin: 10px 50px;
 }
 .downtimerow {
     overflow: hidden;
 }
 .downtime {
-    margin: 15px;
+    margin: 10px;
+    padding: 5px;
     float: left;
     width: 440px;
+}
+.downtime.hover {
+    background-color: #FFA;
+    border: 1px solid #BA6;
+    margin: 9px;
 }
 
 li {

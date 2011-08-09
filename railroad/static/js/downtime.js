@@ -47,7 +47,7 @@ $(document).ready(function() {
 
         flot_data.push({
             'label': expr,
-            'data': [[ startDate, y, endDate, expr, ]],
+            'data': [[ startDate, y, endDate, dt.key, ]],
         });
         yaxis_bits.push([y, expr]);
     }
@@ -80,6 +80,15 @@ $(document).ready(function() {
     }
 
     var plot = $.plot($('#downtimegraph'), flot_data, flot_options);
+
+    $('#downtimegraph').bind('plothover', function(event, pos, item) {
+        if(item) {
+            var key = item.datapoint[3];
+            $('#' + key).addClass('hover');
+        } else {
+            $('.downtime').removeClass('hover');
+        }
+    });
 
     /***** Downtime cancellation *****/
     $('.canceldowntime').bind('click', function() {
