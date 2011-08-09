@@ -465,7 +465,7 @@ function selectServiceObjs() {
         drawSO();
     });
 
-    if (start >= totalgraphs) {
+    if (end >= totalgraphs) {
         $('#nextpage').data('enabled', false).css({'opacity': 0.25});
         $('#nextpage .sprite').removeClass('hover');
     } else {
@@ -480,7 +480,7 @@ function selectServiceObjs() {
         $('#prevpage .sprite').addClass('hover');
     }
 
-    if (!$('#prevpage').data('enabled') && !$('#nextpage').data('enabled')) {
+    if (meta.length === 0 ) {
         $('#pages').hide();
     } else {
         $('#pages').show();
