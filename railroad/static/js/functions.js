@@ -266,7 +266,9 @@ function makeComparer(val) {
 /* The different ways to sort the graphs. */
 var sorts = {
     'service': makeComparer(function(so) {
-        return so['service'].toLowerCase().trim();
+        var s = so['service'].toLowerCase().trim();
+        console.log(s);
+        return s;
     }),
     'host': makeComparer(function(so) {
         return so['host'].toLowerCase().trim();
@@ -355,6 +357,8 @@ function makeDatetimePicker(elem, date, onClose) {
 function setupGraph(metadata) {
     if (!!metadata.onPage) {
         $(metadata.jQueryElement).show();
+        // JQuery is smart. If we add an element already on the page it moves
+        // it to where we put.
         $(metadata.jQueryElement).appendTo('#graphs');
     } else {
         $(metadata.jQueryElement).appendTo('#graphs');

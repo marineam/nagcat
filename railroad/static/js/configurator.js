@@ -17,6 +17,16 @@ $(document).ready(function() {
         var toDate = new Date();
         var fromDate = new Date();
 
+        var timezoneString;
+        if ($('#utc').prop('checked')) {
+            var offset = new Date().getTimezoneOffset();
+            toDate = toDate.setTimezoneOffset(0);
+            fromDate = fromDate.setTimezoneOffset(0);
+            timezoneString = "+0000";
+        } else {
+            timezoneString = getTimezoneString(fromDate);
+        }
+
         if ($(dateRangeButton).attr('name') == 'day') {
             fromDate.setDate(fromDate.getDate()-1);
         } else if ($(dateRangeButton).attr('name') == 'week') {
@@ -28,7 +38,6 @@ $(document).ready(function() {
         }
 
         var dateFormat = 'MM/dd/yyyy HH:mm ';
-        var timezoneString = getTimezoneString(fromDate);
         from.val(fromDate.toString(dateFormat) + timezoneString)
         to.val(toDate.toString(dateFormat) + timezoneString)
 
