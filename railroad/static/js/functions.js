@@ -328,6 +328,30 @@ function getPerPage() {
     return perpage;
 }
 
+function makeDatetimePicker(elem, date, onClose) {
+    var tz;
+    if ($('#localtime').prop('checked')) {
+        tz = getTimezoneString(new Date());
+    } else  {
+        tz = '+0000';
+        var offset = new Date().getTimezoneOffset();
+        if (date) {
+            date.add({minutes: offset});
+        }
+    }
+    var datePicker = $(elem).datetimepicker({
+        timeFormat: 'hh:mm z',
+        timezoneList: [tz],
+        onClose: onClose,
+        changeMonth: true,
+        changeYear: true,
+    });
+    if (date) {
+        $(datePicker).datetimepicker('setDate', date)
+    }
+    return datePicker;
+}
+
 function setupGraph(metadata) {
     if (!!metadata.onPage) {
         $(metadata.jQueryElement).show();
@@ -341,30 +365,18 @@ function setupGraph(metadata) {
 
     var startDate = new Date(metadata.start * 1000);
     var endDate = new Date(metadata.end * 1000);
-    var tz;
-    if ($('#localtime').prop('checked')) {
-        tz = getTimezoneString(new Date());
-    } else  {
-        tz = '+0000';
-        var offset = new Date().getTimezoneOffset();
-        startDate.add({minutes: offset});
-        endDate.add({minutes: offset});
-    }
-    var datePickers = $(elemGraphDates).datetimepicker({
-        timeFormat: 'hh:mm z',
-        timezoneList: [tz],
-        onClose: function(selectedDate) {
-            var graph = $(datePickers[0]).parent().siblings('.graph').first();
-            var fromDate = $(datePickers[0]).datetimepicker('getDate');
-            var toDate = $(datePickers[1]).datetimepicker('getDate');
-            updateZoom(graph, fromDate, toDate);
-        },
-        changeMonth: true,
-        changeYear: true,
-    });
 
-    $(datePickers[0]).datetimepicker('setDate', startDate);
-    $(datePickers[1]).datetimepicker('setDate', endDate);
+    var datePickers = [];
+    var callBack = function() {
+        var graph = $(datePickers[0]).parent().siblings('.graph').first();
+        var fromDate = $(datePickers[0]).datetimepicker('getDate');
+        var toDate = $(datePickers[1]).datetimepicker('getDate');
+        updateZoom(graph, fromDate, toDate);
+    };
+    datePickers[0] = makeDatetimePicker($(elemGraphDates).first(),
+        startDate, callBack);
+    datePickers[1] = makeDatetimePicker($(elemGraphDates).last(),
+        endDate, callBack);
 
     $(elemGraph).siblings('.graphloading').remove();
 }

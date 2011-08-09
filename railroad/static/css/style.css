@@ -355,10 +355,6 @@ fieldset {
     float: left;
     width: 315px;
 }
-#configurator .datetimerow input[type=text] {
-    width: 135px;
-    float: left;
-}
 #configurator .datetimerow .to {
     width: 18px;
     margin: 0 10px;

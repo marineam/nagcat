@@ -105,7 +105,9 @@ $(document).ready(function() {
     });
 
     // Downtime requests
-    $('#configurator .datetimerow input').datetimepicker();
+    $('#downtime-from, #downtime-to').val('');
+    makeDatetimePicker($('#downtime-from').first());
+    makeDatetimePicker($('#downtime-to').last());
     $('#configurator #downtime-submit').bind('click', function() {
         // gather data
         var expr = '';
@@ -140,6 +142,14 @@ $(document).ready(function() {
 
         var from = $('#downtime-from').datepicker('getDate');
         var to = $('#downtime-to').datepicker('getDate');
+
+        // Correct for time zones, since the datetimepicker doesn't store the
+        // time zone. *glare*
+        if ($('#utc').prop('checked')) {
+            from.setTimezoneOffset(0);
+            to.setTimezoneOffset(0);
+        }
+
         if (!(from && to)) {
             console.log('invalid dates');
             return;
