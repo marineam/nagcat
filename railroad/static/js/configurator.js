@@ -106,6 +106,8 @@ $(document).ready(function() {
 
     // Downtime requests
     $('#downtime-from, #downtime-to').val('');
+    $('#downtime-comment').val('');
+
     makeDatetimePicker($('#downtime-from').first());
     makeDatetimePicker($('#downtime-to').last());
     $('#configurator #downtime-submit').bind('click', function() {
@@ -167,7 +169,6 @@ $(document).ready(function() {
 
         var args = [expr, from, to, user, comment]
         var data = {
-            'url': 'http://localhost:8080',
             'command': 'scheduleDowntime',
             'args': JSON.stringify(args),
         }

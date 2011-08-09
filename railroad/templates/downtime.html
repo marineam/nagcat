@@ -16,13 +16,14 @@
             {{ json_downtime }}
         </div>
         {% for dt in downtime %}
-            {% cycle '<div class="downtime">' '</div>' as even %}
+            {% cycle '<div class="downtimerow">' '</div>' as even %}
             <div class="downtime" id="{{dt.expr}}">
                 <h3>{{ dt.expr }}</h3>
                 <ul>
                     <li>{{ dt.start_time|pretty_daterange:dt.end_time }}</li>
                     <li>Comment: "{{dt.comment}}"</li>
                     <li>Scheduled by: {{dt.author}}</li>
+                    <li>Cancellation key: <a href="#" class="canceldowntime">{{ dt.key }}</a></li>
                     <li class="twirler">
                         <span class="target">Affected Services:</span>
                         <ul>
@@ -57,7 +58,7 @@
                     </li>
                 </ul>
             </div>
-            {% cycle '<div class="downtime">' '</div>' as even %}
+            {% cycle '<div class="downtimerow">' '</div>' as even %}
         {% endfor %}
     {% else %}
         <p>There are no scheduled downtimes.</p>

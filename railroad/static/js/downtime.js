@@ -1,4 +1,5 @@
 $(document).ready(function() {
+    /***** Make the downtime graph *****/
     if ($('#downtimegraph').length == 0) {
         // There is no downtime to schedule
         return;
@@ -70,4 +71,47 @@ $(document).ready(function() {
     }
 
     var plot = $.plot($('#downtimegraph'), flot_data, flot_options);
+
+    /***** Downtime cancellation *****/
+    $('.canceldowntime').bind('click', function() {
+        var button = this;
+        var code = $(button).text();
+        var expr;
+        for (var i=0; i<downtime.length; i++) {
+            if (downtime[i].key == code) {
+                expr = downtime[i].expr;
+                break;
+            }
+        }
+        var conf = confirm('Cancel downtime "{0}" with code "{1}"?'.format(expr, code));
+        if (conf) {
+            $(this).after('<img src="/railroad-static/images/loading.gif" ' +
+                'id="downtimeLoading" />');
+            var data = {
+                'command': 'cancelDowntime',
+                'args': JSON.stringify([code]),
+            }
+            $.ajax({
+                url: '/railroad/ajax/xmlrpc',
+                data: data,
+                dataType: 'text',
+                success: function(count) {
+                    if (count > 0) {
+                        $(button).parents('.downtime').remove();
+                    }
+                    $('#downtimeLoading').remove();
+                },
+                error: function () {
+                    $('#downtimeLoading').after(
+                        '<span id="downtimeError" class="error">There was an error.</span>');
+                    $('#downtimeLoading').remove();
+                    setTimeout(function() {
+                        $('#downtimeError').fadeOut(function() {
+                            $('#downtimeError').remove()
+                        });
+                    }, 5000);
+                }
+            });
+        }
+    });
 });
