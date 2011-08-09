@@ -11,24 +11,10 @@ $(document).ready(function() {
     var yaxis_bits = [];
     var min_date = downtime[0].start_time;
     var max_date = downtime[0].end_time;
+    var now = new Date();
 
-    for (var i=0; i<downtime.length; i++) {
-        var dt = downtime[i]
-        var y = downtime.length - i;
-        var expr = dt.expr;
-        if (expr.length > 30) {
-            expr = expr.substring(0,30) + '...';
-        }
-        flot_data.push({
-            'label': expr,
-            'data': [[
-                new Date(dt.start_time * 1000),
-                y,
-                new Date(dt.end_time * 1000),
-                expr,
-            ]],
-        });
-        yaxis_bits.push([y, expr]);
+    for (var i=1; i<downtime.length; i++) {
+        var dt = downtime[i];
         if (dt.start_time < min_date) {
             min_date = dt.start_time;
         }
@@ -36,8 +22,35 @@ $(document).ready(function() {
             max_date = dt.end_time;
         }
     }
+
     min_date = new Date(min_date * 1000);
     max_date = new Date(max_date * 1000);
+
+    console.log(max_date);
+
+    for (var i=0; i<downtime.length; i++) {
+        var dt = downtime[i];
+        var y = downtime.length - i;
+        var expr = dt.expr;
+        if (expr.length > 30) {
+            expr = expr.substring(0,30) + '...';
+        }
+
+        var startDate = new Date(dt.start_time * 1000);
+        var endDate = new Date(dt.end_time * 1000);
+        if (startDate < now) {
+            var offset = (max_date - new Date()) * 0.01;
+            console.log(offset);
+            startDate = now.add({milliseconds: -offset});
+            console.log('adjusting start date');
+        }
+
+        flot_data.push({
+            'label': expr,
+            'data': [[ startDate, y, endDate, expr, ]],
+        });
+        yaxis_bits.push([y, expr]);
+    }
 
     var flot_options = {
         series: {
@@ -48,7 +61,7 @@ $(document).ready(function() {
             },
         },
         xaxis: {
-            min: min_date,
+            min: new Date(),
             max: max_date,
             mode: "time",
         },
@@ -60,14 +73,6 @@ $(document).ready(function() {
         grid: {
             hoverable: true,
             clickable: true,
-            markings: [{
-                color: "#FF0000",
-                lineWidth: 2,
-                xaxis: {
-                    from: new Date(),
-                    to: new Date(),
-                },
-            }],
         },
         legend: {
             show: false,
