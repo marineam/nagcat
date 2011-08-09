@@ -15,16 +15,20 @@ $(document).ready(function() {
     for (var i=0; i<downtime.length; i++) {
         var dt = downtime[i]
         var y = downtime.length - i;
+        var expr = dt.expr;
+        if (expr.length > 30) {
+            expr = expr.substring(0,30) + '...';
+        }
         flot_data.push({
-            'label': dt.expr,
+            'label': expr,
             'data': [[
                 new Date(dt.start_time * 1000),
                 y,
                 new Date(dt.end_time * 1000),
-                dt.expr,
+                expr,
             ]],
         });
-        yaxis_bits.push([y, dt.expr]);
+        yaxis_bits.push([y, expr]);
         if (dt.start_time < min_date) {
             min_date = dt.start_time;
         }

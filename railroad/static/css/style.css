@@ -449,6 +449,7 @@ fieldset {
     position: absolute;
     background-color: #EEE;
     z-index: 3;
+    display: none;
 }
 .menu li {
     display: block;

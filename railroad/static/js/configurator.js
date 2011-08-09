@@ -9,7 +9,8 @@ $(document).ready(function() {
             var from = $('input[name=from]');
             var to = $('input[name=to]');
         } else {
-            var dates = $(dateRangeButton).parent().parent().siblings('.daterange');
+            var dates = $(dateRangeButton).parents('.options')
+                .siblings('.daterange');
             var from = $(dates).children('[name=from]');
             var to = $(dates).children('[name=to]');
         }
@@ -41,7 +42,8 @@ $(document).ready(function() {
         from.val(fromDate.toString(dateFormat) + timezoneString)
         to.val(toDate.toString(dateFormat) + timezoneString)
 
-        updateZoom(from.first().parent().siblings('.graph').parent(), fromDate, toDate);
+        updateZoom(from.first().parent().siblings('.graph').parent(),
+            fromDate, toDate);
     });
 
     $('#localtime, #utc').bind('change', function() {
@@ -98,7 +100,8 @@ $(document).ready(function() {
 
     $('.graphcheckbox').change(function () {
         var checkp = true;
-        var checkboxes = $('.service_row').filter('visible').find('.graphcheckbox');
+        var checkboxes = $('.service_row').filter('visible')
+            .find('.graphcheckbox');
         checkboxes.each(function (index, element) {
             if (  ! $(element).prop('checked') ) {
                 checkp = false;
@@ -126,28 +129,38 @@ $(document).ready(function() {
 
         // gather data
         var expr = '';
+        var checkedServiceRows = 
+            $('.service_row').filter(
+            function(index) {
+                return $(this).find('.controls input')
+                    .filter(':checked').length > 0;
+            });
+
         if ($('#downtime-host').prop('checked')) {
             var hosts = [];
-            $('.service_row dd[name=host]').each(function(index, element) {
-                hosts.push('host:' + $(element).text().trim());
-            });
+            $(checkedServiceRows).find('dd[name=host]')
+                .each(function(index, element) {
+                    hosts.push('host:' + $(element).text().trim());
+                });
             hosts = hosts.uniqueList();
             expr = hosts.join(' or ')
         } else {
             var hosts = [];
             var services = [];
             var objs = [];
-            $('.service_row dd[name=host]').each(function(index, element) {
-                hosts.push('host:"' + $(element).text().trim() + '"');
-            });
-            $('.service_row dd[name=service]').each(function(index, element) {
-                services.push('service:"' + $(element).text().trim() + '"');
-            });
+            $(checkedServiceRows).find('dd[name=host]')
+                .each(function(index, element) {
+                    hosts.push('host:"' + $(element).text().trim() + '"');
+                });
+            $(checkedServiceRows).find('dd[name=service]')
+                .each(function(index, element) {
+                    services.push('service:"' + $(element).text().trim() + '"');
+                });
             for (var i=0; i<hosts.length; i++) {
                 objs.push(hosts[i] + ' and ' + services[i]);
             }
             objs = objs.uniqueList();
-            expr = objs.join(' or ')
+            expr = '(' + (objs.join(') or (')) + ')';
         }
 
         if (!expr) {
@@ -160,8 +173,8 @@ $(document).ready(function() {
 
         var now = new Date();
         if (!(from && to) || from < now || to < now) {
-            $('#downtimeLoading').after('<span id="downtimeError" class="error">' +
-                'You must enter a future date.</span>');
+            $('#downtimeLoading').after('<span id="downtimeError"' +
+                'class="error">You must enter a future date.</span>');
             $('#downtimeLoading').remove();
 
             setTimeout(function() {
@@ -233,7 +246,8 @@ $(document).ready(function() {
             case 'state_critical':
             case 'state_unknown':
                 var button = this;
-                $('.service_row').filter(':visible').each(function(index, elem) {
+                $('.service_row').filter(':visible')
+                .each(function(index, elem) {
                     var className = $(button).attr('name');
                     if ($(elem).children('.status_text').hasClass(className)) {
                         $(elem).children('.controls').children('input')
@@ -397,7 +411,7 @@ $(document).ready(function() {
                 type: 'POST',
                 success: function (link, textStatus, XMLHttpRequest) {
                         var text = window.location.protocol + "//" +
-                            window.location.host + "/railroad/permalink/" + link;
+                            window.location.host +"/railroad/permalink/" + link;
                         $('#generateLink').before('<label>Permalink:</label>' +
                             '<input id="permalink" type="text"/>');
                         $('#permalink').val(text).select();
