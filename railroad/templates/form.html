@@ -1,63 +1,71 @@
-<div class="hint" id="persist">This form will remember what you have entered, across browser sessions and page views.</div>
-<form name="input" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
-    <div id="service_selector">
+<form name="input" class="configurator" action="{% url railroad.viewhosts.views.customgraph %}" method="get" id="configurator">
+    <div class="left">
         <fieldset>
-            <ol>
+            <legend>Add graphs</legend>
+            <ul class="fieldset_ul">
+                {# Yes, we really do need both name and id. formSerializer and automcomplete use name, not id. #}
                 <li>
                     <label for="host">Host</label>
-                    <input class="autocomplete value" id="host" name="host" type="text">
+                    <input class="autocomplete value" name="host" id="host" type="text">
                 </li>
 
                 <li>
                     <label for="group">Groups</label>
-                    <input class="autocomplete value" id="group" name="group" type="text">
+                    <input class="autocomplete value" name="group" id="group" type="text">
                 </li>
 
                 <li>
                     <label for="service">Services</label>
-                    <input class="autocomplete value" id="service" name="service" type="text">
+                    <input class="autocomplete value" name="service" id="service" type="text">
                 </li>
-
-                <li>
-                    <input type="submit" value="Add" id="submit"/>
-                    <input type="button" value="Clear Forms" id="clearform"/>
-                    <input type="button" value="Clear Graphs" id="cleargraphs">
+                {# The padding on the below li is necessary to display the buttons properly. #}
+                <li style="padding: 5px;">
+                    <label>&nbsp;</label>
+                    <ul class="liButtons">
+                        <li id="add" >Add</li
+                        ><li id="clearform" >Clear Fields</li
+                        ><li id="cleargraphs" >Clear Graphs</li>
+                        <span class="hint" id="csv">
+                            You can auto complete multiple comma separated values
+                            at a time.
+                        </span >
+                    </ul>
                 </li>
-
-                <li class="hint" id="csv">You can auto complete multiple comma separated values at a time.</li>
-            </ol>
-        </fieldset>
-        <fieldset>
-            <legend>Sync Graphs</legend>
-            <input type="checkbox" name="sync" id="sync" class="persist">Keep all graphs in sync.</input>
-            <p class="hint" id="synchint">Checking this box will synchronize the zoom of all the graphs.</p>
-        </fieldset>
-    </div>
-    <div id="service_options">
-        <fieldset id="expansion">
-            <legend>Expansion</legend>
-            <input type="checkbox" class="persist" id="expandall">Expand All</input>
-            <ul id="expansion_by_type">
-                <li><input type="checkbox" class="persist" id="state_ok">OK</input></li>
-                <li><input type="checkbox" class="persist" id="state_warning" checked>Warning</input></li>
-                <li><input type="checkbox" class="persist" id="state_critical" checked>Critical</input></li>
-                <li><input type="checkbox" class="persist" id="state_unknown" checked>Unknown</input></li>
             </ul>
         </fieldset>
+    </div>
+    <div class="right">
         <fieldset>
-            <legend>Time Zone</legend>
-            <input type="radio" name="timezone" id="localtime" class="persist">Local Time</input>
-            <input type="radio" name="timezone" id="utc" class="persist" checked>UTC</input>
-        </fieldset>
-        <fieldset>
-            <legend>Sort By</legend>
-            <select name="sortby" id="sortby" class="persist">
-                <option value="service">Service Name</option>
-                <option value="host">Host Name</option>
-                <option value="status">Status</option>
-                <option value="value">Latest Value</option>
-            </select>
-            <input type="checkbox" name="reverse_sort" id="reverse_sort" class="persist">Reverse sort order</input>
+            <legend>Schedule Downtime</legend>
+            <p class="small">
+                Schedule nagios downtime for all objects checked below.
+            </p>
+            <ul class="fieldset_ul">
+                <li>
+                    <label class="from">From</label>
+                    <input type="text" id="downtime-from" />
+                </li>
+                <li>
+                    <label class="to">To</label>
+                    <input type="text" id="downtime-to" />
+                </li>
+                <li>
+                    <label>Comment</label>
+                    <input type="text" id="downtime-comment" />
+                </li>
+                <li>
+                    <label>For</label>
+                    <input type="radio" name="hostorservice" id="downtime-host" />Hosts
+                    <input type="radio" name="hostorservice" id="downtime-service" />Services
+                </li>
+                <li style="padding: 5px;">
+                    <label>&nbsp;</label>
+                    <ul class="liButtons">
+                        <li id="downtime-submit">Submit</li>
+                    </ul>
+                </li>
+            </ul>
+
         </fieldset>
     </div>
 </form>

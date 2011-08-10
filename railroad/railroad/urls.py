@@ -14,28 +14,43 @@
 
 from django.conf.urls.defaults import *
 
-# Set our custom 404 handler to make sure the sidebar works
-handler404 = 'railroad.viewhosts.views.error404'
-
 urlpatterns = patterns('',
     # Index page
     (r'^$', 'railroad.viewhosts.views.index'),
 
-    # parserrd backend
-    (r'^parserrd/(?P<host>.+)/(?P<service>.+)/(?P<start>[0-9]+)/(?P<end>[0-9]+)/(?P<resolution>[0-9]+)/?$', 'railroad.parserrd.views.index'),
+
+    # Permalinks
+    (r'^permalink/generate/', 'railroad.permalink.views.generate_link'),
+    (r'^permalink/(?P<link>[A-Za-z0-9_\-]+)$',
+        'railroad.permalink.views.retrieve_link'),
+    (r'^permalinks/', 'railroad.permalink.views.list_links'),
+    (r'^permalink/delete/(?P<link>[A-Za-z0-9_\-]+)$',
+        'railroad.permalink.views.delete_link'),
 
     # Viewers
     (r'^graphs/?$', 'railroad.viewhosts.views.graphs'),
-    (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$', 'railroad.viewhosts.views.service'),
+    (r'^viewhost/(?P<host>\w+)/(?P<service>.+)$',
+        'railroad.viewhosts.views.service'),
     (r'^viewgroup/(?P<group>[^/]+)$', 'railroad.viewhosts.views.group'),
-    (r'^viewgroup/(?P<group>[^/]+)/(?P<test>.+)/(?P<alias>.+)$', 'railroad.viewhosts.views.groupservice'),
+    (r'^viewgroup/(?P<group>[^/]+)/(?P<test>.+)/(?P<alias>.+)$',
+        'railroad.viewhosts.views.groupservice'),
     # Configurator and helper functions for AJAX
-    (r'^c/(?P<id>\d+)$', 'railroad.viewhosts.views.directurl'),
     (r'^configurator$', 'railroad.viewhosts.views.directconfigurator'),
     (r'^configurator/graph$', 'railroad.viewhosts.views.customgraph'),
-    (r'^configurator/host/(?P<hosts>\w+)$', 'railroad.viewhosts.views.hostconfigurator'),
-    (r'^configurator/service/(?P<service>(\w+\s*)+)$', 'railroad.viewhosts.views.serviceconfigurator'),
+    (r'^configurator/host/(?P<hosts>\w+)$',
+        'railroad.viewhosts.views.hostconfigurator'),
+    (r'^configurator/service/(?P<service>(\w+\s*)+)$',
+        'railroad.viewhosts.views.serviceconfigurator'),
+
+    # Downtime page
+    (r'^downtime', 'railroad.viewhosts.views.downtime'),
 
     # Stuff for AJAX
-    (r'^ajax/autocomplete/(?P<context>\w+)$', 'railroad.ajax.views.autocomplete'),
+    (r'^configurator/meta$', 'railroad.viewhosts.views.meta'),
+    (r'^configurator/service_meta$',
+        'railroad.viewhosts.views.service_page_meta'),
+    (r'^ajax/autocomplete/(?P<context>\w+)$',
+        'railroad.ajax.autocomplete.autocomplete'),
+    (r'^ajax/xmlrpc$', 'railroad.ajax.xmlrpc.xmlrpc'),
+    (r'^404$', 'django.views.defaults.page_not_found'),
 )

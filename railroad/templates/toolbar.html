@@ -1,0 +1,61 @@
+<div id="toolbar">
+    <ul id="check_controls">
+        <li id="checkall">
+            <input class="checkall" type="checkbox" />
+            <div class="sprite open_tri_s"></div>
+        </li>
+    </ul>
+    <ul id="row_manip">
+        {# The weird spacing has a purpose: it makes whitespace go away #}
+        <li id="remove_checked">Remove</li
+        ><li id="collapse_checked">Collapse</li
+        ><li id="expand_checked">Expand</li>
+    </ul>
+    <ul id="stats">
+        <li id="service_count" class="nohover">
+            0 Services
+        </li><li class="state_count state_ok nohover" name="state_ok">
+            0
+        </li><li class="state_count state_warning nohover" name="state_warning">
+            0
+        </li ><li class="state_count state_critical nohover" name="state_critical">
+            0
+        </li ><li class="state_count state_unknown nohover" name="state_unknown">
+            0
+        </li>
+    </ul>
+
+    <ul id="sort">
+        <li id="sortby">Sort By... <div class="sprite open_tri_s"></div>
+        </li><li id="sortdirection">
+            <div class="sprite arrow_n_line"></div>
+        </li>
+    </ul>
+</div>
+
+<div id="pages">
+    <a href="#" id="prevpage"><div class="sprite arrow_w hover"></div></a>
+    Showing <span id="firstgraph">X</span> to <span id="lastgraph">Y</span>
+    of <span id="totalgraphs">Z</span> total graphs.
+    <a href="#" id="nextpage"><div class="sprite arrow_e hover"></div></a>
+</div>
+
+<div class="menu" id="selectall">
+    <ul>
+        <li name="all">Select All</li>
+        <li name="none">Select None</li>
+        <li name="state_ok">Select OK</li>
+        <li name="state_warning">Select Warning</li>
+        <li name="state_critical">Select Critical</li>
+        <li name="state_unknown">Select Unknown</li>
+    </ul>
+</div>
+
+<div class="menu" id="sortbymenu">
+    <ul>
+        <li name="service">Service Name</li>
+        <li name="host">Host Name</li>
+        <li name="status">Status</li>
+        <li name="duration">Duration</li>
+    </ul>
+</div>

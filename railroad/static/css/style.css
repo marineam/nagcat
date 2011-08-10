@@ -1,0 +1,539 @@
+﻿/*
+* Copyright 2010 ITA Software, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* Misc. styling options */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    background-color: #467a9c;
+}
+
+.small {
+    font-size: 0.7em;
+}
+.data {
+    display: none;
+}
+
+h1, h2, h3 { display: inline-block; position: static; margin: 0; }
+ul, ol { margin: 0; padding: 0px; list-style: none; }
+p { margin: 0; }
+dl { margin: 0; }
+
+/* Layout */
+#wrapper {
+    width: 950px;;
+    background-color: #fff;
+    margin: 20px;
+    position: relative;
+    left: 160px;
+    top: 20px;
+    border: 1px solid black;
+    padding: 5px;
+    min-height: 600px;
+    overflow: hidden;
+}
+
+#menu {
+    margin: -5px;
+    width: 100%;
+    background-color: #EEE;
+    overflow: hidden;
+}
+#menu ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    font-size: 15pt;
+    float: left;
+}
+#menu ul li {
+    display: inline-block;
+    margin-right: 3px;
+    padding: 0 20px;
+}
+#menu #preferences {
+    background-color: #DDD;
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin: 0;
+}
+#menu #title {
+    font-weight: bold;
+    padding: 0 5px;
+}
+#menu #graph_options {
+    float: right;
+    padding-right: 5px;
+    padding-top: 2px;
+}
+
+#header {
+    position: relative;
+    margin: 10px;
+}
+
+#link {
+    right: 0.4em;
+    top: 1.8em;
+    position: fixed;
+    z-index: 5;
+}
+
+/* General stuff */
+
+/* Content and sidebars */
+#content {
+}
+.listheader {
+    font-size: 12pt;
+}
+/* TODO: Finish this styling */
+.biglist ul {
+    margin: 0;
+    padding-left: 15px;
+    list-style: square;
+    font-size: 10pt;
+}
+#sidebar {
+    padding: 18px 7px 10px 5px;
+    background-color: #FFF;
+    border: 1px solid black;
+    clear: both;
+    float: left;
+    width: 150px;
+    position: absolute;
+    left: 17px;
+    top: 64px;
+}
+
+/* Status stoplight colors */
+.green, .green a {
+    color: green;
+}
+.green:hover, .green a:hover {
+    color: limegreen;
+}
+.greenbg {
+    background-color: lightgreen;
+}
+.yellow, .yellow a {
+    color: yellow;
+}
+.yellowbg {
+    background-color: yellow;
+}
+.red, .red a {
+    color: red;
+}
+.redbg {
+    background-color: tomato;
+}
+
+.collapse_row, .expand_row, .remove_row {
+    width: 16px;
+    height: 16px;
+}
+.collapse_row {
+    background-image: url("/railroad-static/images/collapse.png");
+}
+.expand_row {
+    background-image: url("/railroad-static/images/expand.png");
+}
+.remove_row {
+    background-image: url("/railroad-static/images/remove.png");
+}
+
+#graphs { border-collapse: collapse; }
+
+td.controls { vertical-align: top }
+td.controls div { margin-top: 3px; }
+td.status_text {
+   padding: 5px;
+   width: 360px;
+}
+.graph_container {
+    font-size: 10pt;
+    text-align: center;
+    padding-top: 10px;
+    position: relative;
+    width: 540px;
+}
+.graph_container canvas {
+    position: absolute;
+    left: 0; top 0;
+}
+.graph_container .graphloading {
+    font-size: 1.5em;
+    position: relative;
+    top: 50px;
+    float: left;
+}
+
+/* Graph styling */
+.graph {
+    width: 500px;
+    height: 225px;
+    margin: 5px 15px 15px 25px;
+    font-size: 12pt;
+}
+.nograph, .graphcollapsed {
+    margin-top: -12px;
+}
+
+.legend {
+    position: absolute;
+    top: 215px;
+    background-color: #F8F8F8;
+    width: 475px;
+    text-transform: capitalize;
+}
+.legend table td {
+    padding: 2px;
+    text-align: left;
+    border: 0;
+}
+.legend {
+    position: relative;
+    left: 50px;
+    top: -7px;
+}
+.ylabel {
+    position: relative;
+    top: 200px;
+    left: 10px;
+    width: 200px;
+    text-align: center;
+    -o-transform: rotate(-90deg);
+    -o-transform-origin: left;
+    -moz-transform: rotate(-90deg);
+    -moz-transform-origin: left;
+    -webkit-transform: rotate(-90deg);
+    -webkit-transform-origin: left;
+    transform: rotate(-90deg);
+    transform-origin: left;
+    padding: 5px;
+    float: left;
+}
+.toggle, .update {
+    display: inline;
+}
+.toggle, .options ul li {
+    cursor: pointer;
+}
+.hidden {
+    visibility: hidden;
+}
+.error {
+    color: red;
+    font-size: 0.8em;
+}
+
+/* Service listings */
+.services {
+    clear: both;
+    font-size: 10pt;
+    margin: 5px;
+}
+.service_row {
+    padding-bottom: 10px;
+}
+.service_row td {
+    border: 1px solid #888;
+}
+.service_row h2 {
+    font-size: 14pt;
+    margin: 0;
+    margin-right: 10px;
+}
+.services {
+    font-size: 10pt;
+}
+.service_row dt,dd {
+    margin: 0;
+    padding: 0;
+}
+.service_row dt {
+    float: left;
+    clear: left;
+    width: 80px;
+    margin-bottom: 8px;
+    margin-right: 4px;
+}
+.service_row dd {
+    float: left;
+    margin: 3px 0 5px 10px;
+    text-indent: -10px;  /* Reverse Indent */
+    width: 265px;
+}
+td.status_text dd[name=output] {
+    font-family: monospace;
+}
+
+/* Ajax Loading Throbber */
+#loading {
+    margin-left: 10px;
+}
+.filter {
+    display: inline-block;
+}
+pre {
+    font-size: 8pt;
+}
+
+/* Configurator */
+#configurator {
+    overflow: hidden;
+    float: left;
+    margin: 5px;
+}
+fieldset {
+    margin: 10px 0;
+    border-radius: 4px;
+}
+#configurator .left, #configurator .right {
+       float: left;
+}
+#configurator .left {
+    width: 485px;
+    margin-right: 15px
+}
+#configurator .right {
+    width: 440px;
+}
+.fieldset_ul > li {
+    list-style: none outside none;
+    margin: 0px;
+    overflow: hidden;
+}
+.liButtons > li {
+    display: inline-block;
+    margin: 0;
+    list-style: none outside none;
+    border: 1px solid #AAA;
+    background-color: #EEE;
+    height: 21px;
+    padding: 4px 8px;
+    cursor: pointer;
+    margin-left: 0;
+    margin-right: -1px;
+    border-radius: 2px;
+    position: static;
+}
+.liButtons  {
+    display: inline;
+    margin: 3px 6px 3px 0;
+}
+.fieldset_ul > li {
+    list-style: none outside none;
+    margin: 5px;
+    overflow: hidden;
+}
+.fieldset_ul > li > label {
+    width: 75px;
+    float: left;
+}
+.left input[type=text] {
+    float: left;
+    width: 365px;
+}
+.right input[type=text]{
+    float: left;
+    width: 315px;
+}
+#configurator .datetimerow .to {
+    width: 18px;
+    margin: 0 10px;
+}
+.cancelcode {
+    font-size: 0.8em;
+}
+
+/* Filtering */
+
+.type select {
+    /* Seems buggy in many browsers, doing in Python for now */
+    text-transform: capitalize;
+}
+
+.filterform th {
+        text-align: right;
+        border-spacing: 1px 5px;
+}
+
+.filterform {
+        border-spacing: 60px 5px;
+}
+
+.filters h3 {
+        text-align: center;
+}
+
+.submit {
+        text-align: center;
+}
+
+/* CSS Sprites */
+.sprite {
+    width: 16px;
+    height: 16px;
+    background: url('/railroad-static/images/ui-icons_222222_256x240.png') no-repeat;
+    display: inline-block;
+}
+.arrow_n_line { background-position: -192px -32px; }
+.arrow_s_line { background-position: -224px -32px; }
+.arrow_e { background-position: -32px -32px; }
+.arrow_w { background-position: -96px -32px; }
+.close { background-position:  -32px -192px; }
+.info { background-position: -16px -142px; }
+.open_tri_s { background-position: -64px 0px; }
+.tri_e { background-position: -32px -16px; }
+.tri_s { background-position: -64px -16px; }
+
+.arrow_e.hover:hover { background-position: -32px -48px; }
+.arrow_w.hover:hover { background-position: -96px -48px; }
+
+/* Toolbar */
+#toolbar {
+    margin: 8px 0 12px 5px;
+    clear: both;
+}
+#toolbar ul {
+    margin: 3px 6px 3px 0;
+    display: inline;
+}
+#toolbar li {
+    display: inline;
+    border: 1px solid #AAA;
+    background-color: #EEE;
+    height: 21px;
+    padding: 4px 8px;
+    cursor: pointer;
+    margin-right: -1px;
+    border-radius: 2px;
+}
+#toolbar #checkall {
+    padding-left: 5px;
+}
+
+#toolbar li:not(.nohover):hover {
+    background-color: #CCC;
+    border-color: #777;
+}
+
+
+#toolbar input { margin: 3px 0 0 0; }
+
+#toolbar #hiddenCount { opacity: 0.5; font-size: 0.8em; padding: 3px; }
+
+/* Menus */
+.menu {
+    position: absolute;
+    background-color: #EEE;
+    z-index: 3;
+    display: none;
+}
+.menu li {
+    display: block;
+    padding: 3px;
+    margin-top: -1px;
+    border: 1px solid black;
+}
+.menu li:hover {
+    background-color: #CCC;
+}
+
+#quicklook ul {
+    margin-left: 20px;
+    list-style: disc;
+}
+#quicklook ul ul { list-style: circle; }
+#quicklook ul ul ul { list-style: square; }
+
+#quicklook .host { cursor: pointer; font-size: 1.1em; }
+
+#quicklook .status_text { cursor: pointer; font-size: 1.2em; font-weight: bold; }
+.state_ok       { background-color: #BFB !important;  }
+.state_warning  { background-color: #FFB !important; }
+.state_critical { background-color: #F64 !important; }
+.state_unknown  { background-color: #CCC !important; }
+
+#tooltip {
+    position: absolute;
+    width: 200px;
+    background-color: #FEB;
+    border: 1px solid black;
+    z-index: 10; /* This should always be on top */
+    padding: 5px;
+}
+
+#permalinkDiv {
+    display: none;
+    border: 1px solid black;
+    position: absolute;
+    background-color: #DDD;
+    z-index: 8;
+}
+
+#closePermalinkDescription {
+    display: inline;
+    position: absolute;
+}
+#permalinkDiv p {
+    position: relative;
+    left: 20px;
+}
+
+#preference_panel {
+    display: none;
+    border: 1px solid black;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 500px;
+    padding: 10px;
+    margin-left: 10px;
+    margin-top: 24px;
+    background-color: #DDD;
+    z-index: 7;
+}
+#preference_panel h1 {
+    text-align: center;
+}
+#preference_panel fieldset {
+    border: 1px solid #000;
+}
+
+.hint {
+    display: none;
+}
+
+.permalink {
+    position: absolute;
+    right: 0px;
+}
+
+.twirler .target {
+    cursor: hand;
+}
+.twirler ul {
+    display: none;
+}
+
+#pages {
+    display: none;
+}

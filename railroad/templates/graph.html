@@ -1,46 +1,76 @@
 {% load services %}
-{% for graph in loaded_graphs %}
-    <tr class="service_row">
-        <td class="controls">
-            <div class="collapse_row"></div>
-            <div class="remove_row"></div>
-        </td>
-        <td class="status_text state_{{ graph.current_state|state_name|lower }}">
-            <h2><a href="/railroad/configurator/host/{{graph.host_name}}">{{graph.host_name}}</a></h2>
-            <h2><a href="/railroad/viewhost/{{graph.host_name}}/{{graph.service_description}}">{{graph.service_description}}</a></h2>
-            <p>{{graph.plugin_output}}</p>
-        </td>
+<tr class="service_row">
+    <td class="controls">
+        <input type="checkbox" class="graphcheckbox">
+    </td>
+    <td class="status_text state_{{ current_state|state_name|lower }}">
+        <dl>
+            <dt name="host">Host</dt>
+            <dd name="host">
+                <a href="/railroad/configurator/host/{{host_name}}">
+                    {{host_name}}
+                </a>
+            </dd>
 
-        <td class="graph_container">
-            {% if graph.is_graphable %}
-                <div class="options">
-                    Current
-                    <input type="button" name="day" value="Day"/>
-                    <input type="button" name="week" value="Week"/>
-                    <input type="button" name="month" value="Month"/>
-                    <input type="button" name="year" value="Year"/>
-                </div>
-                <div class="daterange">
-                    From <input type="text" name="from"/>
-                    To <input type="text" name="to"/>
-                </div>
-                <div class="ajax_info">
-                    <div class="update"></div>
-                </div>
+            <dt name="service">Service</dt>
+            <dd name="service">
+                <a href="/railroad/viewhost/{{host_name}}/{{service_description}}">
+                    {{service_description}}
+                </a>
+            </dd>
 
-                {% ifequal graph.period 'ajax'%}
-                    <div id="" class="{{graph.slug}} graph ajax">
-                    <div id="{{ graph.host_name }}" class="graph_hostname"></div>
-                    <div id="{{ graph.service_description }}" class="graph_service_name"></div>
-                {% else %}
-                    <div id="" class="{{graph.slug}} graph">
-                {% endifequal %}
-                    <a href="{{graph.host_name}}/{{graph.service_description}}/{{graph.start}}/{{graph.end}}/100"></a>
-                </div>
-            <div class="legend"></div>
+            <dt name="duration">Duration</dt>
+            <dd name="duration" value="{{state_duration}}">
+                {{ state_duration|pretty_duration }}
+            </dd>
+
+            <dt name="output">Output</dt>
+            <dd name="output">{{ plugin_output}}</dd>
+
+            <dt name="lastcheck">Last check</dt>
+            <dd name="lastcheck">{{ last_check }}</dd>
+
+            <dt name="attempts">Attempts</dt>
+            <dd name="attempts">{{ current_attempt }}/{{ max_attempts}}</dd>
+
+            <dt>Nagcat Template</dt>
+            <dd>{{ nagcat_template }}</dd>
+        </dl>
+    </td>
+
+    <td class="graph_container">
+        {% if is_graphable %}
+            <div class="options">
+                Current
+                <ul class="liButtons">
+                    <li name="day" class="currentTime">Day</li>
+                    <li name="week"class="currentTime">Week</li>
+                    <li name="month"class="currentTime">Month</li>
+                    <li name="year"class="currentTime">Year</li>
+                </ul>
+            </div>
+            <div class="daterange">
+                From <input type="text" name="from"/>
+                To <input type="text" name="to"/>
+            </div>
+            <a href="{{host_name}}/{{service_description}}/{{start}}/{{end}}/100"></a>
+            <div class="graphloading">Loading Data...</div>
         {% else %}
-            No graph
+            <p class="nograph">No graph</p>
         {% endif %}
-        </td>
-    </tr>
-{% endfor %}
+        {% if is_graphable %}
+        <div class="{{slug}} graphInfo graph ajax" name="{{slug}}"> 
+            <div id="{{ host_name }}" class="graph_hostname"></div>
+            <div id="{{ service_description }}" class="graph_service_name"></div>
+            <div id="{{ start }}" class="graph_start"></div>
+            <div id="{{ end }}" class="graph_end"></div>
+        </div>
+        {% else %}
+        <div class="{{slug}} graphInfo noGraph">
+            <div id="{{ host_name }}" class="graph_hostname"></div>
+            <div id="{{ service_description }}" class="graph_service_name"></div>
+        </div>
+        {% endif %}
+        <div class="legend"></div>
+    </td>
+</tr>

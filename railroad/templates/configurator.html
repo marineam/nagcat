@@ -1,27 +1,37 @@
 {% extends "base.html" %}
 
-{% block title %}{{htmltitle}}{% endblock %}
+{% block title %}{{ htmltitle }}{% endblock %}
+
+{% block head %}
+    <script language="javascript" type="text/javascript" src="/railroad-static/js/configurator.js"></script>
+{% endblock %}
 
 {% block header %}
-{% ifequal page_state '0' %}
-	<span class="greenbg">
-{% else %}
-    {% ifequal page_state '1' %}
-    	<span class="redbg">
+    <h1>{{pagetitle}}</h1>
+    {% if permalink %}
+        <input id="permalink" style="float: right;" type="text"value="{% url railroad.permalink.views.retrieve_link link %}" readonly>
     {% else %}
-        <span>
-    {% endifequal %}
-{% endifequal %}
-{{pagetitle}}</span>{% endblock %}
-
+    <ul class="liButtons permalink">
+        <li id="generateLink">Get Permalink</li>
+    </ul>
+    <div id="permalinkDiv">
+        <div class="sprite close" id="closePermalinkDescription"></div>
+        <p> Please enter an optional description for your permalink </p>
+        <textarea id="permalinkDescription" rows="5" cols="80"></textarea>
+    </div>
+    {% endif %}
+{% endblock %}
 {% block content %}
+    <div class="data" id="remoteuserid">{{ remoteuserid }}</div>
 
-{% include "form.html" %}
+    {% include "form.html" %}
 
-<div class="services">
-<table id="graphs">
-{% include "graph.html" %}
-</table>
-</div>
+    {% include "toolbar.html" %}
+
+    <div class="services">
+        <div class="data" id="json_services">{{ json_services }}</div>
+        <table id="graphs">
+        </table>
+    </div>
 
 {% endblock %}

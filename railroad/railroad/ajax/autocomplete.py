@@ -15,8 +15,8 @@ def transpose_combo(li, n, memo):
     if key in memo:
         return memo[key].next()
 
-    n = min(n,len(li))
-    combinations = itertools.combinations(li,n)
+    n = min(n, len(li))
+    combinations = itertools.combinations(li, n)
     transpose = zip(*combinations)
     memo[key] = iter(transpose)
     return memo[key].next()
@@ -74,7 +74,7 @@ def autocomplete(request, context):
     # end craziness
 
     results = itertools.product(*product_foder)
-    results = [','.join(result) for result in itertools.islice(results, limit)]
-    result = [ { "value" : r } for r in results ]
+    results = [','.join(result).strip() for result in itertools.islice(results, limit)]
+    result = [{"value": r} for r in results if r]
 
     return HttpResponse(json.dumps(result))

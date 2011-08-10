@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Permalinks{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/railroad-static/css/permalinks.css" type="text/css">
+<script language="javascript" type="text/javascript" src="/railroad-static/js/permalinks.js"></script>
+{% endblock %}
+{% block header %}
+<h1>Permalinks</h1>
+{% endblock %}
+<br />
+{% block content %}
+<div id="permalink_list">
+    <p> This is a list of permalinks owned by you, {{user}} </p>
+    <table id="permalink_table">
+        <tbody>
+            <tr class="permalink_row permalink_row_header">
+                <td class="link_code">
+                    <p>Link code</p>
+                </td>
+                <td class="creation">
+                    <p>Date created</p>
+                </td>
+                <td class="num_services">
+                    <p>Number of services</p>
+                </td>
+                <td class="description">
+                    <p> Description </p>
+                </td>
+                <td class="delete">
+                    <p>Delete link</p>
+                </td>
+            </tr>
+            {% for permalink in configurator_page %}
+            <tr class="permalink_row">
+                <td class="link_code">
+                    <a href="{% url railroad.permalink.views.retrieve_link permalink.link %}">{{permalink}}</a>
+                </td>
+                <td class="creation">
+                    <p>{{permalink.creation}}</p>
+                </td>
+                <td class="num_services">
+                    <p>{{ permalink.num_services }}</p>
+                </td>
+                <td class="description">
+                    <p>{{ permalink.description }}</p>
+                </td>
+                <td class="delete_link">
+                    <a href="#" name="{{permalink.link}}">Delete link</a>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

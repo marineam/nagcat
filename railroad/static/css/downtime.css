@@ -1,0 +1,33 @@
+#downtimegraph {
+    width: 850px;
+    height: 250px;;
+    margin: 10px 50px;
+}
+.downtimerow {
+    overflow: hidden;
+}
+.downtime {
+    margin: 10px;
+    padding: 5px;
+    float: left;
+    width: 440px;
+}
+.downtime.hover {
+    background-color: #FFA;
+    border: 1px solid #BA6;
+    margin: 9px;
+}
+
+.swatch {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-bottom: -5px;
+    margin-right: 4px;
+}
+
+li {
+    list-style: none;
+    margin-left: 15px;
+}
+li li { list-style: circle; margin-left: 30px; }

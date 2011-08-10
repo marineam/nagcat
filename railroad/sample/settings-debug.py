@@ -17,6 +17,8 @@
 # Path to the nagcat data directory (remember trailing slash)
 DATA_PATH = '/var/lib/nagcat/data/'
 RRA_PATH = '/var/lib/nagcat/rra/'
+# URL for Nagnet XMLRPC (For downtime scheduling)
+NAGIOS_XMLRPC_URL = 'http://localhost:8080'
 
 ### Django settings for railroad project. ###
 
@@ -94,7 +96,7 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'railroad.urls'
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Put strings here, like "/home/html/django_templates"
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
     '/var/lib/nagcat/railroad/templates',

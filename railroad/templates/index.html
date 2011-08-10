@@ -2,14 +2,63 @@
 {% load services %}
 
 {% block title %}Home{% endblock %}
+{% block head %}
+    <script language="javascript" type="text/javascript" src="/railroad-static/js/home.js"></script>
+{% endblock %}
 
-{% block header %}Welcome{% endblock %}
-
+{% block header %}
+    <h1>Welcome</h1>
+{% endblock %}
 
 {% block content %}
 
 Railroad is a viewer for Nagcat trends and Nagios state information. To begin
 choose a host or group from the sidebar, or go to the configurator and add the
 graphs of your choice.
+
+<div id="quicklook">
+<h2>Quicklook
+<span class="hint" style="width: 400px;" id="quicklookhint">
+    Click on the status or hosts to collapse and expand them. Click on a
+    service to see it's details, or on the arrow next to a host to see that
+    host. Services that are OK have been automatically hidden.
+</span>
+</h2>
+
+{% regroup services|dictsort:"current_state" by current_state as service_states %}
+<ul>
+{% for state in service_states reversed %}
+    <li>
+        <span class="status_text state_{{ state.grouper|state_name|lower }}">
+            {{ state.grouper|state_name }} -
+            {{ state.list|length }} service{{state.list|length|pluralize}}
+        </span>
+        <ul>
+            {% regroup state.list|dictsort:"host_name" by host_name as hosts_in_state %}
+            {% for host in hosts_in_state %}
+                <li>
+                    <span class="host">
+                        {{ host.grouper }} -
+                        {{host.list|length}} service{{state.list|length|pluralize}}
+                    </span>
+                    <a href="/railroad/configurator/host/{{host.grouper}}">
+                        <div class="sprite arrow_e hover"></div>
+                    </a>
+                    <ul>
+                        {% for state in host.list %}
+                            <li>
+                                <a href="/railroad/viewhost/{{host.grouper}}/{{state.service_description}}">
+                                    {{ state.service_description }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            {% endfor %}
+        </ul>
+    </li>
+{% endfor %}
+</ul>
+</div>
 
 {% endblock %}

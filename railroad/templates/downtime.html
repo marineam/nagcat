@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load services %}
+
+{%block head %}
+<link rel="stylesheet" href="/railroad-static/css/downtime.css" type="text/css"/>
+<script type="text/javascript" language="javascript" src="/railroad-static/js/downtime.js"></script>
+{% endblock %}
+
+{% block header %}
+<h1>Downtime</h1>
+{% endblock %}
+
+{% block content %}
+    {% if downtime %}
+        <div id="downtimegraph">
+            {{ json_downtime }}
+        </div>
+        {% for dt in downtime %}
+            {% cycle '<div class="downtimerow">' '</div>' as even %}
+            <div class="downtime" id="{{dt.key}}">
+                <h3>{{ dt.expr }}</h3>
+                <ul>
+                    <li>{{ dt.start_time|pretty_daterange:dt.end_time }}</li>
+                    <li>Comment: "{{dt.comment}}"</li>
+                    <li>Scheduled by: {{dt.author}}</li>
+                    <li>Cancellation key: <a href="#" class="canceldowntime">{{ dt.key }}</a></li>
+                    <li class="twirler">
+                        <span class="target">Affected Services:</span>
+                        <ul>
+                            {% regroup dt.hosts_services by service as services %}
+                            {% for service in services %}
+                                <li class="twirler">
+                                    <span class="target">{{service.grouper}}</span>
+                                    <ul>
+                                        {% for host in service.list %}
+                                            <li>{{host.host}}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li class="twirler">
+                        <span class="target">Affected Hosts:</span>
+                        <ul>
+                            {% regroup dt.hosts_services by host as hosts %}
+                            {% for host in hosts %}
+                                <li class="twirler">
+                                    <span class="target">{{host.grouper}}</span>
+                                    <ul>
+                                        {% for service in host.list %}
+                                            <li>{{service.service}}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            {% cycle '<div class="downtimerow">' '</div>' as even %}
+        {% endfor %}
+    {% else %}
+        <p>There are no scheduled downtimes.</p>
+    {% endif %}
+{% endblock %}

@@ -29,6 +29,7 @@ from railroad.errors import RailroadError
 
 DAY = 60 * 60 * 24 # Seconds in a day
 
+
 def sigfigs(float):
     """Round float using desired sigfigs"""
     desired_sigfigs = 3
@@ -44,6 +45,7 @@ def sigfigs(float):
     else:
         return round(float, desired_sigfigs - power)
 
+
 def labelize(data, index, base, unit):
     """Return a label containing statistics"""
     statistics = data[index]['statistics']
@@ -53,6 +55,7 @@ def labelize(data, index, base, unit):
         (cur, unit, str(sigfigs(statistics['min'] / base)), unit,
         str(sigfigs(statistics['max'] / base)), unit,
         str(sigfigs(statistics['avg'] / base)), unit))
+
 
 def getColors(names):
     rng_state = random.getstate()
@@ -68,21 +71,22 @@ def getColors(names):
         l = 0.375 + 0.25 * random.random()
 
         # convert it from HSL to RGB
-        c = (1 - abs(2*l-1)) * s;
+        c = (1 - abs(2 * l - 1)) * s
         hp = floor(h / 60)
         x = c * (1 - abs(hp % 2 - 1))
-        (rp,gp,bp) = {0: (c,x,0), 1: (x,c,0), 2: (0,c,x),
-                    3: (0,x,c), 4: (x,0,c), 5: (c,0,x)}[hp]
+        (rp, gp, bp) = {0: (c, x, 0), 1: (x, c, 0), 2: (0, c, x),
+                    3: (0, x, c), 4: (x, 0, c), 5: (c, 0, x)}[hp]
 
         m = l - 0.5 * c
-        r,g,b = [x*256 for x in (rp + m, gp + m, bp + m)]
+        r, g, b = [x * 256 for x in (rp + m, gp + m, bp + m)]
 
         # Convert it to a hex color
-        colors.append('#%02x%02x%02x' % (r,g,b))
+        colors.append('#%02x%02x%02x' % (r, g, b))
 
     random.setstate(rng_state)
 
     return colors
+
 
 def get_data(host, service, start=None, end=None, resolution='150'):
     if not end:
@@ -130,13 +134,15 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     # Graph options for FLOT
     graph_options = {
         'xaxis': {
-            'mode': 'time', 
+            'mode': 'time',
         },
-        'yaxis': {}, 
-        'legend': {'position': 'nw'}, 
+        'yaxis': {},
+        'legend': {'position': 'nw'},
         'selection': {'mode': 'x'},
         'pan': {'interactive': True},
-        'grid': {}
+        'grid': {
+            'hoverable': True,
+        }
     }
 
     # Handle unconventional trend definitions
@@ -183,13 +189,13 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     # [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
     #   { label: "Bar", data: [ [11, 13], [19, 11], [30, -7] ] } ]
     # See Flot Reference (http://flot.googlecode.com/svn/trunk/API.txt)
-    flot_data = [{'label': label[1], railroad_conf: {}, 'data': []}    \
+    flot_data = [{'label': label[1], railroad_conf: {}, 'data': []}
                     for label in labels]
 
     labels = map(lambda x: x[0], labels)
     state_data = []
 
-    graph_options['colors'] = getColors(labels);
+    graph_options['colors'] = getColors(labels)
 
     # Reading graph options
     for index in indices:
@@ -199,12 +205,13 @@ def get_data(host, service, start=None, end=None, resolution='150'):
             continue
 
         trend_settings = {}
-        for var in trend_attributes: 
+        for var in trend_attributes:
             trend_settings[var] = trend.get(var, '')
 
+        flot_data[index]['lines'] = {'show': True}
         if trend_settings['display']:
-            flot_data[index]['lines'] =     \
-                {'fill': 0.5 if trend_settings['display'] == 'area' else 0}
+            flot_data[index]['lines']['fill'] = (
+                    0.5 if trend_settings['display'] == 'area' else 0)
 
         if trend_settings['scale']:
             flot_data[index][railroad_conf]['scale'] = trend_settings['scale']
@@ -269,6 +276,10 @@ def get_data(host, service, start=None, end=None, resolution='150'):
 
             flot_data[index]['data'].append([x, data])
 
+            if 'lines' not in flot_data[index]:
+                flot_data[index]['lines'] = {}
+            flot_data[index]['lines']['show'] = True
+
         x += res
 
     empty_graph = True
@@ -288,9 +299,10 @@ def get_data(host, service, start=None, end=None, resolution='150'):
 
         for index in indices:
             if flot_data[index][statistics]['num'] > 0:
-                flot_data[index][statistics]['avg'] =           \
-                    flot_data[index][statistics]['sum'] /       \
-                        flot_data[index][statistics]['num']
+                flot_data[index][statistics]['avg'] = (
+                    flot_data[index][statistics]['sum'] /
+                        flot_data[index][statistics]['num'])
+
                 if flot_data[index][statistics]['max'] > max:
                     max = flot_data[index][statistics]['max']
 
@@ -353,6 +365,7 @@ def get_data(host, service, start=None, end=None, resolution='150'):
              }
 
     return result
+
 
 def index(request, host, service, start, end, resolution='150'):
     """Reads the rrd and returns the data in flot-friendly format"""

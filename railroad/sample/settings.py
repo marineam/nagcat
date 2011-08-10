@@ -17,6 +17,8 @@
 # Path to the nagcat data directory (remember trailing slash)
 DATA_PATH = '/var/lib/nagcat/data/'
 RRA_PATH = '/var/lib/nagcat/rra/'
+# URL for Nagnet XMLRPC (For downtime scheduling)
+NAGIOS_XMLRPC_URL = 'http://localhost:8080'
 
 ### Django settings for railroad project. ###
 
@@ -105,5 +107,7 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
 #    'django.contrib.sessions',
     'django.contrib.sites',
+    'railroad.viewhosts',
     'railroad.parserrd',
+    'railroad.permalink',
 )
