@@ -399,6 +399,7 @@ $(document).ready(function() {
                         $('#generateLink').before('<label>Permalink:</label>' +
                             '<input id="permalink" type="text"/>');
                         $('#permalink').val(text).select();
+                        $('#permalink').attr('readonly', true);
                         $('#generateLink').remove();
                         $('#permalinkLoading').remove();
                     },
