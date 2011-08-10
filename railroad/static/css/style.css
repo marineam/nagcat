@@ -430,7 +430,7 @@ fieldset {
     padding-left: 5px;
 }
 
-#toolbar li:hover {
+#toolbar li:not(.nohover):hover {
     background-color: #CCC;
     border-color: #777;
 }
