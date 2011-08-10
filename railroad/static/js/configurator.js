@@ -1,6 +1,11 @@
 $(document).ready(function() {
     update_number_graphs();
 
+    if ($('#permalink')) {
+        var text = $('#permalink').val();
+        text = window.location.protocol + window.location.host + text;
+        $('#permalink').val(text);
+    }
     // Bind the graph time range selection buttons
     $('.options .currentTime').live('click', function() {
         var dateRangeButton = this;

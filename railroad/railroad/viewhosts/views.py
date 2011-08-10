@@ -870,7 +870,7 @@ def serviceconfigurator(request, service):
 
 
 def configurator(request, stat, obj, htmltitle='Configurator',
-        pagetitle='Configurator', graphs=[], page_state=''):
+        pagetitle='Configurator', graphs=[], permalink=False, link=''):
     """Returns a configurator page
     Loads specified graphs, sets specified htmltitle and pagetitle, and
     displays the configurator form
@@ -879,7 +879,8 @@ def configurator(request, stat, obj, htmltitle='Configurator',
         'json_services': json.dumps(graphs, default=json_handle_datetime),
         'htmltitle': htmltitle,
         'pagetitle': pagetitle,
-        'page_state': page_state,
+        'permalink': permalink,
+        'link' : link,
     }
     if 'REMOTE_USER' in request.META and request.META['REMOTE_USER']:
         context_data['remoteuserid'] = request.META['REMOTE_USER']

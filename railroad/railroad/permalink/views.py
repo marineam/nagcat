@@ -84,7 +84,7 @@ def retrieve_link(request, link):
         service['nagcat_template'] = servicedetail['nagcat_template']
         graphs.append(service)
 
-    return views.configurator(request,stat,obj,graphs=graphs)
+    return views.configurator(request,stat,obj,graphs=graphs, permalink=True,link=link)
 
 def list_links(request):
 

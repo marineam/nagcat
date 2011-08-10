@@ -8,6 +8,9 @@
 
 {% block header %}
     <h1>{{pagetitle}}</h1>
+    {% if permalink %}
+        <input id="permalink" style="float: right;" type="text"value="{% url railroad.permalink.views.retrieve_link link %}" readonly>
+    {% else %}
     <ul class="liButtons permalink">
         <li id="generateLink">Get Permalink</li>
     </ul>
@@ -16,6 +19,7 @@
         <p> Please enter an optional description for your permalink </p>
         <textarea id="permalinkDescription" rows="5" cols="80"></textarea>
     </div>
+    {% endif %}
 {% endblock %}
 {% block content %}
     <div class="data" id="remoteuserid">{{ remoteuserid }}</div>
