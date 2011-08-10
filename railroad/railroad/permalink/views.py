@@ -9,7 +9,7 @@ import json
 import random
 import datetime
 
-VALID_HTP_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
+VALID_HTTP_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
 LINK_LENGTH = 6
 
 def random_b64_string(length):
