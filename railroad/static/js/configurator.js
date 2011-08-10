@@ -70,28 +70,6 @@ $(document).ready(function() {
         }
     });
 
-    $('#service_count').click(function () {
-        $('.service_row').show();
-        console.log(update_hidden_count);
-        update_hidden_count();
-        $(this).siblings().css({'opacity': 1.0}).data('checkp', false);
-    });
-    $('#stats .state_count').bind('click', function() {
-        var buttonClass = $(this).attr('name');
-        var checkp = !$(this).data('checkp');
-        $(this).data('checkp', checkp);
-
-        $('.service_row').each(function(index, element) {
-            if ($(element).children('.status_text').hasClass(buttonClass)) {
-                if (checkp) {
-                    $(element).hide();
-                } else {
-                    $(element).show();
-                }
-            }
-        });
-        update_hidden_count();
-    });
 
     $('#cleargraphs').click(function () {
         $('#graphs').data('meta', []);

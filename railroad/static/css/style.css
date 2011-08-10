@@ -435,10 +435,6 @@ fieldset {
     border-color: #777;
 }
 
-#toolbar li.state_ok:hover       { background-color: #9D9 !important; }
-#toolbar li.state_warning:hover  { background-color: #DD9 !important; }
-#toolbar li.state_critical:hover { background-color: #D42 !important; }
-#toolbar li.state_unknown:hover  { background-color: #AAA !important; }
 
 #toolbar input { margin: 3px 0 0 0; }
 
