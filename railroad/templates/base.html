@@ -3,50 +3,42 @@
 <html>
 <head>
 <title>Railroad: {% block title %}{% endblock %}</title>
-<script language="javascript" type="text/javascript" 
-    src="/railroad-static/jquery.min.js"></script>
-<script language="javascript" type="text/javascript" 
-    src="/railroad-static/flot/jquery.flot.svn.js"></script>
-<script language="javascript" type="text/javascript" 
-    src="/railroad-static/flot/jquery.flot.stack.svn.js"></script>
-<script language="javascript" type="text/javascript" 
-    src="/railroad-static/flot/jquery.flot.selection.min.js"></script>
 <script language="javascript" type="text/javascript"
-    src="/railroad-static/jquery.form.js"></script>
-<script language="javascript" type="text/javascript"
-    src="/railroad-static/jquery-ui-1.8.13.custom.min.js"></script>
-<script language="javascript" type="text/javascript"
-    src="/railroad-static/jquery.ajaxmanager.js"></script>
+    src="/railroad-static/js/lib/combined.min.js"></script>
 
-<!--[if IE]><script language="javascript" type="text/javascript" src="/railroad-static/flot/excanvas.js"></script><![endif]-->
+<script language="javascript" type="text/javascript" src="/railroad-static/js/functions.js"></script>
+<script language="javascript" type="text/javascript" src="/railroad-static/js/base.js"></script>
 
-<script language="javascript" type="text/javascript"
-    src="/railroad-static/rr.js"></script>
+<link rel="stylesheet" href="/railroad-static/css/style.css" type="text/css">
+<link rel="stylesheet" href="/railroad-static/css/jquery-ui.css" type="text/css">
 
-<link rel="stylesheet" href="/railroad-static/style.css" type="text/css">
-<link rel="stylesheet" href="/railroad-static/jquery-ui.css" type="text/css">
+{%block head %}{% endblock %}
 
 </head>
 
 <body>
 
-<div id="header">
-<ul>
-<li id="title">Railroad</li>
-<li><a href="{% url railroad.viewhosts.views.index %}">Home</a></li>
-<li><a href="{% url railroad.viewhosts.views.directconfigurator %}">Configurator</a></li>
-<li><input type="checkbox" name="hide_all_hints" id="hide_all_hints" class="persist">Hide all hints.</input></li>
-</ul>
-</div>
-<div id="link"></div>
 {% include "sidebar.html" %}
-<div id="content">
-<h1>{% block header %}{% endblock %}</h1>
-{% block content %}{% endblock %}
+<div id="wrapper">
+    <div id="menu">
+        <ul>
+            <li><a href="{% url railroad.viewhosts.views.index %}">Railroad</a></li>
+            <li><a href="{% url railroad.viewhosts.views.directconfigurator %}">Configurator</a></li>
+            <li><a href="{% url railroad.viewhosts.views.downtime %}">Downtime</a></li>
+            <li><a href="{% url railroad.permalink.views.list_links %}">Permalinks</a></li>
+            <li id="preferences">
+                <a href="#">Preferences</a>
+            </li>
+        </ul>
+    </div>
+    {% include "preferences.html" %}
+    <div id="header">
+        {% block header %}{% endblock %}
+    </div>
+    <div id="content">
+        {% block content %}{% endblock %}
+    </div>
 </div>
-<div id="debug">
-    <input type="checkbox" name="debug" id="debug_check">Debug</input>
-    <ul></ul> 
-</div>
+
 </body>
 </html>

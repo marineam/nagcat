@@ -1,0 +1,7 @@
+The files in "./pieces/" are combined and sent to a javascript minimizer to
+make "combined.min.js". The order is defined by the name of the files, and is
+significant.
+
+In general the order should be jquery, jquery ui, jquery libraries, other
+stuff. In particular it is important that a librarie's dependencies come before
+it by name.

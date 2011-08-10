@@ -28,6 +28,7 @@ from cStringIO import StringIO
 
 from django.conf import settings
 
+
 def label(code):
     if isinstance(code, str):
         return ('~', 0, code)    # built-in functions ('~' sorts at the end)
@@ -36,7 +37,9 @@ def label(code):
                              code.co_filename,
                              code.co_firstlineno)
 
+
 class KCacheGrind(object):
+
     def __init__(self, profiler):
         self.data = profiler.getstats()
         self.out_file = None
@@ -103,7 +106,9 @@ class KCacheGrind(object):
         totaltime = int(subentry.totaltime * 1000)
         print >> out_file, '%d %d' % (lineno, totaltime)
 
+
 class ProfilerMiddleware(object):
+
     def process_view(self, request, callback, callback_args, callback_kwargs):
         if settings.DEBUG and 'prof' in request.GET:
             self.profiler = cProfile.Profile()

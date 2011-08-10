@@ -1,9 +1,20 @@
-﻿{% extends "base.html" %}
+﻿<html>
+    <head>
+        <title>404: Page not found</title>
+        <style type="text/css">
+            .fourhundredandfour img {
+                display: block;
+                padding: 10px;
+                border: 1px solid black;
+            }
+        </style>
+    </head>
 
-{% block title %}Error 404: File not found{% endblock %}
-
-{% block header %}Error 404: File not found{% endblock %}
-
-{% block content %}
-Sorry, the page you were looking for cannot be found.
-{% endblock %}
+    <body>
+        <div class="fourhundredandfour">
+            <img src="/railroad-static/images/404.jpg"/>
+            <h2>Something has gone horribly wrong. Sorry about that.</h2>
+            <p><a href="/railroad/">Go back home</a></p>
+        </div>
+    </body>
+</html>

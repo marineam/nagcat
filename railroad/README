@@ -20,6 +20,7 @@ Dependencies
     * mod_wsgi
     * python-json
     * Nagcat
+    * rrdtool                           Python bindings needed
 
 Installation
     
@@ -57,7 +58,7 @@ Installation
 
          ln -s <install path>/sample/railroad.conf railroad.conf
 
-       * If this is a long term install, we'd suggest cp'ing it:
+       * If this is a long term install, we suggest cp'ing it:
 
          cp <install path>/sample/railroad.conf railroad.conf
 
@@ -85,8 +86,10 @@ Installation
 
 Developers/Maintainers
 
+    Mike Cooper (mythmon@google.com)
+    Jordan Evans (jordane@google.com)
     Eric Harmon (eharmon@itasoftware.com)
     Ryan Clough (rclough@itasoftware.com)
-    Michael Marineau (mmarineau@itasoftware.com)
+    Michael Marineau (marineam@google.com)
     Jonathan Yu (jyu@itasoftware.com)
 
