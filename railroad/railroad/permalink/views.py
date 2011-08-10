@@ -74,8 +74,14 @@ def retrieve_link(request, link):
             service['service'])
         servicedetail['slug'] = service['slug']
         service['duration'] = servicedetail['state_duration']
+        if '_TEST' in servicedetail:
+            servicedetail['nagcat_template'] = servicedetail['_TEST'].split(';',
+                1)[-1]
+        else:
+            servicedetail['nagcat_template'] = ''
         html = render_to_response("graph.html",servicedetail).content
         service['html'] = html
+        service['nagcat_template'] = servicedetail['nagcat_template']
         graphs.append(service)
 
     return views.configurator(request,stat,obj,graphs=graphs)
