@@ -30,7 +30,7 @@ class build_py(du_build_py):
 setup_args = dict(
     name = "nagcat",
     author = "Michael Marineau",
-    author_email = "mmarineau@itasoftware.com",
+    author_email = "marineam@google.com",
     url = "http://code.google.com/p/nagcat/",
     license = "Apache 2.0",
     packages = getPackages("python/nagcat") +

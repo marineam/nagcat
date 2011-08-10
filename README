@@ -79,6 +79,6 @@ bin/nagcat -c docs/example.coil -t http_title -H www.w3.org -P 80
 CREDITS
 -------
 
-NagCat is maintained by Michael Marineau <mmarineau@itasoftware.com>
+NagCat is maintained by Michael Marineau <marineam@google.com>
 with the help of fellow ITA Software employees and licensed under the
 Apache License, Version 2.0.
