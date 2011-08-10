@@ -38,10 +38,8 @@ $(document).ready(function() {
         var startDate = new Date(dt.start_time * 1000);
         var endDate = new Date(dt.end_time * 1000);
         if (startDate < new Date()) {
-            var offset = (max_date - new Date()) * 0.008;
-            console.log(offset);
+            var offset = (max_date - new Date()) * 0.01;
             startDate = new Date().add({milliseconds: -offset});
-            console.log('adjusting start date');
         }
 
         flot_data.push({
@@ -80,6 +78,24 @@ $(document).ready(function() {
 
     var plot = $.plot($('#downtimegraph'), flot_data, flot_options);
 
+    // fade out the left side of the graph.
+    var ctx = plot.getCanvas().getContext('2d');
+    var o = plot.pointOffset({ x: new Date(), y: 0.5 });
+    console.log(o);
+    var bounds = {
+        left: o.left,
+        bottom: o.top,
+        top: o.top - plot.height(),
+        right: o.left + plot.width(),
+    };
+    var gradient = ctx.createLinearGradient(bounds.left - 5, bounds.top,
+                                            bounds.left + 2, bounds.top);
+    gradient.addColorStop(0, 'rgba(255,255,255,1.0)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0.0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(bounds.left - 8, bounds.top, 10, plot.height());
+
+    // Set up colored swatches next to the downtime text.
     var data = plot.getData();
     for (var i=0; i<data.length; i++) {
         var color = data[i].color;
@@ -93,6 +109,7 @@ $(document).ready(function() {
             })
     }
 
+    // Highlight the text when hovering over the graph
     $('#downtimegraph').bind('plothover', function(event, pos, item) {
         if(item) {
             var key = item.datapoint[3];
