@@ -6,15 +6,14 @@ from django.template import Context, loader
 from railroad.permalink.models import Service, ConfiguratorPage
 from railroad.viewhosts import views
 import json
-import base64
 import random
 import datetime
 
-BASE64 = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
+VALID_HTP_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
 LINK_LENGTH = 6
 
 def random_b64_string(length):
-    return ''.join(random.choice(BASE64) for _ in range(length))
+    return ''.join(random.choice(VALID_HTTP_CHARS) for _ in range(length))
 
 def is_duplicate_page(link):
     try:
