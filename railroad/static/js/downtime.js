@@ -81,6 +81,19 @@ $(document).ready(function() {
 
     var plot = $.plot($('#downtimegraph'), flot_data, flot_options);
 
+    var data = plot.getData();
+    for (var i=0; i<data.length; i++) {
+        var color = data[i].color;
+        var expr = data[i].data[0][3];
+
+        $('<div class="swatch" id="swatch{0}"></div>'.format(expr))
+            .prependTo($('#{0} h3'.format(expr)))
+            .css({
+                "background-color": color,
+                "border": "1px solid " + $.color.parse(color).scale('rgb', 0.7).toString(),
+            })
+    }
+
     $('#downtimegraph').bind('plothover', function(event, pos, item) {
         if(item) {
             var key = item.datapoint[3];
