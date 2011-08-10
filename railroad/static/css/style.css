@@ -485,8 +485,6 @@ fieldset {
     display: none;
     border: 1px solid black;
     position: absolute;
-    right: 130px;
-    top: 0px;
     background-color: #DDD;
     z-index: 8;
 }

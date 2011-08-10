@@ -197,7 +197,7 @@ function restoreFormPersistence(elemPersist) {
 var bindMenu = function(button, menu) {
     var pos = $(button).offset();
     var height = $(button).height();
-    $(menu).position({my: 'left top', at: 'left bottom', of: $(button)}).hide();
+    $(menu).show().position({my: 'left top', at: 'left bottom', of: $(button)}).hide();
     $(button).bind('click', function() {
         $(menu).toggle();
     });

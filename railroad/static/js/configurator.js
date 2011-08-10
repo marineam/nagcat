@@ -374,11 +374,17 @@ $(document).ready(function() {
 
     $('#generateLink').click(function () {
         if (!$('#generateLink').data('description')) {
+            $('#generateLink').text('Done');
             $('#permalinkDiv').show();
+            $('#permalinkDiv').position({
+                my: 'right top',
+                at: 'left top',
+                of: $('#generateLink')});
+
             $('#generateLink').data('description', true);
         } else {
             $('#permalinkDiv').hide();
-            $('#generateLink').before(
+            $('#generateLink').html(
                 '<img src="/railroad-static/images/loading.gif" ' +
                 'id="permalinkLoading" />');
             servicesList = generateState();
@@ -398,13 +404,14 @@ $(document).ready(function() {
                     },
                 error: function (error, textStatus, XMLHttpRequest) {
                         console.log("there was an error");
-                        $('#permalinkLoading').remove();
+                        $('#generateLink').html('Get Permalink');
                         $('#generateLink')
                             .before('<span class="error">Error</span>');
                         setTimeout(function() {
                             $('#generateLink').siblings('.error').fadeOut(1000,
                                 function() { $(this).remove(); });
                         }, 3000);
+                        $('#generateLink').data('description', '');
                     },
             });
         }
