@@ -11,7 +11,6 @@ $(document).ready(function() {
     var yaxis_bits = [];
     var min_date = downtime[0].start_time;
     var max_date = downtime[0].end_time;
-    var now = new Date();
 
     for (var i=1; i<downtime.length; i++) {
         var dt = downtime[i];
@@ -38,10 +37,10 @@ $(document).ready(function() {
 
         var startDate = new Date(dt.start_time * 1000);
         var endDate = new Date(dt.end_time * 1000);
-        if (startDate < now) {
-            var offset = (max_date - new Date()) * 0.01;
+        if (startDate < new Date()) {
+            var offset = (max_date - new Date()) * 0.008;
             console.log(offset);
-            startDate = now.add({milliseconds: -offset});
+            startDate = new Date().add({milliseconds: -offset});
             console.log('adjusting start date');
         }
 
