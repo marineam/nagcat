@@ -103,9 +103,9 @@ TEMPLATE_DIRS = (
 )
 
 INSTALLED_APPS = (
-#    'django.contrib.auth',
     'django.contrib.contenttypes',
-#    'django.contrib.sessions',
     'django.contrib.sites',
     'railroad.parserrd',
+    'railroad.viewhosts',
+    'railroad.permalink',
 )

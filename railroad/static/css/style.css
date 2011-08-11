@@ -463,10 +463,16 @@ fieldset {
 }
 #quicklook ul ul { list-style: circle; }
 #quicklook ul ul ul { list-style: square; }
+#quicklook li {
+    margin: 2px 0;
+}
+
 
 #quicklook .host { cursor: pointer; font-size: 1.1em; }
 
-#quicklook .status_text { cursor: pointer; font-size: 1.2em; font-weight: bold; }
+#quicklook .status_text {
+    cursor: pointer; font-size: 1.2em; font-weight: bold;
+}
 .state_ok       { background-color: #BFB !important;  }
 .state_warning  { background-color: #FFB !important; }
 .state_critical { background-color: #F64 !important; }
@@ -536,4 +542,10 @@ fieldset {
 
 #pages {
     display: none;
+}
+
+.ui-autocomplete {
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 20px;
 }

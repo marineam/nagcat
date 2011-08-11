@@ -65,7 +65,8 @@ $(document).ready(function() {
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
-            $(this).attr('name'), minLength: 1, autoFocus: true})
+            $(this).attr('name'), minLength: 1, autoFocus: true,
+                delay: 30,})
     });
 
     //Make it so pressing enter triggers the add graphs button
@@ -105,6 +106,20 @@ $(document).ready(function() {
 
     makeDatetimePicker($('#downtime-from').first());
     makeDatetimePicker($('#downtime-to').last());
+
+    var makeDowntimeError = function(err) {
+        $('#downtime-submit')
+            .after('<span id="downtimeError" class="error">{0}</span>'
+                .format(err));
+
+        setTimeout(function() {
+            $('#downtimeError').fadeOut(function() {
+                $('#downtimeError').remove();
+            });
+        }, 5000);
+        console.log(err);
+    }
+
     $('#configurator #downtime-submit').bind('click', function() {
         $('#downtime-submit').parent().after(
             '<img src="/railroad-static/images/loading.gif" ' +
@@ -147,25 +162,26 @@ $(document).ready(function() {
         }
 
         if (!expr) {
-            console.log('no graphs')
+            makeDowntimeError("No graphs selected.");
+            $('#downtimeLoading').remove();
             return;
         }
 
         var from = $('#downtime-from').datepicker('getDate');
         var to = $('#downtime-to').datepicker('getDate');
 
-        var now = new Date();
-        if (!(from && to) || from < now || to < now) {
-            $('#downtimeLoading').after('<span id="downtimeError"' +
-                'class="error">You must enter a future date.</span>');
+        var about_now = new Date().add({minutes: 5});
+        if (from < about_now) {
+            from = about_now;
+        }
+        if (!(from && to)) {
+            makeDowntimeError("Invalid dates!");
             $('#downtimeLoading').remove();
-
-            setTimeout(function() {
-                $('#downtimeError').fadeOut(function() {
-                    $('#downtimeError').remove();
-                });
-            }, 5000);
-            console.log('invalid dates');
+            return;
+        }
+        if (to < about_now) {
+            makeDowntimeError("Can't schedule downtimes in the past.");
+            $('#downtimeLoading').remove();
             return;
         }
 
@@ -204,9 +220,7 @@ $(document).ready(function() {
                 $('#downtimeLoading').remove();
             },
             error: function () {
-                console.log('error');
-                $('#downtimeLoading').after(
-                    '<span class="error">There was an error.</span>');
+                makeDowntimeError("There was an error.");
                 $('#downtimeLoading').remove();
             }
         });

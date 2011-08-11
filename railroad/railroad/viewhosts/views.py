@@ -363,6 +363,14 @@ def index(request):
     stat, obj = parse()
 
     services = stat['service']
+    hosts = stat['host']
+
+    host_status = {}
+    for h in hosts:
+        host_status[h['host_name']] = h['current_state']
+
+    for s in services:
+        s['host_state'] = host_status[s['host_name']]
 
     context_data = {'services': services}
     context_data = add_hostlist(stat, obj, context_data)
