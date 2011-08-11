@@ -28,7 +28,7 @@ def autocomplete(request, context):
     """
 
     query = request.GET.get('term', '')
-    limit = int(request.GET.get('limit', 10))
+    limit = int(request.GET.get('limit', 100))
 
     stat, obj = views.parse()
 
@@ -76,5 +76,6 @@ def autocomplete(request, context):
     results = itertools.product(*product_foder)
     results = [','.join(result).strip() for result in itertools.islice(results, limit)]
     result = [{"value": r} for r in results if r]
+    result.sort(lambda x,y: cmp(len(x['value']), len(y['value'])))
 
     return HttpResponse(json.dumps(result))
