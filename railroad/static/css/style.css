@@ -422,7 +422,6 @@ fieldset {
     background-color: #EEE;
     height: 21px;
     padding: 4px 8px;
-    cursor: pointer;
     margin-right: -1px;
     border-radius: 2px;
 }
@@ -432,6 +431,7 @@ fieldset {
 
 #toolbar li:not(.nohover):hover {
     background-color: #CCC;
+    cursor: pointer;
     border-color: #777;
 }
 

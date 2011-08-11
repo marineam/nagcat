@@ -525,6 +525,12 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
             raise xmlrpc.Fault(1, "start/stop must be integers")
 
         now = int(time.time())
+
+        if start < now:
+            start = now
+        if end < now:
+            raise xmlrpc.Fault(1, "stop must be in the future")
+
         key = base64.urlsafe_b64encode(struct.pack('ib',
                 now, random.randint(-127,127))).strip('=')
         comment += ' key:%s expr:%s' % (key, expr.strip())

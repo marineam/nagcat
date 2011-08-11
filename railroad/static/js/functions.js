@@ -67,6 +67,16 @@ Array.prototype.uniqueList = function() {
     return uniqList;
 }
 
+// Fix the datetimepicker's now button to account for time zones.
+$.datepicker._gotoToday = function(id) {
+    this._base_gotoToday(id);
+    var now = new Date();
+    if ($('#utc').prop('checked')) {
+        now.add({minutes: now.getTimezoneOffset()});
+    }
+    this._setTime(this._getInst($(id)[0]), now);
+}
+
 /******* FLOT HELPER FUNCTIONS *******/
 $.plot.formatDate = function(d, fmt, monthNames) {
     var leftPad = function(n) {
@@ -348,6 +358,7 @@ function makeDatetimePicker(elem, date, onClose) {
         changeMonth: true,
         changeYear: true,
     });
+    datePicker.timezone = tz;
     if (date) {
         $(datePicker).datetimepicker('setDate', date)
     }

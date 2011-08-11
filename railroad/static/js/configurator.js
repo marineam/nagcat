@@ -124,10 +124,11 @@ $(document).ready(function() {
         $('#downtime-submit').parent().after(
             '<img src="/railroad-static/images/loading.gif" ' +
             'id="downtimeLoading" />');
+        $('.cancelcode').remove();
 
         // gather data
         var expr = '';
-        var checkedServiceRows = 
+        var checkedServiceRows =
             $('.service_row').filter(
             function(index) {
                 return $(this).find('.controls input')
@@ -170,17 +171,8 @@ $(document).ready(function() {
         var from = $('#downtime-from').datepicker('getDate');
         var to = $('#downtime-to').datepicker('getDate');
 
-        var about_now = new Date().add({minutes: 5});
-        if (from < about_now) {
-            from = about_now;
-        }
         if (!(from && to)) {
             makeDowntimeError("Invalid dates!");
-            $('#downtimeLoading').remove();
-            return;
-        }
-        if (to < about_now) {
-            makeDowntimeError("Can't schedule downtimes in the past.");
             $('#downtimeLoading').remove();
             return;
         }
@@ -195,11 +187,6 @@ $(document).ready(function() {
         to = Math.round(to.getTime() / 1000.0);
 
         var comment = $('#downtime-comment').prop('value');
-        if (!expr) {
-            console.log('no comment');
-            return;
-        }
-
         var user = $('#remoteuserid').text().trim();
 
         var args = [expr, from, to, user, comment]
@@ -219,7 +206,8 @@ $(document).ready(function() {
                     .format(cancellationCode));
                 $('#downtimeLoading').remove();
             },
-            error: function () {
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.log(textStatus + ': ' + jqXHR.responseText);
                 makeDowntimeError("There was an error.");
                 $('#downtimeLoading').remove();
             }
