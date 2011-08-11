@@ -170,17 +170,8 @@ $(document).ready(function() {
         var from = $('#downtime-from').datepicker('getDate');
         var to = $('#downtime-to').datepicker('getDate');
 
-        var about_now = new Date().add({minutes: 5});
-        if (from < about_now) {
-            from = about_now;
-        }
         if (!(from && to)) {
             makeDowntimeError("Invalid dates!");
-            $('#downtimeLoading').remove();
-            return;
-        }
-        if (to < about_now) {
-            makeDowntimeError("Can't schedule downtimes in the past.");
             $('#downtimeLoading').remove();
             return;
         }
