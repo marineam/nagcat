@@ -65,7 +65,8 @@ $(document).ready(function() {
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
         $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
-            $(this).attr('name'), minLength: 1, autoFocus: true})
+            $(this).attr('name'), minLength: 1, autoFocus: true,
+                delay: 30,})
     });
 
     //Make it so pressing enter triggers the add graphs button
