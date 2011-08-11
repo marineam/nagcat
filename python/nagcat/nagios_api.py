@@ -528,7 +528,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
 
         if start < now:
             start = now
-        if end < now:
+        if stop < now:
             raise xmlrpc.Fault(1, "stop must be in the future")
 
         key = base64.urlsafe_b64encode(struct.pack('ib',
