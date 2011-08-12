@@ -112,42 +112,8 @@ function drawSOServicePage() {
 
 // Plots the data in the given element
 function drawServiceGraph (elemGraph, data) {
-    redrawGraph(elemGraph, data)
-    if(data.options.yaxis.label) {
-    // if there isn't already a ylabel
-        if (elemGraph.siblings('.ylabel').length == 0) {
-            $(elemGraph).before('<div class="ylabel">' +
-                data.options.yaxis.label + '</div>');
-        }
-        if ( $(elemGraph).css('display') === 'none' ) {
-            $(elemGraph).siblings('.ylabel').css('display', 'none');
-        }
-    }
+    drawGraph(elemGraph, data);
 
-    $('.removeSeries').live('click', function() {
-        var meta = $('#graphs').data('meta');
-        var metaIndex = -1;
-        var elemGraph = $(this).closest('.legend').siblings('.graph');
-        for (var i=0; i <meta.length; i++) {
-            if (  meta[i].slug === $(elemGraph).attr('name')) {
-                metaIndex = i;
-                break;
-            }
-        }
-        if (!meta[metaIndex]) {
-            // The graph must have been removed. Fugettaboutit
-            return
-        }
-        if (meta[metaIndex].data) {
-            data = meta[metaIndex].data;
-            for (var i=0; i < data.data.length; i++) {
-                if (data.data[i].label == $(this).attr('id')) {
-                    data.data[i]['lines']['show'] ^= true; // toggle
-                }
-            }
-            redrawGraph(elemGraph, data);
-        }
-    });
     var prevItem = null;
     $('.graph').parent().bind('plothover', function(event, pos, item) {
         if (item) {

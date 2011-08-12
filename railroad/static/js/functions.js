@@ -606,12 +606,15 @@ function drawGraph (elemGraph, data) {
         var metaIndex = -1;
         var elemGraph = $(this).closest('.legend').siblings('.graph');
         for (var i=0; i <meta.length; i++) {
-            if (  meta[i].slug === $(elemGraph).attr('name')) {
+            if (meta[i].slug === $(elemGraph).attr('name')) {
+                if (meta[i].uniq != $(elemGraph).attr('id')) {
+                    continue;
+                }
                 metaIndex = i;
                 break;
             }
         }
-        if (!meta[metaIndex]) {
+        if (metaIndex < 0 || !meta[metaIndex]) {
             // The graph must have been removed. Fugettaboutit
             return
         }
@@ -635,6 +638,9 @@ function redrawGraph(element, data) {
     var metaIndex;
     for (var i=0; i < meta.length; i++) {
         if (meta[i].slug === data.slug) {
+            if (meta[i].uniq != $(element).attr('id')) {
+                continue;
+            }
             metaIndex = i;
             break;
         }
