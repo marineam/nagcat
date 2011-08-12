@@ -162,6 +162,8 @@ $(document).ready(function() {
             expr = '(' + (objs.join(') or (')) + ')';
         } else { 
             makeDowntimeError('Please choose to downtime by host or service');
+            $('#downtimeLoading').remove();
+            return;
         }
 
         if (!expr) {
