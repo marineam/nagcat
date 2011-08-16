@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load services %}
 
 {% block title %}Group: {{group_name}}{% endblock %}
 
@@ -8,37 +9,54 @@
 
 {% block content %}
 
-<div class="services">
 <h2>Hosts</h2>
 <table>
-<tr>
-{% for host in hosts %}
-	{% ifequal host.current_state '0' %}
-		<td class="greenbg">
-	{% else %}
-		{% ifequal host.current_state '1' %}
-			<td class="yellowbg">
-		{% else %}
-			<td class="redbg">
-		{% endifequal %}
-	{% endifequal %}
-    <a href="/railroad/configurator/host/{{ host.host_name }}">{{host.host_name}}</a>
-	</td>
-    {% if forloop.counter|divisibleby:"5" %}</tr><tr>{% endif %}
-{% endfor %}
-</tr>
+    <tr>
+    {% for host in hosts %}
+        <td class="state_{{ host.current_state|state_name|lower }}">
+            <a href="/railroad/configurator/host/{{ host.host_name }}">{{host.host_name}}</a>
+        </td>
+        {% if forloop.counter|divisibleby:"5" %}</tr><tr>{% endif %}
+    {% endfor %}
+    </tr>
 </table>
 <br />
 <h2>Services</h2>
 <table>
 <tr>
-{% for service in services %}
-	<td>
-        <a href="/railroad/configurator/service/{{ service.service_alias }}">{{service.service_alias}}</a>
-	</td>
+{% regroup services|dictsort:"nagcat_template" by nagcat_template as test_services %}
+{% for test in test_services %}
+    {% ifequal test.list|length 1 %}
+        <td>
+            <a href="{% url railroad.viewhosts.views.directconfigurator %}?services={{ test.list.0.service_description }}&groups={{ group_name }}">
+                {{test.list.0.service_description}}
+            </a>
+        </td>
+    {% else %}
+        <td class="twirler">
+            <span class="target">
+                {% ifequal test.grouper "" %}
+                    No Test
+                {% else %}
+                    {{ test.grouper }}
+                    <a href="{% url railroad.viewhosts.views.directconfigurator %}?test={{ test.grouper }}">
+                        <div class="sprite arrow_e hover"></div>
+                    </a>
+                {% endifequal %}
+            </span>
+            <ul>
+                {% for service in test.list|dictsort:"service_description" %}
+                    <li>
+                        <a href="{% url railroad.viewhosts.views.directconfigurator %}?services={{ service.service_description }}&groups={{ group_name }}">
+                            {{service.service_description}}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </td>
+    {% endifequal %}
 	{% if forloop.counter|divisibleby:"2" %}</tr><tr>{% endif %}	
 {% endfor %}
 </tr>
 </table>
-</div>
 {% endblock %}

@@ -30,6 +30,7 @@ graphs of your choice.
 {% for state in service_states reversed %}
     <li>
         <span class="status_text state_{{ state.grouper|state_name|lower }}">
+
             {{ state.grouper|state_name }} -
             {{ state.list|length }} service{{state.list|length|pluralize}}
         </span>

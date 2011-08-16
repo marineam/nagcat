@@ -549,3 +549,12 @@ fieldset {
     overflow-y: auto;
     padding-right: 20px;
 }
+
+.twirler ul {
+    list-style: disc;
+    margin-left: 20px;
+}
+
+td.twirler {
+    vertical-align: top;
+}
