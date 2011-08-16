@@ -316,7 +316,7 @@ function parseIntWithBase(str) {
     var num = null;
     var bases = ['', 'K', 'M', 'G', 'T'];
     for (var i=0; i < bases.length; i++) { 
-        if (str.search(bases[i]) >= 0) {
+        if (str.toLowerCase().search(bases[i].toLowerCase()) >= 0) {
             num = parseInt(str) * (Math.pow(1000,i)); 
         }
     }
