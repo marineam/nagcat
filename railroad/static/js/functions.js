@@ -312,6 +312,49 @@ function sortGraphs(name, reversed) {
     }
 }
 
+function filterGraphs(lowValue, highValue) {
+    var meta = $('#graphs').data('meta');
+    $('.service_row').hide();
+    for (var i=0; i < meta.length; i++) {
+        if (!meta[i].isGraphed) {
+            drawGraph(elem, meta[i].data);
+            meta[i].isGraphed = true;
+        }
+        if (meta[i].data) {
+            if (meta[i].data.options && meta[i].data.options.yaxis) {
+                var max = meta[i].data.options.yaxis.max;
+                if (lowValue) {
+                    if (highValue) {
+                        if (max >= lowValue && max <= highValue) {
+                            setupGraph(meta[i]);
+                        }
+                    } else if (max >= lowValue) {
+                        setupGraph(meta[i]);
+                    }
+                } else if (highValue) {
+                    if (max <= highValue) {
+                        setupGraph(meta[i]);
+                    }
+                }
+            }
+        }
+    }
+}
+
+function prepareFilterGraphs() {
+    getAllData(function () {
+        var meta = $('#graphs').data('meta');
+        for (var i=0; i < meta.length; i++) {
+            if (!meta[i].jQueryElement) {
+                meta[i].jQueryElement = $(meta[i].html);
+                $('#graphs').append($(meta[i].jQueryElement).hide());
+            }
+            if (meta[i].data.data) {
+                meta[i].data = formatGraph(meta[i].jQueryElement, meta[i].data);
+            }
+        }
+    });
+}
 /* Triggered when the preference panel has been closed. Update the page if
  * needed. */
 function redrawOnClosePreference() {

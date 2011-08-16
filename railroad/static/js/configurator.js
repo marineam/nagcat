@@ -308,6 +308,18 @@ $(document).ready(function() {
         event.stopPropagation();
     });
 
+    $('#filter').bind('click', function () {
+        lowValue = parseInt($('#min').val());
+        // Since formatGraph bumps the max value by 20%, we need to reflect that
+        // here as well, so the user 
+        highValue = parseInt($('#max').val()) * 1.2;
+        prepareFilterGraphs();
+        filterGraphs(lowValue, highValue);
+    });
+
+    $('#unfilter').bind('click', function () {
+        selectServiceObjs();
+    });
 
     // Handle configurator form submissions
     $('#configurator #add').bind('click', function() {
