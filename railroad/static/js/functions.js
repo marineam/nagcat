@@ -397,7 +397,7 @@ function redrawOnClosePreference() {
 
 /* Get petPage from local storage, with a default value. */
 function getPerPage() {
-    var perpage = $('#graphsPerPage').val();
+    var perpage = parseInt($('#graphsPerPage').val());
     if (localStorageGet('preference_panel')) {
         if (localStorageGet('preference_panel')['graphsPerPage']) {
             perpage = localStorageGet('preference_panel')['graphsPerPage'];
