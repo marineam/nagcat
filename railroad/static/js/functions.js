@@ -993,9 +993,11 @@ function getServiceObjs(ajaxData) {
         success: function (meta, textStatus, XMLHttpRequest) {
             $('#graphs').data('meta', meta);
             selectServiceObjs();
+            $('#graphsLoading').remove()
         },
         error: function () {
             console.log('failed to add graph html');
+            $('#graphsLoading').remove()
         }
     });
 }

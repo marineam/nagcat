@@ -311,6 +311,10 @@ $(document).ready(function() {
 
     // Handle configurator form submissions
     $('#configurator #add').bind('click', function() {
+        $('#toolbar').after(
+            '<img src="/railroad-static/images/loading.gif" ' +
+            'id="graphsLoading" />');
+
         var fields = $('#configurator').serialize();
         $('#clearform').trigger('click');
         getServiceObjs(fields);
