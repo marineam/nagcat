@@ -309,12 +309,11 @@ $(document).ready(function() {
     });
 
     $('#filter').bind('click', function () {
-        lowValue = parseInt($('#min').val());
+        lowValue = parseIntWithBase($('#min').val());
         // Since formatGraph bumps the max value by 20%, we need to reflect that
         // here as well, so the user 
-        highValue = parseInt($('#max').val()) * 1.2;
-        prepareFilterGraphs();
-        filterGraphs(lowValue, highValue);
+        highValue = parseIntWithBase($('#max').val()) * 1.2;
+        prepareFilterGraphs(lowValue, highValue);
     });
 
     $('#unfilter').bind('click', function () {

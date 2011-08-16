@@ -312,6 +312,18 @@ function sortGraphs(name, reversed) {
     }
 }
 
+function parseIntWithBase(str) {
+    var num = null;
+    var bases = ['', 'K', 'M', 'G', 'T'];
+    for (var i=0; i < bases.length; i++) { 
+        if (str.search(bases[i]) >= 0) {
+            num = parseInt(str) * (Math.pow(1000,i)); 
+        }
+    }
+    return num;
+}
+
+
 function filterGraphs(lowValue, highValue) {
     var meta = $('#graphs').data('meta');
     // We don't want to hide graphs if there is nothing to filter by
@@ -319,10 +331,6 @@ function filterGraphs(lowValue, highValue) {
         $('.service_row').hide();
     }
     for (var i=0; i < meta.length; i++) {
-        if (!meta[i].isGraphed) {
-            drawGraph(elem, meta[i].data);
-            meta[i].isGraphed = true;
-        }
         if (meta[i].data) {
             if (meta[i].data.options && meta[i].data.options.yaxis) {
                 var max = meta[i].data.options.yaxis.max;
@@ -330,13 +338,25 @@ function filterGraphs(lowValue, highValue) {
                     if (highValue) {
                         if (max >= lowValue && max <= highValue) {
                             setupGraph(meta[i]);
+                            if (!meta[i].isGraphed && meta[i].data.data) {
+                                drawGraph($('.{0}'.format(meta[i].slug)), meta[i].data);
+                                meta[i].isGraphed = true;
+                            }
                         }
                     } else if (max >= lowValue) {
                         setupGraph(meta[i]);
+                        if (!meta[i].isGraphed && meta[i].data.data) {
+                            drawGraph($('.{0}'.format(meta[i].slug)), meta[i].data);
+                            meta[i].isGraphed = true;
+                        }
                     }
                 } else if (highValue) {
                     if (max <= highValue) {
                         setupGraph(meta[i]);
+                        if (!meta[i].isGraphed && meta[i].data.data) {
+                            drawGraph($('.{0}'.format(meta[i].slug)), meta[i].data);
+                            meta[i].isGraphed = true;
+                        }
                     }
                 }
             }
@@ -344,7 +364,7 @@ function filterGraphs(lowValue, highValue) {
     }
 }
 
-function prepareFilterGraphs() {
+function prepareFilterGraphs(lowValue, highValue) {
     getAllData(function () {
         var meta = $('#graphs').data('meta');
         for (var i=0; i < meta.length; i++) {
@@ -356,6 +376,7 @@ function prepareFilterGraphs() {
                 meta[i].data = formatGraph(meta[i].jQueryElement, meta[i].data);
             }
         }
+        filterGraphs(lowValue, highValue);
     });
 }
 /* Triggered when the preference panel has been closed. Update the page if
