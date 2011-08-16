@@ -314,7 +314,10 @@ function sortGraphs(name, reversed) {
 
 function filterGraphs(lowValue, highValue) {
     var meta = $('#graphs').data('meta');
-    $('.service_row').hide();
+    // We don't want to hide graphs if there is nothing to filter by
+    if (lowValue || highValue) {
+        $('.service_row').hide();
+    }
     for (var i=0; i < meta.length; i++) {
         if (!meta[i].isGraphed) {
             drawGraph(elem, meta[i].data);
