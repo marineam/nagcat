@@ -176,7 +176,7 @@ class PagerNotification(EmailNotification):
         headers['To'] = self.macros['CONTACTPAGER']
         return headers
 
-    def footer():
+    def footer(self):
         return ""
 
     def graph(self):
