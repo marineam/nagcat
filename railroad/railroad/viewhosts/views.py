@@ -326,7 +326,9 @@ def get_graphs(stat, obj, hosts='', groups='', services='', tests='',
         service_list = new_services
 
     if tests:
-        filter(lambda x: x['nagcat_template'] in tests, service_list)
+        service_list = filter(
+            lambda x: x.get('nagcat_template', None) in tests,
+            service_list)
 
     # Find out whether each service object is graphable or not
     for service in service_list:
@@ -639,7 +641,7 @@ def real_meta(hosts='', services='', groups='', tests=''):
     response = []
     graph_template = loader.get_template('graph.html')
 
-    for graph in get_graphs(stat, obj, hosts, groups, services):
+    for graph in get_graphs(stat, obj, hosts, groups, services, tests):
 
         so = {
             'host': graph['host_name'],
