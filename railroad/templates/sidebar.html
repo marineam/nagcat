@@ -1,16 +1,16 @@
+{% load services %}
 {% block sidebar %}
 <div id="sidebar">
 <div class="biglist">
 {% for elem in sidebar %}
-    <div class="listheader"><a href="{% url railroad.viewhosts.views.group elem.0 %}">{{elem.0}}</a></div>
+    <div class="listheader">
+        <a href="{% url railroad.viewhosts.views.group elem.0 %}">{{elem.0}}</a></div>
     <ul>
     {% for host in elem.1 %}
-        {% ifequal host.current_state 0 %}
-            <li class="red">
-        {% else %}
-            <li class="green">
-        {% endifequal %}
-        <a href="{% url railroad.viewhosts.views.hostconfigurator host.host_name %}">{{host.host_name}}</a>
+        <li class="state_{{ host.current_state|state_name|lower }}">
+            <a href="{% url railroad.viewhosts.views.directconfigurator %}?hosts={{host.host_name}}">
+                {{host.host_name}}
+            </a>
         </li>
     {% endfor %}
     </ul>

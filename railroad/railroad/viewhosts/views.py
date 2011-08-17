@@ -147,6 +147,13 @@ def parse():
     for group in obj['hostgroup']:
         group['alias'] = group['alias'].replace('/', '-')
 
+    for service in stat['service']:
+        # Django doesn't like variables that start with _.
+        if '_TEST' in service:
+            service['nagcat_template'] = service['_TEST'].split(';', 1)[-1]
+        else:
+            service['nagcat_template'] = ''
+
     return stat, obj
 
 
@@ -181,71 +188,77 @@ def servicenames(stat):
 
 
 def groupdetail(obj, group_name):
-    """Returns the group object with the specified name"""
+    """Returns a list of groups with the specified name."""
     group_list = grouplist(obj)
-    for group in group_list:
-        if group['alias'] == group_name:
-            return group
+    return filter(lambda g: fnmatch(g['alias'].lower(), group_name.lower()),
+        group_list)
 
 
 def hostdetail(stat, host_name):
-    """Returns the host object with the specified name"""
+    """Returns a list of hosts that match the give host pattern."""
     host_list = hostlist(stat)
     for host in host_list:
         if host['host_name'] == host_name:
             return host
 
 
-def servicelist_by_description(stat, service_description):
+def servicelist_by_description(stat, service_name):
     """Returns a list of service objects with the specified name"""
     all_services = servicelist(stat)
-    return [service for service in all_services \
-                if service['service_description'].lower() == service_description.lower()]
+    return filter(
+        lambda s: fnmatch(s['service_description'].lower(), service_name.lower()),
+        servicelist(stat))
 
 
-def servicedetail(stat, host, service_alias):
-    """Returns the service object with the specified name and host"""
-    all_services = servicelist(stat)
-    for service in all_services:
-        # Do glob based matching (ie: 'ab*' will match 'abcd')
-        if (fnmatch(service['host_name'], host) and
-                fnmatch(service['service_description'].lower(), service_alias.lower())):
-            return service
+def servicedetail(stat, host, service_name):
+    """
+    Returns a list of service objects that match the given host and service
+    name patterns.
+    """
+    services_matching = servicelist_by_description(stat, service_name)
+    return filter(lambda s: fnmatch(s['host_name'].lower(), host.lower()),
+        services_matching)
 
 
 def hostlist_by_group(stat, obj, group_name):
     """Returns a list of hosts with the specified group"""
-    group = groupdetail(obj, group_name)
+    groups = groupdetail(obj, group_name)
     all_hosts = hostlist(stat)
-    target = group['members'].split(',')
-    return [host for host in all_hosts if host['host_name'] in target]
+    target = [t for g in groups for t in g['members'].split(',')]
+    return filter(lambda h: h['host_name'] in target, all_hosts)
 
 
 def hostnames_by_group(stat, obj, group_name):
     """Returns a list of host names with the specified group"""
-    group = groupdetail(obj, group_name)
-    return group['members'].split(',')
+    groups = groupdetail(obj, group_name)
+    return [h for g in groups for h in g['members'].split(',')]
 
 
 def hostlist_by_service(stat, service):
     """Returns a list of hosts possessing the specified service"""
     all_services = servicelist(stat)
-    return [hostdetail(stat, s['host_name']) for s in all_services
-                                if s['service_description'].lower() == service.lower()]
+    filtered = []
+    for s in all_services:
+        if fnmatch(s['service_description'].lower(), service.lower()):
+            filtered.append(s)
+        elif 'service_alias' in s and fnmatch(s['service_alias'], service.lower()):
+            filtered.append(s)
+    return filtered
 
 
 def hostnames_by_service(stat, service):
     """Returns a list of hosts (names) possessing the specified service"""
     all_services = servicelist(stat)
-    return [s['host_name'] for s in all_services
-                                if fnmatch(s['service_description'].lower(), service.lower())]
+    return filter(
+        lambda s: fnmatch(s['service_description'].lower(), service.lower()),
+        all_services)
 
 
 def servicelist_by_host(stat, host):
     """Returns a list of services possessed by the specified host"""
-    all_services = servicelist(stat)
-    return [service for service in all_services
-                                if fnmatch(service['host_name'].lower(), host.lower())]
+    return filter(lambda h:
+            fnmatch(h['host_name'].lower(), host.lower()),
+            servicelist(stat))
 
 
 def servicenames_by_host(stat, host):
@@ -255,17 +268,20 @@ def servicenames_by_host(stat, host):
                                 if service['host_name'].lower() == host.lower()]
 
 
-def get_graphs(stat, obj, hosts='', groups='', services='',
+def get_graphs(stat, obj, hosts='', groups='', services='', tests='',
         start=None, end=None):
     """Returns a list of services objects, marked graphable or not"""
     groups = [g.strip() for g in groups.split(',')]
-    groups = set(filter(None, groups))
+    groups = set(filter(lambda g: bool(g), groups))
 
     hosts = [h.strip() for h in hosts.split(',')]
-    hosts = set(filter(None, hosts))
+    hosts = set(filter(lambda h: bool(h), hosts))
 
     services = [s.strip() for s in services.split(',')]
-    services = set(filter(None, services))
+    services = set(filter(lambda s: bool(s), services))
+
+    tests = [t.strip() for t in tests.split(',')]
+    tests = set(filter(lambda t: bool(t), tests))
 
     group_hosts = set() # Hosts under the given groups
     all_hosts = set() # Will contain all host names from host and group
@@ -279,7 +295,8 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
         for group in groups:
             group_hosts.update(set(hostnames_by_group(stat, obj, group)))
 
-    all_hosts.update(hosts | group_hosts) if hosts | group_hosts else None
+    if hosts or group_hosts:
+        all_hosts.update(hosts | group_hosts)
     service_list = [] # Will contain the service objects
 
     # Given hosts and no services, we want to get all services for those hosts.
@@ -292,11 +309,10 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
     # Given hosts and services, we want to start by getting all of the hosts
     # with the services listed, and then will later filter out the hosts we
     # don't want
-    if (not all_hosts and services) or (all_hosts and services):
-        for service in services:
-            for host in hostlist_by_service(stat, service):
-                service_list.append(servicedetail(
-                    stat, host['host_name'], service))
+    for service in services:
+        for host in hostlist_by_service(stat, service):
+            service_list += servicedetail(stat, host['host_name'],
+                    host['service_description'])
 
     # Given hosts and services, we already have a list of all hosts for the
     # listed services, we want to filter out hosts that weren't listed.
@@ -309,6 +325,10 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
                     break
         service_list = new_services
 
+    if tests:
+        service_list = filter(
+            lambda x: x.get('nagcat_template', None) in tests,
+            service_list)
 
     # Find out whether each service object is graphable or not
     for service in service_list:
@@ -319,6 +339,7 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
         service['period'] = 'ajax'
         service['slug'] = slugify(service['host_name'] +
                 service['service_description'])
+
     return service_list
 
 
@@ -453,57 +474,6 @@ def fetch_current_rrd_data(service, interval=60, aggregate='AVERAGE'):
                               '--end', str(end), aggregate)
 
 
-def servicelist_by_filters(stat, filters={}):
-    """Return a list of services from STAT that match FILTERS."""
-    # by default, match everything
-    svcs = servicelist(stat)
-    # first, look at hostnames
-    hnames = set(hostnames(stat))
-    if filters.get('host', None):
-        # try exact match first
-        if filters['host'] in hnames:
-            svcs = [s for s in svcs if s['host_name'] == filters['host']]
-        else:
-            svcs = [s for s in svcs
-                    if re.search(filters['host'], s['host_name'])]
-    if filters.get('service', None):
-        # very unlikely that an exact match would also be a substring,
-        # so don't bother trying that first
-        svcs = [s for s in svcs
-                if re.search(filters['service'], s['service_description'])]
-    if (('a_red' in filters) or ('a_yellow' in filters)
-        or ('a_green' in filters)):
-        alertlevels = set()
-        if filters.get('a_red', False):
-            alertlevels.add("2")
-        if filters.get('a_yellow', False):
-            alertlevels.add("1")
-        if filters.get('a_green', False):
-            alertlevels.add("0")
-        svcs = [s for s in svcs if s['current_state'] in alertlevels]
-    return svcs
-
-sort_options = (('svc', 'Service Name'), ('rrd', 'Latest RRD values'))
-
-
-class FilterForm(forms.Form):
-    # The widget, attr is used to enable autocomplete on these text forms
-    host = forms.CharField(required=False, widget=forms.TextInput(
-        attrs={"id": "host", "class": "autocomplete"}))
-    service = forms.CharField(required=False, widget=forms.TextInput(
-        attrs={"id": "service", "class": "autocomplete"}))
-    a_green = forms.BooleanField(required=False, initial=True,
-            label="OKAY (green)")
-    a_yellow = forms.BooleanField(required=False, initial=True,
-            label="WARN (yellow)")
-    a_red = forms.BooleanField(required=False, initial=True,
-            label="CRITICAL (red)")
-    sortreverse = forms.BooleanField(required=False,
-            label="Reverse sort order")
-    sortby = forms.ChoiceField(choices=sort_options, initial="svc",
-            label="Sort results by")
-
-
 def host(request, host):
     """Returns a page showing all services of the specified host"""
     loaded_graphs = []
@@ -584,41 +554,28 @@ def service(request, host, service):
 
 def group(request, group):
     """Returns a page showing all hosts/services of the specified group"""
-    t = loader.get_template('group.html')
     stat, obj = parse()
     service_dict = {}
 
-    try:
-        host_list = hostlist_by_group(stat, obj, group)
-    except Exception:
+    host_list = hostlist_by_group(stat, obj, group)
+    if not host_list:
         raise Http404
+
     host_names = map(lambda x: x['host_name'], host_list)
-    service_list = servicelist(stat)
-
-    # Remove unique digits, dashes, commas, and version numbers to consolidate
-    # service descriptions.  Duplicated in groupservice function
-    janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
-
-    for service in service_list:
-        service_alias = janitor.sub("", service['service_description'])
-        service_test = service.get('_TEST', None)
-        service_test = service_test if service_test \
-                                    else service['check_command']
-        if service['host_name'] in host_names:
-            if not(service_dict.get(service_test, None)):
-                service_dict[service_test] = []
-            if not (service_alias in service_dict[service_test]):
-                service_dict[service_test].append(service_alias)
-
     services = []
-    service_tests = service_dict.keys()
-    for service_test in service_tests:
-        for service_alias in service_dict[service_test]:
-            services.append({'service_test': service_test,  \
-                                'service_alias': service_alias})
+    for host in host_names:
+        services += servicelist_by_host(stat, host)
 
-    services.sort(lambda x, y: cmp(x['service_alias'], y['service_alias']))
-    host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
+    services.sort(key=lambda x: x['service_description'])
+    host_list.sort(key=lambda x: x['host_name'])
+
+    # Uniquify the service names
+    service_dict = {}
+    for s in services:
+        key = s['service_description']
+        service_dict[key] = s
+
+    services = service_dict.values()
 
     end = int(time.time())
     start = end - DAY
@@ -629,56 +586,7 @@ def group(request, group):
         'time_interval': [start, end]}
 
     context_data = add_hostlist(stat, obj, context_data)
-    c = Context(context_data)
-    return HttpResponse(t.render(c))
-
-
-def groupservice(request, group, test, alias):
-    """Returns a page showing all instances of specified service of group"""
-    loaded_graphs = []
-    stat, obj = parse()
-    if group != None and test != None and alias != None:
-        end = int(time.time())
-        start = end - DAY
-        host_list = hostlist_by_group(stat, obj, group)
-        target = map(lambda x: x['host_name'], host_list)
-
-        service_list = servicelist(stat)
-
-        # Filter service_list by test and alias (strip numbers/hyphens)
-        janitor = re.compile("[-,]?\d+\.?\d*[-,]?")
-        for service in service_list:
-            service_test = service.get('_TEST', None) if        \
-                           service.get('_TEST', None) else      \
-                           service.get('check_command', None)
-            service_alias = janitor.sub("", service['service_description'])
-
-            if service_test == test and service_alias == alias:
-                host_name = service['host_name']
-                try:
-                    host = host_list[target.index(host_name)]
-                    if 'services' not in host:
-                        host['services'] = []
-                    service['is_graphable'] =   \
-                        is_graphable(host_name, service['service_description'])
-                    if (service['is_graphable']):
-                        service['start'] = start
-                        service['end'] = end
-                        service['period'] = 'ajax'
-                    host['services'].append(service)
-                except ValueError:
-                    continue
-
-        host_list = [h for h in host_list if 'services' in h]
-        host_list.sort(lambda x, y: cmp(x['host_name'], y['host_name']))
-        map(lambda z: z['services'].sort(lambda x, y:   \
-            cmp(x['service_description'], y['service_description'])),   \
-                host_list)
-
-        for host in host_list:
-            loaded_graphs.extend(host['services'])
-    return configurator(request, stat, obj, 'Group-Service Detail: %s > %s' %
-            (group, alias), '%s > %s' % (group, alias), loaded_graphs)
+    return render_to_response('group.html', context_data)
 
 
 def form(request):
@@ -727,18 +635,13 @@ def real_service_page_meta(request):
 def service_page_meta(request):
     return HttpResponse(json.dumps(real_service_page_meta(request)))
 
-def real_meta(hosts='', services='', groups=''):
+def real_meta(hosts='', services='', groups='', tests=''):
     stat, obj = parse()
 
     response = []
     graph_template = loader.get_template('graph.html')
 
-    for graph in get_graphs(stat, obj, hosts, groups, services):
-        # Django doesn't like variables that start with _.
-        if '_TEST' in graph:
-            graph['nagcat_template'] = graph['_TEST'].split(';', 1)[-1]
-        else:
-            graph['nagcat_template'] = ''
+    for graph in get_graphs(stat, obj, hosts, groups, services, tests):
 
         so = {
             'host': graph['host_name'],
@@ -766,12 +669,15 @@ def meta(request):
     """
     Get a bunch of json metadata for a request.
     """
+    print >> sys.stderr, "This is a a test"
+    sys.stderr.flush()
+
     stat, obj = parse()
     source = request.POST if request.POST else request.GET
 
-    groups = source.get('group', '')
-    hosts = source.get('host', '')
-    services = source.get('service', '')
+    groups = source.get('group', source.get('groups', ''))
+    hosts = source.get('host', source.get('hosts', ''))
+    services = source.get('service', source.get('services', ''))
 
     return HttpResponse(json.dumps(real_meta(hosts, services, groups)),
             content_type='application/json')
@@ -858,9 +764,19 @@ def directurl(request, id):
 
 
 def directconfigurator(request):
-    """Returns a blank configurator page"""
+    """Returns a configurator page, optionall populated from GET."""
     stat, obj = parse()
-    return configurator(request, stat, obj)
+
+    query = {
+        'hosts': request.GET.get('hosts', request.GET.get('host', '')),
+        'services': request.GET.get('services', request.GET.get('service', '')),
+        'groups': request.GET.get('group', request.GET.get('groups', '')),
+        'tests': request.GET.get('tests', request.GET.get('test', '')),
+    }
+
+    service_list = real_meta(**query)
+
+    return configurator(request, stat, obj, graphs=service_list)
 
 
 def hostconfigurator(request, hosts):
@@ -1042,17 +958,15 @@ def formstate(request):
     return HttpResponse(json.dumps(stripstate(state)))
 
 
-
-
 def graphs(request):
     stat, obj = parse()
 
     source = request.POST if request.POST else request.GET
 
-    graphs = source.get('graphs', None)
-    hosts = source.get('host', '')
-    services = source.get('service', '')
-    groups = source.get('group', '')
+    graphs = source.get('graphs', source.get('graph', None))
+    hosts = source.get('hosts', source.get('host', ''))
+    services = source.get('services', source.get('service', ''))
+    groups = source.get('groups', source.get('group', ''))
     get_start = source.get('start', None)
     get_end = source.get('end', None)
     res = source.get('res', None)
@@ -1064,15 +978,16 @@ def graphs(request):
         for graph in graphs:
             if not graph:
                 continue
-            so = servicedetail(stat, graph['host'], graph['service'])
-            if not so:
+            sos = servicedetail(stat, graph['host'], graph['service'])
+            if not sos:
                 continue
-            so = so.copy()
-            so['start'] = graph.get('start', get_start)
-            so['end'] = graph.get('end', get_end)
-            if 'uniq' in graph:
-                so['uniq'] = graph['uniq']
-            service_objs.append(so)
+            for so in sos:
+                so = so.copy()
+                so['start'] = graph.get('start', get_start)
+                so['end'] = graph.get('end', get_end)
+                if 'uniq' in graph:
+                    so['uniq'] = graph['uniq']
+                service_objs.append(so)
     else:
         service_objs = get_graphs(stat, obj, hosts, groups, services,
                 get_start, get_end)

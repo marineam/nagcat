@@ -33,6 +33,26 @@
                 </li>
             </ul>
         </fieldset>
+        <fieldset>
+            <legend>Filter by value</legend>
+            <ul class="fieldset_ul">
+                <li>
+                    <label for="min">Range</label>
+                    <input class="value half watermark" name="min" id="min" type="text" value="Min"> to
+                    <input class="value half watermark" name="max" id="max" type="text" value="Max">
+                </li>
+                <li>
+                    <label>&nbsp;</label>
+                    <ul class="liButtons">
+                        <li id="filter">Filter</li
+                        ><li id="unfilter">Unfilter</li>
+                        <span class="hint" id="filterhint">
+                            You can filter by min, max, or both. If a value of 0 is used then the filter will ignore it. The unfilter button takes the graphs back to how they were.
+                        </span>
+                    </ul>
+                </li>
+            </ul>
+        </fieldset>
     </div>
     <div class="right">
         <fieldset>
@@ -42,11 +62,11 @@
             </p>
             <ul class="fieldset_ul">
                 <li>
-                    <label class="from">From</label>
+                    <label class="from">Start</label>
                     <input type="text" id="downtime-from" />
                 </li>
                 <li>
-                    <label class="to">To</label>
+                    <label class="to">Stop</label>
                     <input type="text" id="downtime-to" />
                 </li>
                 <li>

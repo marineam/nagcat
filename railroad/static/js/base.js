@@ -43,4 +43,19 @@ $(document).ready(function() {
         $(element).remove();
     });
 
+    /*** Water marks in text boxes ***/
+    $('.watermark').bind('focus', function() {
+        var input = this;
+        $(input).data('watermark', $(input).val())
+        $(input).val("");
+        $(input).removeClass("watermark");
+    });
+
+    $('.watermark').bind('blur', function() {
+        var input = this;
+        if ($(input).val() == "") {
+            $(input).val($(input).data('watermark'))
+                .addClass("watermark");
+        }
+    });
 });

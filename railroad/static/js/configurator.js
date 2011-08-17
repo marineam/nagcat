@@ -143,7 +143,7 @@ $(document).ready(function() {
                 });
             hosts = hosts.uniqueList();
             expr = hosts.join(' or ')
-        } else {
+        } else if ($('#downtime-service').prop('checked')) {
             var hosts = [];
             var services = [];
             var objs = [];
@@ -160,6 +160,10 @@ $(document).ready(function() {
             }
             objs = objs.uniqueList();
             expr = '(' + (objs.join(') or (')) + ')';
+        } else { 
+            makeDowntimeError('Please choose to downtime by host or service');
+            $('#downtimeLoading').remove();
+            return;
         }
 
         if (!expr) {
@@ -208,7 +212,7 @@ $(document).ready(function() {
             },
             error: function (jqXHR, textStatus, errorThrown) {
                 console.log(textStatus + ': ' + jqXHR.responseText);
-                makeDowntimeError("There was an error.");
+                makeDowntimeError(jqXHR.responseText);
                 $('#downtimeLoading').remove();
             }
         });
@@ -304,9 +308,24 @@ $(document).ready(function() {
         event.stopPropagation();
     });
 
+    $('#filter').bind('click', function () {
+        lowValue = parseIntWithBase($('#min').val());
+        // Since formatGraph bumps the max value by 20%, we need to reflect that
+        // here as well, so the user 
+        highValue = parseIntWithBase($('#max').val()) * 1.2;
+        prepareFilterGraphs(lowValue, highValue);
+    });
+
+    $('#unfilter').bind('click', function () {
+        selectServiceObjs();
+    });
 
     // Handle configurator form submissions
     $('#configurator #add').bind('click', function() {
+        $('#toolbar').after(
+            '<img src="/railroad-static/images/loading.gif" ' +
+            'id="graphsLoading" />');
+
         var fields = $('#configurator').serialize();
         $('#clearform').trigger('click');
         getServiceObjs(fields);

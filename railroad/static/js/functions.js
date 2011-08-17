@@ -288,8 +288,17 @@ var sorts = {
     })),
     'duration': makeComparer(function(so) {
         return so['duration'];
+    }),
+    'max': makeComparer(function(so) {
+        if (so['data'] && so['data']['options'] && so['data']['options']['yaxis'] && so['data']['options']['yaxis']['max']){
+            return so['data']['options']['yaxis']['max'];
+        } else {
+            return 0;
+        }
     })
 }
+
+sorts['max'].usesData = true;
 
 /* Do the sorting. */
 function sortGraphs(name, reversed) {
@@ -300,6 +309,11 @@ function sortGraphs(name, reversed) {
 
     var finishSort = function() {
         var meta = $('#graphs').data('meta');
+        for (var i=0; i < meta.length; i++) {
+            if (meta[i].data.data) {
+                meta[i].data = addMaxToData(meta[i].data);
+            }
+        }
         meta.sort(sorter);
         $('graphs').data('meta', meta);
         selectServiceObjs();
@@ -312,6 +326,73 @@ function sortGraphs(name, reversed) {
     }
 }
 
+function parseIntWithBase(str) {
+    var num = null;
+    var bases = ['', 'K', 'M', 'G', 'T'];
+    for (var i=0; i < bases.length; i++) { 
+        if (str.toLowerCase().search(bases[i].toLowerCase()) >= 0) {
+            num = parseInt(str) * (Math.pow(1000,i)); 
+        }
+    }
+    return num;
+}
+
+
+function filterGraphs(lowValue, highValue) {
+    var meta = $('#graphs').data('meta');
+    // We don't want to hide graphs if there is nothing to filter by
+    if (lowValue || highValue) {
+        $('.service_row').hide();
+    }
+    for (var i=0; i < meta.length; i++) {
+        if (meta[i].data) {
+            if (meta[i].data.options && meta[i].data.options.yaxis) {
+                var max = meta[i].data.options.yaxis.max;
+                if (lowValue) {
+                    if (highValue) {
+                        if (max >= lowValue && max <= highValue) {
+                            setupGraph(meta[i]);
+                            if (!meta[i].isGraphed && meta[i].data.data) {
+                                drawGraph($('.{0}'.format(meta[i].slug)), meta[i].data);
+                                meta[i].isGraphed = true;
+                            }
+                        }
+                    } else if (max >= lowValue) {
+                        setupGraph(meta[i]);
+                        if (!meta[i].isGraphed && meta[i].data.data) {
+                            drawGraph($('.{0}'.format(meta[i].slug)), meta[i].data);
+                            meta[i].isGraphed = true;
+                        }
+                    }
+                } else if (highValue) {
+                    if (max <= highValue) {
+                        setupGraph(meta[i]);
+                        if (!meta[i].isGraphed && meta[i].data.data) {
+                            drawGraph($('.{0}'.format(meta[i].slug)), meta[i].data);
+                            meta[i].isGraphed = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function prepareFilterGraphs(lowValue, highValue) {
+    getAllData(function () {
+        var meta = $('#graphs').data('meta');
+        for (var i=0; i < meta.length; i++) {
+            if (!meta[i].jQueryElement) {
+                meta[i].jQueryElement = $(meta[i].html);
+                $('#graphs').append($(meta[i].jQueryElement).hide());
+            }
+            if (meta[i].data.data) {
+                meta[i].data = formatGraph(meta[i].jQueryElement, meta[i].data);
+            }
+        }
+        filterGraphs(lowValue, highValue);
+    });
+}
 /* Triggered when the preference panel has been closed. Update the page if
  * needed. */
 function redrawOnClosePreference() {
@@ -330,7 +411,7 @@ function redrawOnClosePreference() {
 
 /* Get petPage from local storage, with a default value. */
 function getPerPage() {
-    var perpage = $('#graphsPerPage').val();
+    var perpage = parseInt($('#graphsPerPage').val());
     if (localStorageGet('preference_panel')) {
         if (localStorageGet('preference_panel')['graphsPerPage']) {
             perpage = localStorageGet('preference_panel')['graphsPerPage'];
@@ -606,12 +687,15 @@ function drawGraph (elemGraph, data) {
         var metaIndex = -1;
         var elemGraph = $(this).closest('.legend').siblings('.graph');
         for (var i=0; i <meta.length; i++) {
-            if (  meta[i].slug === $(elemGraph).attr('name')) {
+            if (meta[i].slug === $(elemGraph).attr('name')) {
+                if (meta[i].uniq != $(elemGraph).attr('id')) {
+                    continue;
+                }
                 metaIndex = i;
                 break;
             }
         }
-        if (!meta[metaIndex]) {
+        if (metaIndex < 0 || !meta[metaIndex]) {
             // The graph must have been removed. Fugettaboutit
             return
         }
@@ -635,6 +719,9 @@ function redrawGraph(element, data) {
     var metaIndex;
     for (var i=0; i < meta.length; i++) {
         if (meta[i].slug === data.slug) {
+            if (meta[i].uniq != $(element).attr('id')) {
+                continue;
+            }
             metaIndex = i;
             break;
         }
@@ -987,33 +1074,45 @@ function getServiceObjs(ajaxData) {
         success: function (meta, textStatus, XMLHttpRequest) {
             $('#graphs').data('meta', meta);
             selectServiceObjs();
+            $('#graphsLoading').remove()
         },
         error: function () {
             console.log('failed to add graph html');
+            $('#graphsLoading').remove()
         }
     });
 }
+
+function addMaxToData(data) {
+    var first = true;
+    var max = null;
+    if (data.data) {
+        for (var i=0; i < data.data.length; i++) {
+            if (data.data[i].lines.show) {
+                for (var j=0; j < data.data[i].data.length; j++) {
+                    var val = data.data[i].data[j][1];
+                    if (( val > max && val != null) || first ) {
+                        max = val;
+                        first = false;
+                    }
+                }
+            }
+        }
+    }
+    if (data.options && data.options.yaxis && max) {
+        data.options.yaxis.max = max * 1.2;
+    }
+    return data;
+}
+
 
 // Takes the raw data and sets up required Flot formatting options
 function formatGraph(element, data) {
     base = data.base;
 
-    var first = true;
-    var max = null;
-    for (var i=0; i < data.data.length; i++) {
-        if (data.data[i].lines.show) {
-            for (var j=0; j < data.data[i].data.length; j++) {
-                var val = data.data[i].data[j][1];
-                if (( val > max && val != null) || first ) {
-                    max = val;
-                    first = false;
-                }
-            }
-        }
-    }
+    data = addMaxToData(data);
 
-    data.options.yaxis.max = max * 1.2;
-    if ( max ) {
+    if ( data.options.yaxis.max ) {
         data.options.yaxis.show = true;
         data.options.yaxis.ticks = tickGenerator;
         data.options.yaxis.tickFormatter = tickFormatter;
