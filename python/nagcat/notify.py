@@ -246,6 +246,12 @@ class Notification(object):
                             (self.macros['HOSTNAME'],
                              self.macros['SERVICEDESC'], ex))
 
+    def metadata(self, key, default=None):
+        macro = key.upper()
+        return self.macros.get('_CONTACT%s' % macro,
+               self.macros.get('_SERVICE%s' % macro,
+               self.macros.get('_HOST%s' % macro, default)))
+
     def subject(self):
         return self._format(self.config[self.type]['subject'])
 

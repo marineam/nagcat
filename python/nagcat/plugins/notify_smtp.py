@@ -100,14 +100,21 @@ class EmailNotification(notify.Notification):
 
     def body(self):
         text = super(EmailNotification, self).body()
-        if self.format == "long":
-            urls = self.urls()
-            if urls:
-                text += "\n"
-                if 'nagios' in urls:
-                    text += "Nagios: %s\n" % urls['nagios']
-                if 'graphs' in urls:
-                    text += "Graphs: %s\n" % urls['graphs']
+        text += self.footer()
+        return text
+
+    def footer(self):
+        urls = self.urls()
+
+        if urls:
+            text = "\n"
+            if 'nagios' in urls:
+                text += "Nagios: %s\n" % urls['nagios']
+            if 'graphs' in urls:
+                text += "Graphs: %s\n" % urls['graphs']
+        else:
+            text = ""
+
         return text
 
     def send(self):
@@ -168,6 +175,9 @@ class PagerNotification(EmailNotification):
         headers = super(PagerNotification, self).headers()
         headers['To'] = self.macros['CONTACTPAGER']
         return headers
+
+    def footer(self):
+        return ""
 
     def graph(self):
         return None
