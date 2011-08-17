@@ -675,9 +675,9 @@ def meta(request):
     stat, obj = parse()
     source = request.POST if request.POST else request.GET
 
-    groups = source.get('group', '')
-    hosts = source.get('host', '')
-    services = source.get('service', '')
+    groups = source.get('group', source.get('groups', ''))
+    hosts = source.get('host', source.get('hosts', ''))
+    services = source.get('service', source.get('services', ''))
 
     return HttpResponse(json.dumps(real_meta(hosts, services, groups)),
             content_type='application/json')
@@ -768,10 +768,10 @@ def directconfigurator(request):
     stat, obj = parse()
 
     query = {
-        'hosts': request.GET.get('hosts', ''),
-        'services': request.GET.get('services', ''),
-        'groups': request.GET.get('groups', ''),
-        'tests': request.GET.get('tests', ''),
+        'hosts': request.GET.get('hosts', request.GET.get('host', '')),
+        'services': request.GET.get('services', request.GET.get('service', '')),
+        'groups': request.GET.get('group', request.GET.get('groups', '')),
+        'tests': request.GET.get('tests', request.GET.get('test', '')),
     }
 
     service_list = real_meta(**query)
@@ -963,10 +963,10 @@ def graphs(request):
 
     source = request.POST if request.POST else request.GET
 
-    graphs = source.get('graphs', None)
-    hosts = source.get('host', '')
-    services = source.get('service', '')
-    groups = source.get('group', '')
+    graphs = source.get('graphs', source.get('graph', None))
+    hosts = source.get('hosts', source.get('host', ''))
+    services = source.get('services', source.get('service', ''))
+    groups = source.get('groups', source.get('group', ''))
     get_start = source.get('start', None)
     get_end = source.get('end', None)
     res = source.get('res', None)
