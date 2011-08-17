@@ -348,8 +348,10 @@ fieldset {
     float: left;
 }
 .left input[type=text] {
-    float: left;
     width: 365px;
+}
+.left input[type=text].half {
+    width: 170px;
 }
 .right input[type=text]{
     float: left;
