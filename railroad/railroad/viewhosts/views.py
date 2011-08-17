@@ -268,7 +268,7 @@ def servicenames_by_host(stat, host):
                                 if service['host_name'].lower() == host.lower()]
 
 
-def get_graphs(stat, obj, hosts='', groups='', services='',
+def get_graphs(stat, obj, hosts='', groups='', services='', tests='',
         start=None, end=None):
     """Returns a list of services objects, marked graphable or not"""
     groups = [g.strip() for g in groups.split(',')]
@@ -279,6 +279,9 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
 
     services = [s.strip() for s in services.split(',')]
     services = set(filter(lambda s: bool(s), services))
+
+    tests = [t.strip() for t in tests.split(',')]
+    tests = set(filter(lambda t: bool(t), tests))
 
     group_hosts = set() # Hosts under the given groups
     all_hosts = set() # Will contain all host names from host and group
@@ -321,6 +324,9 @@ def get_graphs(stat, obj, hosts='', groups='', services='',
                     new_services.append(s)
                     break
         service_list = new_services
+
+    if tests:
+        filter(lambda x: x['nagcat_template'] in tests, service_list)
 
     # Find out whether each service object is graphable or not
     for service in service_list:
@@ -627,7 +633,7 @@ def real_service_page_meta(request):
 def service_page_meta(request):
     return HttpResponse(json.dumps(real_service_page_meta(request)))
 
-def real_meta(hosts='', services='', groups=''):
+def real_meta(hosts='', services='', groups='', tests=''):
     stat, obj = parse()
 
     response = []
@@ -763,6 +769,7 @@ def directconfigurator(request):
         'hosts': request.GET.get('hosts', ''),
         'services': request.GET.get('services', ''),
         'groups': request.GET.get('groups', ''),
+        'tests': request.GET.get('tests', ''),
     }
 
     service_list = real_meta(**query)
