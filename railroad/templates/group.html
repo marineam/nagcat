@@ -39,7 +39,7 @@
                     No Test
                 {% else %}
                     {{ test.grouper }}
-                    <a href="{% url railroad.viewhosts.views.directconfigurator %}?test={{ test.grouper }}">
+                    <a href="{% url railroad.viewhosts.views.directconfigurator %}?tests={{ test.grouper }}&group={{ group_name}}">
                         <div class="sprite arrow_e hover"></div>
                     </a>
                 {% endifequal %}
