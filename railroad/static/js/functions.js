@@ -288,8 +288,17 @@ var sorts = {
     })),
     'duration': makeComparer(function(so) {
         return so['duration'];
+    }),
+    'max': makeComparer(function(so) {
+        if (so['data'] && so['data']['options'] && so['data']['options']['yaxis'] && so['data']['options']['yaxis']['max']){
+            return so['data']['options']['yaxis']['max'];
+        } else {
+            return 0;
+        }
     })
 }
+
+sorts['max'].usesData = true;
 
 /* Do the sorting. */
 function sortGraphs(name, reversed) {
@@ -300,6 +309,11 @@ function sortGraphs(name, reversed) {
 
     var finishSort = function() {
         var meta = $('#graphs').data('meta');
+        for (var i=0; i < meta.length; i++) {
+            if (meta[i].data.data) {
+                meta[i].data = addMaxToData(meta[i].data);
+            }
+        }
         meta.sort(sorter);
         $('graphs').data('meta', meta);
         selectServiceObjs();
@@ -1069,26 +1083,37 @@ function getServiceObjs(ajaxData) {
     });
 }
 
+function addMaxToData(data) {
+    var max = null;
+    if (data.data) {
+        for (var i=0; i < data.data.length; i++) {
+            if (data.data[i].lines.show) {
+                for (var j=0; j < data.data[i].data.length; j++) {
+                    var val = data.data[i].data[j][1];
+                    if (( val > max && val != null) || first ) {
+                        max = val;
+                        first = false;
+                    }
+                }
+            }
+        }
+    }
+    if (data.options && data.options.yaxis && max) {
+        data.options.yaxis.max = max * 1.2;
+    }
+    return data;
+}
+
+
 // Takes the raw data and sets up required Flot formatting options
 function formatGraph(element, data) {
     base = data.base;
 
     var first = true;
     var max = null;
-    for (var i=0; i < data.data.length; i++) {
-        if (data.data[i].lines.show) {
-            for (var j=0; j < data.data[i].data.length; j++) {
-                var val = data.data[i].data[j][1];
-                if (( val > max && val != null) || first ) {
-                    max = val;
-                    first = false;
-                }
-            }
-        }
-    }
+    data = addMaxToData(data);
 
-    data.options.yaxis.max = max * 1.2;
-    if ( max ) {
+    if ( data.options.yaxis.max ) {
         data.options.yaxis.show = true;
         data.options.yaxis.ticks = tickGenerator;
         data.options.yaxis.tickFormatter = tickFormatter;
