@@ -560,3 +560,7 @@ fieldset {
 td.twirler {
     vertical-align: top;
 }
+
+.watermark {
+    color: #CCC;
+}
