@@ -1084,6 +1084,7 @@ function getServiceObjs(ajaxData) {
 }
 
 function addMaxToData(data) {
+    var first = true;
     var max = null;
     if (data.data) {
         for (var i=0; i < data.data.length; i++) {
@@ -1109,8 +1110,6 @@ function addMaxToData(data) {
 function formatGraph(element, data) {
     base = data.base;
 
-    var first = true;
-    var max = null;
     data = addMaxToData(data);
 
     if ( data.options.yaxis.max ) {
