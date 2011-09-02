@@ -503,8 +503,9 @@ def service(request, host, service):
     """Returns a page showing service details of specified service of host"""
     t = loader.get_template('service.html')
     stat, obj = parse()
-    service_detail = servicedetail(stat, host, service)
-    host_detail = hostdetail(stat, host)
+    # We assume there are exactly one of these, so grab the first element.
+    service_detail = servicedetail(stat, host, service)[0]
+    host_detail = hostdetail(stat, host)[0]
 
     if service_detail == None or host_detail == None:
         raise Http404
