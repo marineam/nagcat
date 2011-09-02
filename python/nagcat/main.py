@@ -80,6 +80,14 @@ def parse_options():
             help="alias for --profile-init --profile-run")
     parser.add_option("", "--profile-dump", dest="profile_dump",
             help="dump profiler data rather than displaying it")
+    parser.add_option("", "--merlin-db-user", dest="merlin_db_user",
+            help="Username for merlin mysql database")
+    parser.add_option("", "--merlin-db-pass", dest="merlin_db_pass",
+            help="Password for merlin mysql database")
+    parser.add_option("", "--merlin-db-name", dest="merlin_db_name",
+            help="Database name for merlin mysql database")
+    parser.add_option("", "--merlin-db-host", dest="merlin_db_host",
+            help="Hostname for merlin mysql database")
 
     (options, args) = parser.parse_args()
 
@@ -113,6 +121,17 @@ def parse_options():
     if options.profile_all:
         options.profile_init = True
         options.profile_run = True
+
+    # If we have any merlin settings, we should have all of them, with the
+    # only possible exception of the password, which is optional.
+    any_merlin_settings = bool(options.merlin_db_user or options.merlin_db_pass
+        or options.merlin_db_name or options.merlin_db_host)
+    all_merlin_settings = bool(options.merlin_db_user or options.merlin_db_pass
+        and options.merlin_db_name and options.merlin_db_host)
+
+    if any_merlin_settings:
+        if not all_merlin_settings:
+            err.append("All merlin database settings must be included")
 
     if err:
         parser.error("\n".join(err))
@@ -153,6 +172,13 @@ def init(options):
 
     init_plugins(options)
 
+    merlin_db_info = {
+          "merlin_db_name" : options.merlin_db_name,
+          "merlin_db_user" : options.merlin_db_user,
+          "merlin_db_pass" : options.merlin_db_pass,
+          "merlin_db_host" : options.merlin_db_host
+    }
+
     try:
         if options.test:
             nagcat = simple.NagcatSimple(config,
@@ -166,7 +192,8 @@ def init(options):
                     rradir=options.rradir,
                     rrdcache=options.rrdcache,
                     monitor_port=options.status_port,
-                    nagios_cfg=options.nagios, tag=options.tag)
+                    nagios_cfg=options.nagios, tag=options.tag,
+                    merlin_db_info=merlin_db_info)
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)

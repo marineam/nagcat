@@ -86,6 +86,7 @@ class NagcatNagios(scheduler.Scheduler):
                 # save all vars that start with '_'
                 # coil is normally in lower case and Nagios is case insensitive
                 test_overrides[key[1:].lower()] = service[key]
+                test_overrides['task_number'] = parser['service'].index(service)
 
             log.debug("Found Nagios service: %s", test_defaults)
             log.debug("Service overrides: %s", test_overrides)
@@ -117,7 +118,7 @@ class NagcatNagios(scheduler.Scheduler):
                 testconf[key] = val
 
             try:
-                testobj = self.new_test(testconf)
+                testobj = self.new_test(testconf, self.merlin_db_info)
             except (errors.InitError, CoilError), ex:
                 raise errors.InitError(
                         "Error in test %s: %s" % (test_overrides['test'], ex))

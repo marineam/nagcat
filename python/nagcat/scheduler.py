@@ -88,7 +88,7 @@ class Scheduler(object):
 
     def __init__(self, config=None,
             rradir=None, rrdcache=None,
-            monitor_port=None, **kwargs):
+            monitor_port=None,merlin_db_info={}, **kwargs):
 
         self._registered = set()
         self._group_index = {}
@@ -102,6 +102,7 @@ class Scheduler(object):
                 'Test':  {'count': 0},
                 'Query': {'count': 0},
             }
+        self.merlin_db_info = merlin_db_info
 
         if monitor_port:
             self._monitor_port = monitor_port
@@ -119,8 +120,8 @@ class Scheduler(object):
     def build_tests(self, config, **kwargs):
         raise Exception("unimplemented")
 
-    def new_test(self, config):
-        new = test.Test(self, config)
+    def new_test(self, config, merlin_db_info={}):
+        new = test.Test(self, config, merlin_db_info)
         self.register(new)
         if self.trend:
             self.trend.setup_test_trending(new, config)

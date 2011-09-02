@@ -74,8 +74,8 @@ class BaseTest(runnable.Runnable):
 
     type = "Test"
 
-    def __init__(self, conf):
-        runnable.Runnable.__init__(self, conf)
+    def __init__(self, conf, merlin_db_info={}):
+        runnable.Runnable.__init__(self, conf, merlin_db_info=merlin_db_info)
 
         self._port = conf.get('port', None)
         # used in return and report
@@ -119,8 +119,8 @@ class ChildError(errors.TestError):
 class Test(BaseTest):
     """Main test class"""
 
-    def __init__(self, nagcat, conf):
-        BaseTest.__init__(self, conf)
+    def __init__(self, nagcat, conf, merlin_db_info={}):
+        BaseTest.__init__(self, conf, merlin_db_info)
 
         self._nagcat = nagcat
         self._test = conf.get('test', "")
