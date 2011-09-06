@@ -124,14 +124,14 @@ def parse_options():
 
     # If we have any merlin settings, we should have all of them, with the
     # only possible exception of the password, which is optional.
-    any_merlin_settings = bool(options.merlin_db_user or options.merlin_db_pass
-        or options.merlin_db_name or options.merlin_db_host)
-    all_merlin_settings = bool(options.merlin_db_user or options.merlin_db_pass
-        and options.merlin_db_name and options.merlin_db_host)
+    any_merlin_settings = any([options.merlin_db_user,options.merlin_db_pass,
+        options.merlin_db_name,options.merlin_db_host,])
+    # Don't check for merlin_db_pass because it doesn't have to exist.
+    all_merlin_settings = all([options.merlin_db_user,options.merlin_db_name,
+        options.merlin_db_host,])
 
-    if any_merlin_settings:
-        if not all_merlin_settings:
-            err.append("All merlin database settings must be included")
+    if any_merlin_settings and not all_merlin_settings:
+        err.append("All merlin database settings must be included")
 
     if err:
         parser.error("\n".join(err))
@@ -176,7 +176,7 @@ def init(options):
           "merlin_db_name" : options.merlin_db_name,
           "merlin_db_user" : options.merlin_db_user,
           "merlin_db_pass" : options.merlin_db_pass,
-          "merlin_db_host" : options.merlin_db_host
+          "merlin_db_host" : options.merlin_db_host,
     }
 
     try:
