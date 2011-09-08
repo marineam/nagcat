@@ -35,6 +35,7 @@ Scheduling works as follows:
 
 import time
 import random
+import MySQLdb
 from collections import deque
 
 from twisted.internet import defer, reactor, task
@@ -102,7 +103,7 @@ class Scheduler(object):
                 'Test':  {'count': 0},
                 'Query': {'count': 0},
             }
-        self.merlin_db_info = merlin_db_info
+        self._merlin_db_info = merlin_db_info
 
         if monitor_port:
             self._monitor_port = monitor_port
@@ -117,11 +118,79 @@ class Scheduler(object):
 
         self.build_tests(config, **kwargs)
 
+        self._test_index = 0
+
+        self._peer_id = None
+        self._peer_id_timestamp = None
+        self._num_peers = None
+        self._update_peer_id()
+
+    def _update_peer_id(self):
+        log.debug("Updating peer_id with _merlin_db_info=%s", self._merlin_db_info)
+        if self._peer_id and self._peer_id_timestamp:
+            if time.time() - self._peer_id_timestamp >= 60:
+                # peer_id should be refreshed.
+                try:
+                    db = MySQLdb.connect(
+                        user=self._merlin_db_info['merlin_db_user'],
+                        host=self._merlin_db_info['merlin_db_host'],
+                        passwd=self._merlin_db_info['merlin_db_pass'],
+                        db=self._merlin_db_info['merlin_db_name'])
+                    curs = db.cursor()
+                    num_rows = curs.execute(
+                        """select * from merlin_peers where state=3;""")
+                    for i in range(num_rows):
+                        row = curs.fetchone()
+                        if row[0] == "localhost":
+                            self._peer_id = row[5]
+                            self._peer_id_timestamp = time.time()
+                except:
+                    log.error("Unable to get peer_id")
+            else:
+                # peer_id is still valid, return.
+                return
+        else: # We are missing peer_id or peer_id_timestamp...
+            if self._merlin_db_info:
+                try:
+                    max_peer_id = 0
+                    db = MySQLdb.connect(
+                        user=self._merlin_db_info['merlin_db_user'],
+                        host=self._merlin_db_info['merlin_db_host'],
+                        passwd=self._merlin_db_info['merlin_db_pass'],
+                        db=self._merlin_db_info['merlin_db_name'])
+                    curs = db.cursor()
+                    num_rows = curs.execute(
+                        """select * from merlin_peers where state=3;""")
+                    for i in range(num_rows):
+                        row = curs.fetchone()
+                        if row[5] > max_peer_id:
+                            max_peer_id = row[5]
+                        if row[0] == "localhost":
+                            self._peer_id = row[5]
+                            self._peer_id_timestamp = time.time()
+                    # Since peer_ids start from 0, add one to max to get count.
+                    self._num_peers = max_peer_id + 1
+                except:
+                    log.error("Unable to get peer_id")
+
+    def get_peer_id(self):
+        self._update_peer_id()
+        log.debug("Seeting _peer_id = %s", self._peer_id)
+        return self._peer_id
+
+    def get_num_peers(self):
+        self._update_peer_id()
+        log.debug("Seeting num_peers = %s", self._num_peers)
+        return self._num_peers
+
+
+
     def build_tests(self, config, **kwargs):
         raise Exception("unimplemented")
 
-    def new_test(self, config, merlin_db_info={}):
-        new = test.Test(self, config, merlin_db_info)
+    def new_test(self, config):
+        new = test.Test(self, config, self._test_index)
+        self._test_index += 1
         self.register(new)
         if self.trend:
             self.trend.setup_test_trending(new, config)

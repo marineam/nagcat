@@ -37,6 +37,7 @@ class NagcatNagios(scheduler.Scheduler):
         self._status_file = cfg['status_file']
         self._status_cache = None
         self._status_mtime = 0
+        self._test_index = 0
 
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])
@@ -86,7 +87,6 @@ class NagcatNagios(scheduler.Scheduler):
                 # save all vars that start with '_'
                 # coil is normally in lower case and Nagios is case insensitive
                 test_overrides[key[1:].lower()] = service[key]
-                test_overrides['task_number'] = parser['service'].index(service)
 
             log.debug("Found Nagios service: %s", test_defaults)
             log.debug("Service overrides: %s", test_overrides)
@@ -118,7 +118,7 @@ class NagcatNagios(scheduler.Scheduler):
                 testconf[key] = val
 
             try:
-                testobj = self.new_test(testconf, self.merlin_db_info)
+                testobj = self.new_test(testconf)
             except (errors.InitError, CoilError), ex:
                 raise errors.InitError(
                         "Error in test %s: %s" % (test_overrides['test'], ex))
