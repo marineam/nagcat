@@ -198,8 +198,6 @@ class Test(BaseTest):
 
         self._report_callbacks = []
 
-        self._should_run = True
-
     def _addDefaults(self, conf):
         """Add default values based on this test to a subtest config"""
         conf.setdefault('host', self.host)
@@ -210,24 +208,24 @@ class Test(BaseTest):
         if conf['host'] == self.host:
             conf.setdefault('addr', self.addr)
 
-    def _set_should_run(self):
+    def _should_run(self):
         """Decides whether or not a test should be run, based on its task
-        index and the schedulers peer_id"""
+        index and the schedulers peer_id. Returns True if it should run, False
+        if it should not."""
         peer_id = self._nagcat.get_peer_id()
         num_peers = self._nagcat.get_num_peers()
-        log.debug("Running _set_should_run, test_index=%s", str(self._test_index))
+        log.debug("Running _should_run, test_index=%s", str(self._test_index))
         if peer_id and num_peers:
             if not (self._test_index % num_peers == peer_id):
-                log.debug("Test %s should run", self.description)
-                self._should_run = False
-        return
+                log.debug("Test %s should not run", self.description)
+                return False
+        return True
 
 
     def _start(self):
         self._now = time.time()
 
-        self._set_should_run()
-        if not self._should_run:
+        if not self._should_run():
             return
         # All sub-tests are now complete, process them!
         deferred = BaseTest._start(self)
