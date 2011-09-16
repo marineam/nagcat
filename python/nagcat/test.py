@@ -96,6 +96,7 @@ class BaseTest(runnable.Runnable):
                 self, 'warning', None, conf['warning']))
 
     def _start(self):
+        self._now = time.time()
         # Subclasses must override this and fire the deferred!
         self.saved.clear()
 
