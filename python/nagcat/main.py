@@ -21,7 +21,7 @@ from optparse import OptionParser
 from twisted.internet import reactor
 import coil
 
-from nagcat import errors, log, nagios, plugin, query, simple, util
+from nagcat import errors, log, nagios, plugin, query, simple, util, merlin
 
 def parse_options():
     """Parse program options in sys.argv"""
@@ -129,6 +129,8 @@ def parse_options():
     # Don't check for merlin_db_pass because it doesn't have to exist.
     all_merlin_settings = all([options.merlin_db_user,options.merlin_db_name,
         options.merlin_db_host,])
+    # Flag to use merlin or not
+    options.merlin = any_merlin_settings and all_merlin_settings
 
     if any_merlin_settings and not all_merlin_settings:
         err.append("All merlin database settings must be included")
@@ -187,13 +189,19 @@ def init(options):
                     monitor_port=options.status_port,
                     test_name=options.test,
                     host=options.host, port=options.port)
+        elif options.merlin:
+            nagcat = merlin.NagcatMerlin(config,
+                     rradir=options.rradir,
+                     rrdcache=options.rrdcache,
+                     monitor_port=options.status_port,
+                     nagios_cfg=options.nagios, tag=options.tag,
+                     merlin_db_info=merlin_db_info)
         else:
             nagcat = nagios.NagcatNagios(config,
                     rradir=options.rradir,
                     rrdcache=options.rrdcache,
                     monitor_port=options.status_port,
-                    nagios_cfg=options.nagios, tag=options.tag,
-                    merlin_db_info=merlin_db_info)
+                    nagios_cfg=options.nagios, tag=options.tag)
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))
         sys.exit(1)

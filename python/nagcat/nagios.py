@@ -37,7 +37,6 @@ class NagcatNagios(scheduler.Scheduler):
         self._status_file = cfg['status_file']
         self._status_cache = None
         self._status_mtime = 0
-        self._test_index = 0
 
         log.info("Using Nagios object cache: %s", self._nagios_obj)
         log.info("Using Nagios command file: %s", cfg['command_file'])

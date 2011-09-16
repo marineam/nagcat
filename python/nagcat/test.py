@@ -119,7 +119,7 @@ class ChildError(errors.TestError):
 class Test(BaseTest):
     """Main test class"""
 
-    def __init__(self, nagcat, conf, test_index):
+    def __init__(self, nagcat, conf):
         BaseTest.__init__(self, conf)
 
         self._nagcat = nagcat
@@ -130,7 +130,6 @@ class Test(BaseTest):
         self._priority = conf.get('priority', "")
         self._url = conf.get('url', "")
         self._subtests = {}
-        self._test_index = test_index
 
         # Special little value!
         # Mark this test as CRITICAL if it has been in WARNING
@@ -208,25 +207,9 @@ class Test(BaseTest):
         if conf['host'] == self.host:
             conf.setdefault('addr', self.addr)
 
-    def _should_run(self):
-        """Decides whether or not a test should be run, based on its task
-        index and the schedulers peer_id. Returns True if it should run, False
-        if it should not."""
-        peer_id = self._nagcat.get_peer_id()
-        num_peers = self._nagcat.get_num_peers()
-        log.debug("Running _should_run, test_index=%s", str(self._test_index))
-        if peer_id and num_peers:
-            if not (self._test_index % num_peers == peer_id):
-                log.debug("Test %s should not run", self.description)
-                return False
-        return True
 
 
     def _start(self):
-        self._now = time.time()
-
-        if not self._should_run():
-            return
         # All sub-tests are now complete, process them!
         deferred = BaseTest._start(self)
         deferred.addBoth(self._report)
