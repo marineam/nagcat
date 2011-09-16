@@ -116,12 +116,6 @@ class Scheduler(object):
 
         self.build_tests(config, **kwargs)
 
-        self._peer_id = None
-        self._peer_id_timestamp = None
-        self._num_peers = None
-        self._update_peer_id()
-
-
     def build_tests(self, config, **kwargs):
         raise Exception("unimplemented")
 

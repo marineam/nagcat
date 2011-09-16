@@ -27,9 +27,11 @@ class NagcatMerlin(nagios.NagcatNagios):
 
         self._test_index = 0
         self._merlin_db_info = merlin_db_info
+        self._peer_id = None
+        self._peer_id_timestamp = None
+        self._num_peers = None
+        self._update_peer_id()
         return super(NagcatMerlin, self).__init__(config, nagios_cfg, **kwargs)
-
-
 
     def new_test(self, config):
         new = merlintest.MerlinTest(self, config, self._test_index)
