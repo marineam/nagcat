@@ -55,7 +55,7 @@ class NagcatMerlin(nagios.NagcatNagios):
             num_rows = curs.execute(
                 """select * from merlin_peers where state=3;""")
             self._num_peers = num_rows
-            log.debug("Seeting self._num_peers = %s", num_rows)
+            log.debug("Setting self._num_peers = %s", num_rows)
             for i in range(num_rows):
                 row = curs.fetchone()
                 if row[0] == "localhost":
