@@ -96,7 +96,6 @@ class BaseTest(runnable.Runnable):
                 self, 'warning', None, conf['warning']))
 
     def _start(self):
-        self._now = time.time()
         # Subclasses must override this and fire the deferred!
         self.saved.clear()
 
@@ -208,9 +207,9 @@ class Test(BaseTest):
         if conf['host'] == self.host:
             conf.setdefault('addr', self.addr)
 
-
-
     def _start(self):
+        self._now = time.time()
+
         # All sub-tests are now complete, process them!
         deferred = BaseTest._start(self)
         deferred.addBoth(self._report)
