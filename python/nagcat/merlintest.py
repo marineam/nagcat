@@ -1,4 +1,4 @@
-# Copyright 2008-2009 ITA Software, Inc.
+# Copyright 2008-2011 Google, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,17 +33,16 @@ class MerlinTest(test.Test):
         """Decides whether or not a test should be run, based on its task
         index and the schedulers peer_id. Returns True if it should run, False
         if it should not."""
-        peer_id = self._nagcat.get_peer_id()
-        num_peers = self._nagcat.get_num_peers()
-        log.debug("Running _should_run, test_index=%s, num_peers=%s, peer_id=%s", str(self._test_index), num_peers, peer_id)
+        peer_id, num_peers = self._nagcat.get_peer_id_num_peers()
+        log.debug("Running should_run, test_index=%s, num_peers=%s, peer_id=%s",
+            str(self._test_index), num_peers, peer_id)
         if peer_id and num_peers:
-            if not (self._test_index % num_peers == peer_id):
+            if self._test_index % num_peers != peer_id:
                 return False
         return True
 
     def start(self):
         """Decides whether or not to start the test, based on _should_run."""
-        log.debug("Running MerlinTest.start")
         if self._should_run():
             log.debug("Running test %s", self)
             return super(MerlinTest,self).start()

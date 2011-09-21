@@ -1,4 +1,4 @@
-# Copyright 2008-2009 ITA Software, Inc.
+# Copyright 2008-2011 Google, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@ import MySQLdb
 import time
 
 from coil.errors import CoilError
-from nagcat import errors, log, nagios_api, nagios_objects, scheduler, merlintest,nagios
+from nagcat import errors, log, nagios_api
+from nagcat import nagios_objects, scheduler, merlintest, nagios
 
 class NagcatMerlin(nagios.NagcatNagios):
     """NagcatNagios scheduler that load balances using merlin."""
@@ -55,17 +56,18 @@ class NagcatMerlin(nagios.NagcatNagios):
             num_rows = curs.execute(
                 """select * from merlin_peers where state=3;""")
             self._num_peers = num_rows
-            log.debug("Setting self._num_peers = %s", num_rows)
+            log.debug("Setting self._num_peers = %s", self._num_peers)
             for i in range(num_rows):
                 row = curs.fetchone()
                 if row[0] == "localhost":
                     self._peer_id = row[5]
                     self._peer_id_timestamp = time.time()
-                    log.debug(("Setting self._peer_id = %s", str(self._peer_id)) +
+                    log.debug(("Setting self._peer_id = %s",
+                        str(self._peer_id)) +
                         ("and self._peer_id_timestamp = %s",
                         self._peer_id_timestamp))
         except MySQLdb.Error, e:
-            log.error("Error %d: %s" % (e.args[0], e.args[1]))
+            log.error("Error reading merlin db %d: %s" % (e.args[0], e.args[1]))
 
     def _update_peer_id(self):
         log.debug("Updating peer_id with _merlin_db_info=%s",
@@ -81,12 +83,6 @@ class NagcatMerlin(nagios.NagcatNagios):
             if self._merlin_db_info:
                 self._set_peer_id_and_timestamp()
 
-    def get_peer_id(self):
+    def get_peer_id_num_peers(self):
         self._update_peer_id()
-        return self._peer_id
-
-    def get_num_peers(self):
-        self._update_peer_id()
-        return self._num_peers
-
-
+        return self._peer_id, self._num_peers
