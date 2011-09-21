@@ -23,7 +23,7 @@ from nagcat import errors, filters, log, query, runnable, util, test
 
 class MerlinTest(test.Test):
 
-    def __init__(self,nagcat, conf, test_index):
+    def __init__(self, nagcat, conf, test_index):
         test.Test.__init__(self, nagcat, conf)
 
         self._nagcat = nagcat

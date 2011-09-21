@@ -19,20 +19,30 @@ import time
 
 from coil.errors import CoilError
 from nagcat import errors, log, nagios_api
-from nagcat import nagios_objects, scheduler, merlintest, nagios
+from nagcat import nagios_objects, scheduler, merlintest, nagios, simple
+
+class NagcatMerlinDummy(scheduler.Scheduler):
+    """For testing purposes."""
+    def build_tests(self, config):
+        return []
+
+    def nagios_status(self):
+        return simple.ObjectDummy()
+
+    def get_peer_id_num_peers(self):
+        return 0,2
 
 class NagcatMerlin(nagios.NagcatNagios):
     """NagcatNagios scheduler that load balances using merlin."""
 
     def __init__(self, config, nagios_cfg, merlin_db_info={}, **kwargs):
-
+        nagios.NagcatNagios.__init__(self, config, nagios_cfg, **kwargs)
         self._test_index = 0
         self._merlin_db_info = merlin_db_info
         self._peer_id = None
         self._peer_id_timestamp = None
         self._num_peers = None
         self._update_peer_id()
-        return super(NagcatMerlin, self).__init__(config, nagios_cfg, **kwargs)
 
     def new_test(self, config):
         new = merlintest.MerlinTest(self, config, self._test_index)
