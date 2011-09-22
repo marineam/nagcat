@@ -85,18 +85,3 @@ class NagcatMerlin(nagios.NagcatNagios):
     def get_peer_id_num_peers(self):
         self._update_peer_id()
         return self._peer_id, self._num_peers
-
-class NagcatMerlinDummy(NagcatMerlin):
-    """For testing purposes."""
-    def __init__(self, merlin_db_info={}, **kwargs):
-        self._merlin_db_info = merlin_db_info
-        self._peer_id = -1
-        self._num_peers = -1
-        self._peer_id_timestamp = None
-
-    def build_tests(self, config):
-        return []
-
-    def nagios_status(self):
-        return simple.ObjectDummy()
-

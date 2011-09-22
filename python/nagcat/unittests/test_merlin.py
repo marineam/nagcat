@@ -13,74 +13,84 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import merlin
+from nagcat import simple, merlin, scheduler
 from coil.struct import Struct
 import os
 import MySQLdb
 
-
 class TestNagcatMerlinCase(unittest.TestCase):
 
     def setUp(self):
-        try:
-            self._merlin_db_info = {
-                "merlin_db_user": os.environ['MYSQL_USER'],
-                "merlin_db_host": os.environ['MYSQL_HOST'],
-                "merlin_db_pass": os.environ['MYSQL_PASS'],
-                "merlin_db_name": os.environ['MYSQL_NAME'],
-                #"merlin_db_port": os.environ['MYSQL_PORT'],
-            }
-        except KeyError, e:
-            self.fail("Key error: %s" % e)
-        try:
-            db = MySQLdb.connect(
-                user=self._merlin_db_info['merlin_db_user'],
-                host=self._merlin_db_info['merlin_db_host'],
-                passwd=self._merlin_db_info['merlin_db_pass'],
-                db=self._merlin_db_info['merlin_db_name'])
+        self._merlin_db_info = {
+            "merlin_db_user": os.environ.get('MYSQL_USER', None),
+            "merlin_db_host": os.environ.get('MYSQL_HOST', None),
+            "merlin_db_pass": os.environ.get('MYSQL_PASS', None),
+            "merlin_db_name": os.environ.get('MYSQL_NAME', None),
+            "merlin_db_port": os.environ.get('MYSQL_PORT', 3306),
+        }
+        self._should_skip = not all([self._merlin_db_info['merlin_db_user'],
+            self._merlin_db_info['merlin_db_host'],
+            self._merlin_db_info['merlin_db_name']])
+        if self._should_skip:
+            raise unittest.SkipTest("Not enough database information")
+        db = MySQLdb.connect(
+            user=self._merlin_db_info['merlin_db_user'],
+            host=self._merlin_db_info['merlin_db_host'],
+            passwd=self._merlin_db_info['merlin_db_pass'],
+            db=self._merlin_db_info['merlin_db_name'])
 
-            cursor = db.cursor()
-            cursor.execute("""drop table if exists merlin_peers;""")
-            cursor.execute("""create table merlin_peers(
-                    name    varchar(70) NOT NULL PRIMARY KEY,
-                    id      int(22),
-                    sock    int(22),
-                    type    int(1) NOT NULL,
-                    state   int(22) NOT NULL,
-                    peer_id int(22) NOT NULL);""")
-            cursor.execute("""insert into merlin_peers values(
-                    'localhost',
-                    '1',
-                    '1',
-                    '1',
-                    '3',
-                    '0');""")
-            cursor.execute("""insert into merlin_peers values(
-                    'otherhost',
-                    '1',
-                    '1',
-                    '1',
-                    '3',
-                    '1');""")
-        except MySQLdb.Error, e:
-            self.fail("Could not connect to database %d: %s" % (e.args[0],
-                e.args[1]))
+        cursor = db.cursor()
+        cursor.execute("""drop table if exists merlin_peers;""")
+        cursor.execute("""create table merlin_peers(
+                name    varchar(70) NOT NULL PRIMARY KEY,
+                id      int(22),
+                sock    int(22),
+                type    int(1) NOT NULL,
+                state   int(22) NOT NULL,
+                peer_id int(22) NOT NULL);""")
+        cursor.execute("""insert into merlin_peers values(
+                'localhost',
+                '1',
+                '1',
+                '1',
+                '3',
+                '0');""")
+        cursor.execute("""insert into merlin_peers values(
+                'otherhost',
+                '1',
+                '1',
+                '1',
+                '3',
+                '1');""")
 
     def testNagcatMerlin(self):
-        nagcatMerlin = merlin.NagcatMerlinDummy(merlin_db_info=self._merlin_db_info)
+        nagcatMerlin = NagcatMerlinDummy(
+            merlin_db_info=self._merlin_db_info)
         self.assertEquals(nagcatMerlin.get_peer_id_num_peers(),
-        (0,2))
+            (0,2))
 
     def tearDown(self):
-        try:
-            db = MySQLdb.connect(
-                user = self._merlin_db_info['merlin_db_user'],
-                host = self._merlin_db_info['merlin_db_host'],
-                passwd = self._merlin_db_info['merlin_db_pass'],
-                db = self._merlin_db_info['merlin_db_name'])
-            curs = db.cursor()
-            curs.execute("""DROP table merlin_peers;""")
-        except MySQLdb.Error, e:
-            self.fail("Could not clean up database %d: %s" % (e.args[0],
-                e.args[1]))
+        db = MySQLdb.connect(
+            user = self._merlin_db_info['merlin_db_user'],
+            host = self._merlin_db_info['merlin_db_host'],
+            passwd = self._merlin_db_info['merlin_db_pass'],
+            db = self._merlin_db_info['merlin_db_name'])
+        curs = db.cursor()
+        curs.execute("""DROP table merlin_peers;""")
+
+class NagcatMerlinDummy(merlin.NagcatMerlin):
+    """For testing purposes."""
+    def __init__(self, merlin_db_info={}):
+        self._merlin_db_info = merlin_db_info
+        scheduler.Scheduler.__init__(self)
+        self._peer_id = None
+        self._num_rows = None
+        self._peer_id_timestamp = None
+
+    def build_tests(self, config):
+        return []
+
+    def nagios_status(self):
+        return simple.ObjectDummy()
+
 
