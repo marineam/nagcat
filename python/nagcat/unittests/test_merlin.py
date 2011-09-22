@@ -16,6 +16,7 @@ from twisted.trial import unittest
 from nagcat import simple, merlin, scheduler
 from coil.struct import Struct
 import os
+import warnings
 import MySQLdb
 
 class TestNagcatMerlinCase(unittest.TestCase):
@@ -40,6 +41,8 @@ class TestNagcatMerlinCase(unittest.TestCase):
             db=self._merlin_db_info['merlin_db_name'])
 
         cursor = db.cursor()
+        # drop table raises a warning if the table doesn't exist, so shutup!
+        warnings.filterwarnings('ignore', 'Unknown table.*')
         cursor.execute("""drop table if exists merlin_peers;""")
         cursor.execute("""create table merlin_peers(
                 name    varchar(70) NOT NULL PRIMARY KEY,
@@ -92,5 +95,3 @@ class NagcatMerlinDummy(merlin.NagcatMerlin):
 
     def nagios_status(self):
         return simple.ObjectDummy()
-
-
