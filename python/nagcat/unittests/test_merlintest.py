@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from twisted.trial import unittest
-from nagcat import merlin, merlintest
+from nagcat import merlintest
 from coil.struct import Struct
-import os
 
 class TestMerlinTestCase(unittest.TestCase):
 
@@ -34,7 +33,7 @@ class TestMerlinTestCase(unittest.TestCase):
                     'return': "$(test-a) + $(test-b)",
                 },
             })
-        t = merlintest.MerlinTest(merlin.NagcatMerlinDummy(), config, 1)
+        t = merlintest.MerlinTest(merlintest.NagcatMerlinTestDummy(), config, 1)
         d = t.start()
         d.addBoth(self.endMerlinTestRun, t)
         return d
@@ -58,7 +57,7 @@ class TestMerlinTestCase(unittest.TestCase):
                     'return': "$(test-a) + $(test-b)",
                 },
             })
-        t = merlintest.MerlinTest(merlin.NagcatMerlinDummy(), config, 0)
+        t = merlintest.MerlinTest(merlintest.NagcatMerlinTestDummy(), config, 0)
         d = t.start()
         d.addBoth(self.endMerlinTestRun, t)
         return d

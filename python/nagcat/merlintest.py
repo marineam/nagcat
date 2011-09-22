@@ -19,7 +19,19 @@ from twisted.internet import defer, reactor
 from twisted.python import failure
 from coil import struct
 
-from nagcat import errors, filters, log, query, runnable, util, test
+from nagcat import errors, filters, log, query, runnable, util, test, simple
+from nagcat import scheduler
+
+class NagcatMerlinTestDummy(scheduler.Scheduler):
+    """For testing purposes."""
+    def build_tests(self, config):
+        return []
+
+    def nagios_status(self):
+        return simple.ObjectDummy()
+
+    def get_peer_id_num_peers(self):
+        return 0,2
 
 class MerlinTest(test.Test):
 
