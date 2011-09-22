@@ -26,6 +26,11 @@ class NagcatNagios(scheduler.Scheduler):
     def __init__(self, config, nagios_cfg, **kwargs):
         """Read given Nagios config file and load tests"""
 
+        # TODO: The NagcatNagios class needs to be easier to test,
+        # that way we can actually call the __init__ for it in unit tests
+        # and test NagcatMerlin and NagcatNagios more effectively.
+        # More specifically, nagios_cfg currently *has* to be a file,
+        # which makes unit testing extraordinarily difficult.
         cfg = nagios_objects.ConfigParser(nagios_cfg,
                 ('object_cache_file', 'status_file',
                  'command_file', 'check_result_path'))

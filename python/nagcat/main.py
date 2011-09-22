@@ -21,7 +21,7 @@ from optparse import OptionParser
 from twisted.internet import reactor
 import coil
 
-from nagcat import errors, log, nagios, plugin, query, simple, util
+from nagcat import errors, log, nagios, plugin, query, simple, util, merlin
 
 def parse_options():
     """Parse program options in sys.argv"""
@@ -80,6 +80,14 @@ def parse_options():
             help="alias for --profile-init --profile-run")
     parser.add_option("", "--profile-dump", dest="profile_dump",
             help="dump profiler data rather than displaying it")
+    parser.add_option("", "--merlin-db-user", dest="merlin_db_user",
+            help="Username for merlin mysql database")
+    parser.add_option("", "--merlin-db-pass", dest="merlin_db_pass",
+            help="Password for merlin mysql database")
+    parser.add_option("", "--merlin-db-name", dest="merlin_db_name",
+            help="Database name for merlin mysql database")
+    parser.add_option("", "--merlin-db-host", dest="merlin_db_host",
+            help="Hostname for merlin mysql database")
 
     (options, args) = parser.parse_args()
 
@@ -113,6 +121,19 @@ def parse_options():
     if options.profile_all:
         options.profile_init = True
         options.profile_run = True
+
+    # If we have any merlin settings, we should have all of them, with the
+    # only possible exception of the password, which is optional.
+    any_merlin_settings = any([options.merlin_db_user,options.merlin_db_pass,
+        options.merlin_db_name,options.merlin_db_host,])
+    # Don't check for merlin_db_pass because it doesn't have to exist.
+    all_merlin_settings = all([options.merlin_db_user,options.merlin_db_name,
+        options.merlin_db_host,])
+    # Flag to use merlin or not
+    options.merlin = any_merlin_settings and all_merlin_settings
+
+    if any_merlin_settings and not all_merlin_settings:
+        err.append("All merlin database settings must be included")
 
     if err:
         parser.error("\n".join(err))
@@ -153,6 +174,13 @@ def init(options):
 
     init_plugins(options)
 
+    merlin_db_info = {
+          "merlin_db_name" : options.merlin_db_name,
+          "merlin_db_user" : options.merlin_db_user,
+          "merlin_db_pass" : options.merlin_db_pass,
+          "merlin_db_host" : options.merlin_db_host,
+    }
+
     try:
         if options.test:
             nagcat = simple.NagcatSimple(config,
@@ -161,6 +189,13 @@ def init(options):
                     monitor_port=options.status_port,
                     test_name=options.test,
                     host=options.host, port=options.port)
+        elif options.merlin:
+            nagcat = merlin.NagcatMerlin(config,
+                     rradir=options.rradir,
+                     rrdcache=options.rrdcache,
+                     monitor_port=options.status_port,
+                     nagios_cfg=options.nagios, tag=options.tag,
+                     merlin_db_info=merlin_db_info)
         else:
             nagcat = nagios.NagcatNagios(config,
                     rradir=options.rradir,
