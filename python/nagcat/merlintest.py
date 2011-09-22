@@ -37,8 +37,6 @@ class MerlinTest(test.Test):
 
     def __init__(self, nagcat, conf, test_index):
         test.Test.__init__(self, nagcat, conf)
-
-        self._nagcat = nagcat
         self._test_index = test_index
 
     def _should_run(self):
