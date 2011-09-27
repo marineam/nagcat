@@ -17,23 +17,28 @@ from nagcat import simple, merlin, scheduler
 from coil.struct import Struct
 import os
 import warnings
-import MySQLdb
+
+try:
+    import MySQLdb
+except ImportError:
+    skip = "MySQLdb is not available"
 
 class TestNagcatMerlinCase(unittest.TestCase):
 
+    _merlin_db_info = {
+        'merlin_db_user': os.environ.get('MYSQL_USER', None),
+        'merlin_db_host': os.environ.get('MYSQL_HOST', None),
+        'merlin_db_pass': os.environ.get('MYSQL_PASS', None),
+        'merlin_db_name': os.environ.get('MYSQL_NAME', None),
+        'merlin_db_port': os.environ.get('MYSQL_PORT', 3306),
+    }
+
+    if not all((_merlin_db_info['merlin_db_user'],
+                _merlin_db_info['merlin_db_host'],
+                _merlin_db_info['merlin_db_name'])):
+        skip = "Missing MySQL credentials"
+
     def setUp(self):
-        self._merlin_db_info = {
-            "merlin_db_user": os.environ.get('MYSQL_USER', None),
-            "merlin_db_host": os.environ.get('MYSQL_HOST', None),
-            "merlin_db_pass": os.environ.get('MYSQL_PASS', None),
-            "merlin_db_name": os.environ.get('MYSQL_NAME', None),
-            "merlin_db_port": os.environ.get('MYSQL_PORT', 3306),
-        }
-        self._should_skip = not all([self._merlin_db_info['merlin_db_user'],
-            self._merlin_db_info['merlin_db_host'],
-            self._merlin_db_info['merlin_db_name']])
-        if self._should_skip:
-            raise unittest.SkipTest("Not enough database information")
         db = MySQLdb.connect(
             user=self._merlin_db_info['merlin_db_user'],
             host=self._merlin_db_info['merlin_db_host'],

@@ -132,6 +132,9 @@ def parse_options():
     # Flag to use merlin or not
     options.merlin = any_merlin_settings and all_merlin_settings
 
+    if options.merlin and not merlin.available():
+        err.append("Merlin support is not available. Missing MySQLdb?")
+
     if any_merlin_settings and not all_merlin_settings:
         err.append("All merlin database settings must be included")
 
