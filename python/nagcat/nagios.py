@@ -16,6 +16,7 @@
 
 import os
 import errno
+import socket
 
 from coil.errors import CoilError
 from nagcat import errors, log, nagios_api, nagios_objects, scheduler
@@ -68,6 +69,14 @@ class NagcatNagios(scheduler.Scheduler):
         tests = []
 
         for host in parser['host']:
+            # Make sure host address is valid
+            addr = host.get('address', host['host_name'])
+            try:
+                addr = socket.gethostbyname(addr)
+            except socket.gaierror, ex:
+                raise errors.InitError(
+                    "Failed to resolve '%s': %s" % (addr, ex))
+            host['address'] = addr
             hosts[host['host_name']] = host
 
         for service in parser['service']:
