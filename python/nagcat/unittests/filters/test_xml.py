@@ -13,9 +13,13 @@
 # limitations under the License.
 
 import os
-from lxml import etree
 from twisted.trial import unittest
 from nagcat import errors, filters
+
+try:
+    from lxml import etree
+except ImportError:
+    skip = "Missing lxml"
 
 class XPathTestCase(unittest.TestCase):
 

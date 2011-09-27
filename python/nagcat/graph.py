@@ -16,11 +16,19 @@
 
 import os
 import tempfile
-import rrdtool
+
+try:
+    import rrdtool
+except ImportError:
+    rrdtool = None
 
 import coil
 import twirrdy
 from nagcat import errors
+
+def available():
+    """Returns False if rrdtool is not available"""
+    return rrdtool is not None
 
 class Colorator(object):
     """A helper for picking graph colors"""
@@ -203,4 +211,3 @@ class Graph(object):
         fd.close()
 
         return png
-

@@ -237,6 +237,8 @@ class Notification(object):
         # Attempt to generate an rrdtool graph if this is a Nagcat service
         if (type_ == "service" and self.config['rradir']
                 and self.macros.get('_SERVICETEST', None)):
+            if not graph.available():
+                log.warn("RRDTool support is not available")
             try:
                 self.trend = graph.Graph(self.config['rradir'],
                         self.macros['HOSTNAME'],
