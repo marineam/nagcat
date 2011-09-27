@@ -15,7 +15,6 @@
 """NagCat->Nagios connector"""
 
 import os
-import errno
 import socket
 
 from coil.errors import CoilError

@@ -12,15 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
-import time
+from twisted.internet import defer
 
-from twisted.internet import defer, reactor
-from twisted.python import failure
-from coil import struct
-
-from nagcat import errors, filters, log, query, runnable, util, test, simple
-from nagcat import scheduler
+from nagcat import log, test, scheduler, simple
 
 class NagcatMerlinTestDummy(scheduler.Scheduler):
     """For testing purposes."""

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import errno
 import time
 
 try:
@@ -21,9 +19,7 @@ try:
 except ImportError:
     MySQLdb = None
 
-from coil.errors import CoilError
-from nagcat import errors, log, nagios_api
-from nagcat import nagios_objects, scheduler, merlintest, nagios, simple
+from nagcat import log, merlintest, nagios
 
 
 def available():
