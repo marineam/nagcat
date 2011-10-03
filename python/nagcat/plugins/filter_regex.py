@@ -82,6 +82,8 @@ class GrepFilter(filters._Filter):
             return output
         elif self.default is not None:
             return self.default
+        elif self.invert:
+            return ""
         else:
             raise errors.TestCritical(
                     "Failed to match regex '%s'" % self.arguments)

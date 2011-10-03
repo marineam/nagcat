@@ -41,7 +41,10 @@ class GrepTestCase(unittest.TestCase):
     def testInverse(self):
         f = filters.Filter(object(), "grepv:^foo$")
         self.assertEquals(f.filter("zoom\nfoo\nbaz"), "zoom\nbaz")
-        self.assertIsInstance(f.filter("foo"), errors.Failure)
+
+    def testInverseEmpty(self):
+        f = filters.Filter(object(), "grepv:^foo$")
+        self.assertEquals(f.filter("foo\n"), "")
 
     def testDefault(self):
         f = filters.Filter(object(), "grep[doh]:^foo$")
