@@ -60,9 +60,14 @@ class PickleReader(protocol.ProcessProtocol):
     def processEnded(self, reason):
         if isinstance(reason.value, error.ProcessDone):
             try:
-                self.deferred.callback(cPickle.loads(self.data))
+                result = cPickle.loads(self.data)
+            except EOFError:
+                self.deferred.errback(errors.Failure(errors.TestUnknown(
+                    "Query subprocess exited with no results.")))
             except Exception:
                 self.deferred.errback(failure.Failure())
+            else:
+                self.deferred.callback(result)
         elif (isinstance(reason.value, error.ProcessTerminated)
                 and self.timedout):
             self.deferred.errback(errors.Failure(errors.TestCritical(
@@ -80,6 +85,7 @@ class ForkIt(process.Process):
         self._args = args
         self._kwargs = kwargs
         proto = PickleReader(writefd)
+        self._proto_deferred = proto.deferred # For use in getResult()
 
         # Setup timeout
         call_id = reactor.callLater(timeout, proto.timeout)
@@ -98,7 +104,11 @@ class ForkIt(process.Process):
         self._write.close()
 
     def getResult(self):
-        return self.proto.deferred
+        # We must use self._proto_deferred instead of self.proto.deferred
+        # because self.proto may have already been cleaned up.
+        d = self._proto_deferred
+        self._proto_deferred = None
+        return d
 
     def _cancelTimeout(self, result, call_id):
         if call_id.active():

@@ -13,10 +13,13 @@
 # limitations under the License.
 
 import os
+import time
 import subprocess
 
 from twisted.internet import protocol, reactor
 from twisted.python import log
+from twisted.trial import unittest
+from nagcat.plugins import query_oracle
 from nagcat.unittests.queries import QueryTestCase
 from nagcat import errors
 from coil.struct import Struct
@@ -407,4 +410,40 @@ class PLSQLTestCase(OracleBase):
                 parameters=[['out', 'p_one', 'number'],
                             ['out', 'p_two', 'number']])
         d.addCallback(check)
+        return d
+
+class ForkItTestCase(unittest.TestCase):
+    """Test my defer-to-subprocess type class"""
+
+    def testNone(self):
+        proc = query_oracle.ForkIt(1, lambda: None)
+        d = proc.getResult()
+        d.addBoth(self.assertIdentical, None)
+        return d
+
+    def testTrue(self):
+        proc = query_oracle.ForkIt(1, lambda: True)
+        d = proc.getResult()
+        d.addBoth(self.assertIdentical, True)
+        return d
+
+    def testAbort(self):
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestUnknown)
+            self.assertIn("subprocess exited with no results",
+                          str(result.value))
+        proc = query_oracle.ForkIt(1, os._exit, 0)
+        d = proc.getResult()
+        d.addBoth(check)
+        return d
+
+    def testTimeout(self):
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestCritical)
+            self.assertIn("Timeout", str(result.value))
+        proc = query_oracle.ForkIt(0.1, time.sleep, 10)
+        d = proc.getResult()
+        d.addBoth(check)
         return d
