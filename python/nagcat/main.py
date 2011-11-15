@@ -65,6 +65,8 @@ def parse_options():
             help="path to nagios.cfg, enables Nagios support")
     parser.add_option("-T", "--tag", dest="tag",
             help="only load nagios tests with a specific tag")
+    parser.add_option("--default-timeout", type="int", default="15",
+            help="default query timeout in seconds [%default]")
     parser.add_option("-C", "--core-dumps",
             help="set cwd to the given directory and enable core dumps")
     parser.add_option("--disable-snmp-bulk", action="store_true",
@@ -190,6 +192,7 @@ def init(options):
                     rradir=options.rradir,
                     rrdcache=options.rrdcache,
                     monitor_port=options.status_port,
+                    default_timeout=options.default_timeout,
                     test_name=options.test,
                     host=options.host, port=options.port)
         elif options.merlin:
@@ -197,6 +200,7 @@ def init(options):
                      rradir=options.rradir,
                      rrdcache=options.rrdcache,
                      monitor_port=options.status_port,
+                     default_timeout=options.default_timeout,
                      nagios_cfg=options.nagios, tag=options.tag,
                      merlin_db_info=merlin_db_info)
         else:
@@ -204,6 +208,7 @@ def init(options):
                     rradir=options.rradir,
                     rrdcache=options.rrdcache,
                     monitor_port=options.status_port,
+                    default_timeout=options.default_timeout,
                     nagios_cfg=options.nagios, tag=options.tag)
     except (errors.InitError, coil.errors.CoilError), ex:
         log.error(str(ex))

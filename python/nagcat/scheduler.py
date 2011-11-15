@@ -86,9 +86,13 @@ class Scheduler(object):
     trend = None
     monitor = None
 
-    def __init__(self, config=None,
-            rradir=None, rrdcache=None,
-            monitor_port=None, **kwargs):
+    def __init__(self,
+                 config=None,
+                 rradir=None,
+                 rrdcache=None,
+                 monitor_port=None,
+                 default_timeout=15,
+                 **kwargs):
 
         self._registered = set()
         self._group_index = {}
@@ -102,6 +106,9 @@ class Scheduler(object):
                 'Test':  {'count': 0},
                 'Query': {'count': 0},
             }
+
+        # Default timeout used by queries
+        self.default_timeout = default_timeout
 
         if monitor_port:
             self._monitor_port = monitor_port

@@ -90,7 +90,8 @@ class Query(runnable.Runnable):
 
         # All queries should handle timeouts
         try:
-            interval = util.Interval(conf.get('timeout', 15))
+            interval = util.Interval(
+                conf.get('timeout', nagcat.default_timeout))
             self.conf['timeout'] = interval.seconds
         except util.IntervalError, ex:
             raise errors.ConfigError(conf, "Invalid timeout: %s" % ex)
