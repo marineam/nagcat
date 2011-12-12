@@ -96,3 +96,20 @@ class SSLQueryTestCase(QueryTestCase):
 
     def tearDown(self):
         return self.server.loseConnection()
+
+class MissingSSLTestCase(QueryTestCase):
+
+    def testMissingFiles(self):
+        config = {'type': "ssl",
+                  'host': "localhost",
+                  'port': 9,
+                  'ssl_cacert': "xyzfnothere"}
+
+        def check(result):
+            self.assertIsInstance(result, errors.Failure)
+            self.assertIsInstance(result.value, errors.TestUnknown)
+            self.assertIn("xyzfnothere", str(result.value))
+
+        d = self.startQuery(config)
+        d.addBoth(check)
+        return d

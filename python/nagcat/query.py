@@ -88,6 +88,9 @@ class Query(runnable.Runnable):
         # extra pieces of metadata such as Request ID/URL.
         self.saved = {}
 
+        # Semi-fatal init errors, forces query to UNKNOWN
+        self.init_errors = []
+
         # All queries should handle timeouts
         try:
             interval = util.Interval(
@@ -102,7 +105,11 @@ class Query(runnable.Runnable):
 
     def _start_self(self):
         self.saved.clear()
-        return super(Query, self)._start_self()
+        if self.init_errors:
+            msg = '\n'.join(self.init_errors)
+            return defer.fail(errors.Failure(errors.TestUnknown(msg)))
+        else:
+            return super(Query, self)._start_self()
 
     @errors.callback
     def _failure_tcp(self, result):
@@ -171,10 +178,8 @@ class SSLMixin(Query):
             self.conf['ssl_%s_type'%opt] = key_type
 
         def maybe_read(key, private=False):
-            # Only support PEM for now
-            filetype = crypto.FILETYPE_PEM
-            path = self.conf[key]
             filetype = self.conf[key+'_type']
+            path = self.conf[key]
             if not path:
                 return None
 
@@ -187,8 +192,9 @@ class SSLMixin(Query):
                 finally:
                     fd.close()
             except IOError, ex:
-                raise errors.InitError("Failed to read %s file %s: %s" %
-                                       (path, key, ex.strerror))
+                self.init_errors.append("Failed to read %s file %s: %s" %
+                                        (key, path, ex.strerror))
+                return None
 
             log.trace("Loaded %s:\n%s", key, data)
 
