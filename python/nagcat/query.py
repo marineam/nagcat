@@ -207,9 +207,14 @@ class SSLMixin(Query):
         if cacert:
             cacert = [cacert]
 
+        # Only use both if we can load both
+        key = maybe_read('ssl_key', private=True)
+        cert = maybe_read('ssl_cert')
+        if not (key and cert):
+            key, cert = None, None
+
         self.context = ssl.CertificateOptions(
-                privateKey=maybe_read('ssl_key', private=True),
-                certificate=maybe_read('ssl_cert'), caCerts=cacert,
+                privateKey=key, certificate=cert, caCerts=cacert,
                 verify=bool(cacert), method=SSL.SSLv23_METHOD)
         # Use SSLv23 to support v3 and TLSv1 but disable v2 (below)
         sslcontext = self.context.getContext()
