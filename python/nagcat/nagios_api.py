@@ -481,6 +481,24 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
 
         return result
 
+    def xmlrpc_processServiceCheckResult(self, host, service, return_code, comment):
+        """submit a passive check result for a service"""
+
+        if return_code not in range(4):
+            raise xmlrpc.Fault(1, "Return code not in range 0..3")
+        if host not in self._objects['host']:
+            raise xmlrpc.Fault(1, "Host '%s' not defined" % (host,))
+        if host not in self._objects['service']:
+            raise xmlrpc.Fault(1, "Host '%s' has no defined services" % (host,))
+        if service not in self._objects['service'][host]:
+            raise xmlrpc.Fault(1, "Service '%s' undefined on host '%s'" % (service, host))
+
+        commands = set()
+        commands.add(('PROCESS_SERVICE_CHECK_RESULT', host, service, return_code, comment))
+        self._cmdobj.cmdlist(int(time.time()), commands)
+
+        return return_code
+
     def xmlrpc_scheduleServiceDowntime(self, expr, start, stop, user, comment):
         """Alias for scheduleDowntime"""
 
@@ -515,7 +533,7 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         stop: date/time to auto-cancel the downtime
         user: identifier defining who/what sent this request
         comment: arbitrary comment about the downtime
-        
+
         returns a key to use to cancel this downtime early
         """
         try:
