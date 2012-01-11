@@ -493,9 +493,8 @@ class NagiosXMLRPC(xmlrpc.XMLRPC):
         if service not in self._objects['service'][host]:
             raise xmlrpc.Fault(1, "Service '%s' undefined on host '%s'" % (service, host))
 
-        commands = set()
-        commands.add(('PROCESS_SERVICE_CHECK_RESULT', host, service, return_code, comment))
-        self._cmdobj.cmdlist(int(time.time()), commands)
+        self._cmdobj.command(None, 'PROCESS_SERVICE_CHECK_RESULT',
+                             host, service, return_code, comment)
 
         return return_code
 
