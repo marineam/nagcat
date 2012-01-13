@@ -88,8 +88,10 @@ class Checker(object):
             parser.error("Unknown extra arguments")
 
     def check_object(self, obj):
+        # skip entirely disabled tests or non-nagcat passive tests
         if (obj['active_checks_enabled'] == '0' and
-                obj['passive_checks_enabled'] == '0'):
+                (obj['passive_checks_enabled'] == '0' or
+                 '_TEST' not in obj)):
             return False
 
         freshness = (self.now - int(obj['last_check'])) // 60
