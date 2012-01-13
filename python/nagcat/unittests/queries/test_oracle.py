@@ -438,6 +438,8 @@ class ForkItTestCase(unittest.TestCase):
         d.addBoth(check)
         return d
 
+    testAbort.skip = "Flaky test :-/"
+
     def testTimeout(self):
         def check(result):
             self.assertIsInstance(result, errors.Failure)
