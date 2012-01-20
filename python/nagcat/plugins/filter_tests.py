@@ -14,6 +14,8 @@
 
 """warning/critical/save filters"""
 
+import re
+
 from zope.interface import classProvides
 
 from nagcat import errors, filters, util
@@ -101,3 +103,49 @@ class OKFilter(BaseTestFilter):
 
     name = "ok"
     raise_error = errors.TestOK
+
+class BaseErrorFilter(filters._Filter):
+
+    handle_default = False
+    handle_arguments = True
+    handle_errors = True
+
+    def __init__(self, test, default, arguments):
+        super(BaseErrorFilter, self).__init__(test, default, arguments)
+        try:
+            self.arg_regex = re.compile(arguments, re.MULTILINE | re.DOTALL)
+        except re.error, ex:
+            raise errors.InitError(
+                    "Invalid regex '%s': %s" % (self.arguments, ex))
+
+        assert self.target_error
+
+    def filter(self, result):
+        if isinstance(result, errors.Failure) and isinstance(result.value, self.target_error):
+            if self.arg_regex.search(str(result.value)):
+                return "Expected Error: %s" % result.value
+            else:
+                raise errors.TestCritical("Unexpected Error: %s" % result.value)
+        else:
+            raise errors.TestCritical("Unexpected: %s" % result)
+
+class ExpectCriticalFilter(BaseErrorFilter):
+
+    classProvides(filters.IFilter)
+
+    name = "expectcritical"
+    target_error = errors.TestCritical
+
+class ExpectWarningFilter(BaseErrorFilter):
+
+    classProvides(filters.IFilter)
+
+    name = "expectwarning"
+    target_error = errors.TestWarning
+
+class ExpectErrorFilter(BaseErrorFilter):
+
+    classProvides(filters.IFilter)
+
+    name = "expecterror"
+    target_error = errors.TestError
