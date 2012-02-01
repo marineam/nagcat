@@ -179,6 +179,8 @@ foo-is-dead: {
     query: {
         type: "http"
         path: "/status"
+        # more details on the filters are available at filters config
+        # section in Tests documentation below
         filters: [ "expectcritical:^.*connection refused$" ]
     }
 
@@ -340,6 +342,12 @@ test-name: {
     #       and critical attributes rather than in the filter chain for
     #       clarity but using them as filters allows more complex tests.
     #       See the description of warning/critical below for more info.
+    #
+    #   "expectwarning:<operator> <value>"
+    #   "expectcritical:<operator> <value>"
+    #   "expecterror:<operator> <value>"
+    #       Negative monitoring checks to filter the expected warning/
+    #       critical or error messages.
     #
     #   "ok:<operator> <value>"
     #       This is similar to the warning/critical filters except it
