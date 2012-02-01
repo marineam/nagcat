@@ -85,15 +85,13 @@ class BaseTest(runnable.Runnable):
 
         # Create the filter objects
         filter_list = conf.get('filters', [])
-        self._filters = [filters.Filter(self, x) for x in filter_list]
+        for check in ('critical', 'warning',
+                      'expectcritical', 'expectwarning', 'expecterror'):
+            expr = conf.get(check, None)
+            if expr:
+                filter_list.append("%s:%s" % (check, expr))
 
-        # Add final critical and warning tests
-        if 'critical' in conf:
-            self._filters.append(filters.get_filter(
-                self, 'critical', None, conf['critical']))
-        if 'warning' in conf:
-            self._filters.append(filters.get_filter(
-                self, 'warning', None, conf['warning']))
+        self._filters = [filters.Filter(self, x) for x in filter_list]
 
     def _start(self):
         # Subclasses must override this and fire the deferred!
