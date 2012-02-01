@@ -523,6 +523,12 @@ query: {
     filters: [ "somefilter:arguments" ]
     warning: "<operator> <value>"
     critical: "<operator> <value>"
+    # Likewise expected warning/critical/error tests can be defined
+    # inside the query but currently these expected errors are not 
+    # supported inside a test.
+    expectwarning: "<operator> <value>"
+    expectcritical: "<operator> <value>"
+    expecterror: "<operator> <value>"
 
     # 'trend' is the same as the trend block in the main test section
     # but will graph this specific query's data. All the same
