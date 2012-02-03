@@ -179,8 +179,6 @@ foo-is-dead: {
     query: {
         type: "http"
         path: "/status"
-        # more details on the filters are available at filters config
-        # section in Tests documentation below
         filters: [ "expectcritical:^.*connection refused$" ]
     }
 
@@ -343,11 +341,12 @@ test-name: {
     #       clarity but using them as filters allows more complex tests.
     #       See the description of warning/critical below for more info.
     #
-    #   "expectwarning:<operator> <value>"
-    #   "expectcritical:<operator> <value>"
-    #   "expecterror:<operator> <value>"
+    #   "expectwarning:<some regular expression>"
+    #   "expectcritical:<some regular expression>"
+    #   "expecterror:<some regular expression>"
     #       Negative monitoring checks to filter the expected warning/
-    #       critical or error messages.
+    #       critical or error messages. See the Negative Monitoring section
+    #       above for more info.
     #
     #   "ok:<operator> <value>"
     #       This is similar to the warning/critical filters except it
@@ -525,10 +524,11 @@ query: {
     critical: "<operator> <value>"
     # Likewise expected warning/critical/error tests can be defined
     # inside the query but currently these expected errors are not 
-    # supported inside a test.
-    expectwarning: "<operator> <value>"
-    expectcritical: "<operator> <value>"
-    expecterror: "<operator> <value>"
+    # supported inside a test. See the Negative Monitoring section 
+    # above for more info.
+    expectwarning: "<some regular expression"
+    expectcritical: "<some regular expression>"
+    expecterror: "<some regular expression>"
 
     # 'trend' is the same as the trend block in the main test section
     # but will graph this specific query's data. All the same
