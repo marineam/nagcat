@@ -246,7 +246,8 @@ class FilteredQuery(Query):
 
         # Create the filter objects
         filter_list = conf.get('filters', [])
-        for check in ('critical', 'warning'):
+        for check in ('critical', 'warning',
+                      'expectcritical', 'expectwarning', 'expecterror'):
             expr = conf.get(check, None)
             if expr:
                 filter_list.append("%s:%s" % (check, expr))
