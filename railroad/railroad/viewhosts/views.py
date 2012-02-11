@@ -363,7 +363,7 @@ def add_hostlist(stat, obj, c):
     sidebar = []
     for group in groups:
         group_name = group['alias']
-        addinghosts = group['members'].split(',')
+        addinghosts = group.get('members', '').split(',')
         hosts_of_group = []
         for host in hosts:
             if host['host_name'] in addinghosts:

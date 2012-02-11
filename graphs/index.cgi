@@ -70,7 +70,7 @@ def render_host(host):
 ungrouped = set(host_map)
 groups = ""
 for group in group_list:
-    if not group['members']:
+    if not group.get('members', None):
         continue
     hosts = ""
     for host in group['members'].split(','):
