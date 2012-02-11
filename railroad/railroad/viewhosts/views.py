@@ -505,7 +505,7 @@ def service(request, host, service):
     stat, obj = parse()
     # We assume there are exactly one of these, so grab the first element.
     service_detail = servicedetail(stat, host, service)[0]
-    host_detail = hostdetail(stat, host)[0]
+    host_detail = hostdetail(stat, host)
 
     if service_detail == None or host_detail == None:
         raise Http404
