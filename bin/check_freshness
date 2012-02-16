@@ -20,6 +20,7 @@
 
 import os
 import sys
+import coil
 import time
 import socket
 import urllib2
@@ -47,10 +48,12 @@ There may be several reasons for this:
 
 try:
     from nagcat.nagios_objects import ObjectParser
+    from nagcat import util
 except ImportError:
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.append("%s/python" % root)
     from nagcat.nagios_objects import ObjectParser
+    from nagcat import util
 
 class NagOptParser(OptionParser):
     """Override error to exit with the code for UNKNOWN"""
@@ -64,10 +67,13 @@ class Checker(object):
     def __init__(self):
         self.state = STATUS_OK
         self.now = time.time()
+        self.repeat = {}
 
     def parse_options(self):
         parser = OptionParser(
                 description="Test freshness of all service checks.")
+        parser.add_option('-n', '--nagcat-config',
+                help="Path to nagcat's configuration coil file [optional]")
         parser.add_option('-s', '--status',
                 default=os.environ.get('NAGIOS_STATUSDATAFILE', None),
                 help="Path or URL to Nagios' status.dat file")
@@ -87,6 +93,16 @@ class Checker(object):
         if args:
             parser.error("Unknown extra arguments")
 
+    def load_repeats(self, nagcat_config):
+        conf = coil.parse_file(nagcat_config, expand=False)
+        for test, template in conf.iteritems():
+            if 'repeat' in template:
+                try:
+                    repeat_val = util.Interval(template['repeat'])
+                except util.IntervalError:
+                    continue
+                self.repeat[test] = repeat_val
+
     def check_object(self, obj):
         # skip entirely disabled tests or non-nagcat passive tests
         if (obj['active_checks_enabled'] == '0' and
@@ -94,7 +110,21 @@ class Checker(object):
                  '_TEST' not in obj)):
             return False
 
-        freshness = (self.now - int(obj['last_check'])) // 60
+        extra = 60  # Default repeat value
+        if obj['active_checks_enabled'] == '0' and '_TEST' in obj:
+            test = obj['_TEST'].lstrip('0;')
+            extra = self.repeat.get(test, extra)
+            if '_REPEAT' in obj:
+                try:
+                    extra = util.Interval(obj['_REPEAT'])
+                except util.IntervalError:
+                    pass
+
+        if extra != 60:
+            print obj['_TEST']
+            print extra
+
+        freshness = (self.now - extra - int(obj['last_check'])) // 60
         if freshness > self.options.critical:
             self.state = max(self.state, STATUS_CRIT)
             return True
@@ -127,6 +157,9 @@ class Checker(object):
                 status_file.close()
         else:
             status = ObjectParser(self.options.status)
+
+        if self.options.nagcat_config:
+            self.load_repeats(self.options.nagcat_config)
 
         badh = []
         bads = []
