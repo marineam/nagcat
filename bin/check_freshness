@@ -120,10 +120,6 @@ class Checker(object):
                 except util.IntervalError:
                     pass
 
-        if extra != 60:
-            print obj['_TEST']
-            print extra
-
         freshness = (self.now - extra - int(obj['last_check'])) // 60
         if freshness > self.options.critical:
             self.state = max(self.state, STATUS_CRIT)
