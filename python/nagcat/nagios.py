@@ -75,7 +75,7 @@ class NagcatNagios(scheduler.Scheduler):
             except socket.gaierror, ex:
                 raise errors.InitError(
                     "Failed to resolve '%s': %s" % (addr, ex))
-            host['address'] = addr
+            host.setdefault('address', addr)
             hosts[host['host_name']] = host
 
         for service in parser['service']:
