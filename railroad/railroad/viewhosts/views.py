@@ -710,6 +710,7 @@ def customgraph(request):
             s = servicedetail(stat, graph['host'], graph['service'])
             if not s:
                 continue
+            s = s[0]
             s['is_graphable'] = is_graphable(s['host_name'],
                     s['service_description'])
             s['slug'] = slugify(s['host_name'] + s['service_description'])
@@ -743,7 +744,7 @@ def directurl(request, id):
         for array in content:
             if len(array) == 4:
                 host, service, start, end = array
-                service_detail = servicedetail(stat, host, service)
+                service_detail = servicedetail(stat, host, service)[0]
                 service_detail['is_graphable'] = True
                 if start == '-1' and end == '-1':
                     service_detail['start'] = out_start
@@ -756,7 +757,7 @@ def directurl(request, id):
                 loaded_graphs.append(service_detail)
             elif len(array) == 2:
                 host, service = array
-                service_detail = servicedetail(stat, host, service)
+                service_detail = servicedetail(stat, host, service)[0]
                 service_detail['is_graphable'] = False
                 loaded_graphs.append(service_detail)
 
@@ -982,6 +983,7 @@ def graphs(request):
             sos = servicedetail(stat, graph['host'], graph['service'])
             if not sos:
                 continue
+            sos = sos[0]
             for so in sos:
                 so = so.copy()
                 so['start'] = graph.get('start', get_start)
