@@ -269,17 +269,21 @@ def servicenames_by_host(stat, host):
 
 
 def get_graphs(stat, obj, hosts='', groups='', services='', tests='',
-        start=None, end=None):
+               start=None, end=None):
     """Returns a list of services objects, marked graphable or not"""
+    groups = groups or ''
     groups = [g.strip() for g in groups.split(',')]
     groups = set(filter(lambda g: bool(g), groups))
 
+    hosts = hosts or ''
     hosts = [h.strip() for h in hosts.split(',')]
     hosts = set(filter(lambda h: bool(h), hosts))
 
+    services = services or ''
     services = [s.strip() for s in services.split(',')]
     services = set(filter(lambda s: bool(s), services))
 
+    tests = tests or ''
     tests = [t.strip() for t in tests.split(',')]
     tests = set(filter(lambda t: bool(t), tests))
 

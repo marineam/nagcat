@@ -6,9 +6,13 @@ register = template.Library()
 
 @register.filter
 def state_name(value):
-    """Turn a nagio state number into a state name."""
+    """Turn a nagios state number into a state name."""
     state_names = {0: 'OK', 1: 'Warning', 2: 'Critical', 3: 'Unknown'}
-    return state_names[int(value)]
+    try:
+        key = int(value)
+    except:
+        key = None
+    return state_names.get(key, 'Unknown')
 
 
 def pluralize(count, word, alt=''):
@@ -20,6 +24,9 @@ def pluralize(count, word, alt=''):
 
 @register.filter
 def pretty_duration(dur, type='short'):
+    if not dur:
+        return '???'
+
     dur = int(dur)
 
     if dur < 60:
