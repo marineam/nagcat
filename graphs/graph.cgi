@@ -26,7 +26,7 @@ def pull_cgi_data(cgi_store):
     assert 'host' in cgi_store, "Host parameter not found"
     assert 'rrd' in cgi_store, "RRD parameter not found"
     host = cgi_store.getfirst('host').translate(None, "/.")
-    rrd = cgi_store.getfirst('rrd').translate(None, "/.")
+    rrd = cgi_store.getfirst('rrd').translate(None, "/")
 
     if 'period' in cgi_store:
         period = cgi_store.getfirst('period')
