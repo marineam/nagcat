@@ -987,7 +987,6 @@ def graphs(request):
             sos = servicedetail(stat, graph['host'], graph['service'])
             if not sos:
                 continue
-            sos = sos[0]
             for so in sos:
                 so = so.copy()
                 so['start'] = graph.get('start', get_start)
