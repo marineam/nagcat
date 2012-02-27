@@ -25,7 +25,7 @@ urlpatterns = patterns('',
     (r'^permalink/(?P<link>[A-Za-z0-9_\-]+)$',
         'railroad.permalink.views.retrieve_link'),
     (r'^permalinks/', 'railroad.permalink.views.list_links'),
-    (r'^permalink/delete/(?P<link>[A-Za-z0-9_\-]+)$',
+    (r'^permalink/delete/(?P<link>[A-Za-z0-9_\-]+)?$',
         'railroad.permalink.views.delete_link'),
 
     # Viewers

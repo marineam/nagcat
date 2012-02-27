@@ -62,13 +62,12 @@ def retrieve_link(request, link):
     graphs = []
 
     for service in services:
-        service['isGraphable'] = views.is_graphable(service['host'],
-            service['service'])
+        service['isGraphable'] = views.is_graphable(
+            service['host'], service['service'])
         service['slug'] = views.slugify(service['host'] + service['service'])
-        servicedetail = views.servicedetail(
+        servicedetail = views.servicelist_by_host_desc(
             stat, service['host'], service['service'])[0]
-        servicedetail['is_graphable'] = views.is_graphable(service['host'],
-            service['service'])
+        servicedetail['is_graphable'] = service['isGraphable']
         servicedetail['slug'] = service['slug']
         service['duration'] = servicedetail['state_duration']
         if '_TEST' in servicedetail:
