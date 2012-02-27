@@ -103,8 +103,10 @@ function drawSOServicePage() {
                     }
                 }
             },
-            error: function () {
+            error: function (request, textStatus, errorThrown) {
                 console.log('There was an error in obtaining the data for graphs');
+                console.log(request);
+                console.log(errorThrown);
             }
         });
     }
