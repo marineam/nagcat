@@ -1,8 +1,6 @@
 from django.db import models
 
-from django.http import HttpResponse
 from railroad.viewhosts.views import slugify
-import json
 
 
 class Service(models.Model):
@@ -68,8 +66,3 @@ class ConfiguratorPage(models.Model):
 
     def num_services(self):
         return len(self.load_services())
-
-
-
-
-

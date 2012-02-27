@@ -1,9 +1,7 @@
-from django.http import HttpResponse, HttpRequest, Http404
+from django.http import HttpResponse, Http404
 from django.shortcuts import get_object_or_404, render_to_response
-from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
 from django.template import Context, loader
-from railroad.permalink.models import Service, ConfiguratorPage
+from railroad.permalink.models import ConfiguratorPage
 from railroad.viewhosts import views
 import json
 import random

@@ -13,12 +13,10 @@
 # limitations under the License.
 
 import json
-import os
 import types
 import time
 import random
 from math import floor
-import urllib
 
 import rrdtool
 import coil
@@ -183,7 +181,6 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     length = len(labels)
 
     indices = range(length)
-    dataset = {}
 
     # flot_data and flot_data are of the format
     # [ { label: "Foo", data: [ [10, 1], [17, -14], [30, 5] ] },
@@ -312,6 +309,7 @@ def get_data(host, service, start=None, end=None, resolution='150'):
             if max != None and (max / pow(base, interval)) <= base:
                 break
 
+        # XXX: What are these supposed to do?
         final_base = pow(base, interval)
         unit = bases[interval]
 
