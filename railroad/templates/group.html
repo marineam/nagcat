@@ -28,7 +28,7 @@
 {% for test in test_services %}
     {% ifequal test.list|length 1 %}
         <td>
-            <a href="{% url railroad.viewhosts.views.directconfigurator services=test.list.0.service_description groups={group_name %}">
+            <a href="{% url railroad.viewhosts.views.directconfigurator services=test.list.0.service_description groups=group_name %}">
                 {{test.list.0.service_description}}
             </a>
         </td>
