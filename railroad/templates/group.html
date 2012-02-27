@@ -28,7 +28,7 @@
 {% for test in test_services %}
     {% ifequal test.list|length 1 %}
         <td>
-            <a href="{% url railroad.viewhosts.views.directconfigurator services=test.list.0.service_description groups=group_name %}">
+            <a href="{% url railroad.viewhosts.views.directconfigurator %}?services={{ test.list.0.service_description|urlencode }}&groups={{ group_name|urlencode }}">
                 {{test.list.0.service_description}}
             </a>
         </td>
@@ -39,7 +39,7 @@
                     No Test
                 {% else %}
                     {{ test.grouper }}
-                    <a href="{% url railroad.viewhosts.views.directconfigurator tests=test.grouper group=group_name %}">
+                    <a href="{% url railroad.viewhosts.views.directconfigurator %}?tests={{ test.grouper|urlencode }}&group={{ group_name|urlencode}} %}">
                         <div class="sprite arrow_e hover"></div>
                     </a>
                 {% endifequal %}
@@ -47,7 +47,7 @@
             <ul>
                 {% for service in test.list|dictsort:"service_description" %}
                     <li>
-                        <a href="{% url railroad.viewhosts.views.directconfigurator services=service.service_description groups=group_name %}">
+                        <a href="{% url railroad.viewhosts.views.directconfigurator %}?services={{ service.service_description|urlencode }}&groups={{ group_name|urlencode }}">
                             {{service.service_description}}
                         </a>
                     </li>
