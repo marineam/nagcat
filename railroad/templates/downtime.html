@@ -2,8 +2,10 @@
 {% load services %}
 
 {%block head %}
-<link rel="stylesheet" href="/railroad-static/css/downtime.css" type="text/css"/>
-<script type="text/javascript" language="javascript" src="/railroad-static/js/downtime.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="/railroad-static/css/downtime.css" />
+    <script language="javascript" type="text/javascript"
+        src="{% url js 'js/downtime.js' %}"></script>
 {% endblock %}
 
 {% block header %}

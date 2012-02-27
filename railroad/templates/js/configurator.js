@@ -64,9 +64,10 @@ $(document).ready(function() {
 
     // Autocomplete anything with class = "... autocomplete ..."
     $('.autocomplete').each(function () {
-        $(this).autocomplete ( { source : "/railroad/ajax/autocomplete/" +
-            $(this).attr('name'), minLength: 1, autoFocus: true,
-                delay: 30,})
+        $(this).autocomplete ( {
+            source : "{% url railroad.ajax.autocomplete.autocomplete %}" +
+                $(this).attr('name'),
+            minLength: 1, autoFocus: true, delay: 30,})
     });
 
     //Make it so pressing enter triggers the add graphs button
@@ -200,7 +201,7 @@ $(document).ready(function() {
         }
 
         $.ajax({
-            url: '/railroad/ajax/xmlrpc',
+            url: '{% url railroad.ajax.xmlrpc.xmlrpc %}',
             data: data,
             dataType: 'text',
             success: function(cancellationCode) {
@@ -417,7 +418,7 @@ $(document).ready(function() {
             $.ajax({
                 data: {"services" :servicesList,
                     description: $('#permalinkDescription').val()},
-                url: '/railroad/permalink/generate/',
+                url: '{% url railroad.permalink.views.generate_link %}',
                 type: 'POST',
                 success: function (link, textStatus, XMLHttpRequest) {
                         var text = window.location.protocol + "//" +

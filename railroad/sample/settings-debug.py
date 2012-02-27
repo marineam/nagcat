@@ -95,6 +95,9 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'railroad.urls'
 
+# Serve static content directly from django, useful for development
+#RAILROAD_STATIC = '/var/lib/nagcat/railroad/static'
+
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates"
     # Always use forward slashes, even on Windows.

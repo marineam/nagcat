@@ -3,7 +3,8 @@
 
 {% block title %}Home{% endblock %}
 {% block head %}
-    <script language="javascript" type="text/javascript" src="/railroad-static/js/home.js"></script>
+    <script language="javascript" type="text/javascript"
+        src="{% url js 'js/home.js' %}"></script>
 {% endblock %}
 
 {% block header %}
@@ -44,13 +45,13 @@ graphs of your choice.
                         </span> -
                         {{host.list|length}} service{{state.list|length|pluralize}}
                     </span>
-                    <a href="/railroad/configurator/host/{{host.grouper}}">
+                    <a href="{% url railroad.viewhosts.views.hostconfigurator host.grouper %}">
                         <div class="sprite arrow_e hover"></div>
                     </a>
                     <ul>
                         {% for state in host.list %}
                             <li>
-                                <a href="/railroad/viewhost/{{host.grouper}}/{{state.service_description}}">
+                                <a href="{% url railroad.viewhosts.views.service host.grouper state.service_description %}">
                                     {{ state.service_description }}
                                 </a>
                             </li>

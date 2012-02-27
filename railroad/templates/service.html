@@ -2,21 +2,23 @@
 {% load services %}
 
 {% block head %}
-<link rel="stylesheet" href="/railroad-static/css/service.css" type="text/css">
-<script language="javascript" type="text/javascript" src="/railroad-static/js/service.js"></script>
+    <link rel="stylesheet" type="text/css"
+        href="/railroad-static/css/service.css" />
+    <script language="javascript" type="text/javascript"
+        src="{% url js 'js/service.js' %}"></script>
 {% endblock head %}
 
 {% block title %}Service detail: {{host_name}} &gt; {{service_name}}{% endblock %}
 
 {% block header %}
     <h1>
-    <a href="/railroad/configurator/host/{{host_name}}"
-        class="status_text state_{{ host_state|state_name|lower }}">
-        {{host_name}}
-    </a> &gt;
-    <span class="status_text state_{{ service_state|state_name|lower }}">
-        {{service_name}}
-    </span>
+        <a href="{% url railroad.viewhosts.views.hostconfigurator host_name %}"
+            class="status_text state_{{ host_state|state_name|lower }}">
+            {{host_name}}
+        </a> &gt;
+        <span class="status_text state_{{ service_state|state_name|lower }}">
+            {{service_name}}
+        </span>
     </h1>
 {% endblock %}
 

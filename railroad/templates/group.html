@@ -14,7 +14,7 @@
     <tr>
     {% for host in hosts %}
         <td class="state_{{ host.current_state|state_name|lower }}">
-            <a href="/railroad/configurator/host/{{ host.host_name }}">{{host.host_name}}</a>
+            <a href="{% url railroad.viewhosts.views.hostconfigurator host.host_name %}">{{host.host_name}}</a>
         </td>
         {% if forloop.counter|divisibleby:"5" %}</tr><tr>{% endif %}
     {% endfor %}
@@ -28,7 +28,7 @@
 {% for test in test_services %}
     {% ifequal test.list|length 1 %}
         <td>
-            <a href="{% url railroad.viewhosts.views.directconfigurator %}?services={{ test.list.0.service_description }}&groups={{ group_name }}">
+            <a href="{% url railroad.viewhosts.views.directconfigurator services=test.list.0.service_description groups={group_name %}">
                 {{test.list.0.service_description}}
             </a>
         </td>
@@ -39,7 +39,7 @@
                     No Test
                 {% else %}
                     {{ test.grouper }}
-                    <a href="{% url railroad.viewhosts.views.directconfigurator %}?tests={{ test.grouper }}&group={{ group_name}}">
+                    <a href="{% url railroad.viewhosts.views.directconfigurator tests=test.grouper group=group_name %}">
                         <div class="sprite arrow_e hover"></div>
                     </a>
                 {% endifequal %}
@@ -47,7 +47,7 @@
             <ul>
                 {% for service in test.list|dictsort:"service_description" %}
                     <li>
-                        <a href="{% url railroad.viewhosts.views.directconfigurator %}?services={{ service.service_description }}&groups={{ group_name }}">
+                        <a href="{% url railroad.viewhosts.views.directconfigurator services=service.service_description groups=group_name %}">
                             {{service.service_description}}
                         </a>
                     </li>
@@ -55,7 +55,7 @@
             </ul>
         </td>
     {% endifequal %}
-	{% if forloop.counter|divisibleby:"2" %}</tr><tr>{% endif %}	
+    {% if forloop.counter|divisibleby:"2" %}</tr><tr>{% endif %}
 {% endfor %}
 </tr>
 </table>

@@ -8,7 +8,7 @@ $(document).ready(function () {
 function getServiceObjsServicePage(ajaxData) {
     $.ajax({
         data: ajaxData,
-        url: '/railroad/configurator/service_meta',
+        url: '{% url railroad.viewhosts.views.service_page_meta %}',
         type: 'POST',
         async: true,
         dataType: 'json',
@@ -62,7 +62,7 @@ function drawSOServicePage() {
     if (servicesToGraph.length > 0) {
         ajaxData = JSON.stringify(servicesToGraph);
         $.ajax({
-            url: '/railroad/graphs',
+            url: '{% url railroad.viewhosts.views.graphs %}',
             data: 'graphs=' + ajaxData,
             type: 'POST',
             async: true,

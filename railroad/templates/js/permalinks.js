@@ -5,7 +5,7 @@ $(document).ready(function () {
         var link = $(this).attr('name');
         console.log(link);
         $.ajax({
-            url: '/railroad/permalink/delete/' + link,
+            url: '{% url railroad.permalink.views.delete_link %}' + link,
             dataType: 'text',
             success: function (html, statusText, XMLHttpRequest) {
                 $(row).remove();

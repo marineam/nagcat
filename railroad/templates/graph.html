@@ -1,4 +1,6 @@
 {% load services %}
+{% url railroad.viewhosts.views.hostconfigurator host_name as host_link %}
+{% url railroad.viewhosts.views.service host_name service_description as service_link %}
 <tr class="service_row">
     <td class="controls">
         <input type="checkbox" class="graphcheckbox">
@@ -7,16 +9,12 @@
         <dl>
             <dt name="host">Host</dt>
             <dd name="host">
-                <a href="/railroad/configurator/host/{{host_name}}">
-                    {{host_name}}
-                </a>
+                <a href="{{host_link}}">{{host_name}}</a>
             </dd>
 
             <dt name="service">Service</dt>
             <dd name="service">
-                <a href="/railroad/viewhost/{{host_name}}/{{service_description}}">
-                    {{service_description}}
-                </a>
+                <a href="{{service_link}}">{{service_description}}</a>
             </dd>
 
             <dt name="duration">Duration</dt>

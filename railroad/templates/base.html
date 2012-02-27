@@ -2,15 +2,19 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
-<title>Railroad: {% block title %}{% endblock %}</title>
-<script language="javascript" type="text/javascript"
-    src="/railroad-static/js/lib/combined.min.js"></script>
+    <title>Railroad: {% block title %}{% endblock %}</title>
+    <script language="javascript" type="text/javascript"
+        src="/railroad-static/js/lib/combined.min.js"></script>
 
-<script language="javascript" type="text/javascript" src="/railroad-static/js/functions.js"></script>
-<script language="javascript" type="text/javascript" src="/railroad-static/js/base.js"></script>
+    <script language="javascript" type="text/javascript"
+        src="{% url js 'js/functions.js' %}"></script>
+    <script language="javascript" type="text/javascript"
+        src="{% url js 'js/base.js' %}"></script>
 
-<link rel="stylesheet" href="/railroad-static/css/style.css" type="text/css">
-<link rel="stylesheet" href="/railroad-static/css/jquery-ui.css" type="text/css">
+    <link rel="stylesheet" type="text/css"
+        href="/railroad-static/css/style.css" />
+    <link rel="stylesheet" type="text/css"
+        href="/railroad-static/css/jquery-ui.css" />
 
 {%block head %}{% endblock %}
 

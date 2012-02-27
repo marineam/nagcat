@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from django.conf import settings
 from django.conf.urls.defaults import *
 
 urlpatterns = patterns('',
@@ -47,8 +48,18 @@ urlpatterns = patterns('',
     (r'^configurator/meta$', 'railroad.viewhosts.views.meta'),
     (r'^configurator/service_meta$',
         'railroad.viewhosts.views.service_page_meta'),
-    (r'^ajax/autocomplete/(?P<context>\w+)$',
+    (r'^ajax/autocomplete/(?P<context>\w+)?$',
         'railroad.ajax.autocomplete.autocomplete'),
     (r'^ajax/xmlrpc$', 'railroad.ajax.xmlrpc.xmlrpc'),
     (r'^404$', 'django.views.defaults.page_not_found'),
+
+    # Pass js files through the template processor to handle URLs
+    url(r'^(?P<template>js/\w+.js)$',
+        'django.views.generic.simple.direct_to_template',
+        {'mimetype': 'text/javascript'}, name='js'),
 )
+
+if getattr(settings, 'RAILROAD_STATIC', None):
+    urlpatterns += patterns('',
+        (r'^railroad-static/(?P<path>.*)$', 'django.views.static.serve',
+            {'document_root': settings.RAILROAD_STATIC}))

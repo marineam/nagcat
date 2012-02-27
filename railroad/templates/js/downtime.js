@@ -139,7 +139,7 @@ $(document).ready(function() {
                 'args': JSON.stringify([code]),
             }
             $.ajax({
-                url: '/railroad/ajax/xmlrpc',
+                url: '{% url railroad.ajax.xmlrpc.xmlrpc %}',
                 data: data,
                 dataType: 'text',
                 success: function(count) {

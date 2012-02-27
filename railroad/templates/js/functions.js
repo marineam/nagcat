@@ -588,7 +588,7 @@ function selectServiceObjs() {
 function getData(ajaxData, callBack) {
     ajaxData = JSON.stringify(ajaxData);
     $.ajax({
-        url: '/railroad/graphs',
+        url: '{% url railroad.viewhosts.views.graphs %}',
         data: {graphs: ajaxData},
         type: 'POST',
         async: true,
@@ -1030,7 +1030,7 @@ function autoFetchData() {
     ajaxcall = JSON.stringify(graphs);
     $.ajax({
         dataType: 'json',
-        url: '/railroad/graphs',
+        url: '{% url railroad.viewhosts.views.graphs %}',
         data: {'graphs': ajaxcall},
         type: 'POST',
         async: true,
@@ -1067,7 +1067,7 @@ function showTooltip(x, y, label) {
 function getServiceObjs(ajaxData) {
     $.ajax({
         data: ajaxData,
-        url: '/railroad/configurator/meta',
+        url: '{% url railroad.viewhosts.views.meta %}',
         type: 'POST',
         async: true,
         dataType: 'json',
