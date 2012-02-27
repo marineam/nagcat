@@ -13,12 +13,8 @@
 # limitations under the License.
 
 import json
-import math
 import os
 import sys
-import re
-import time
-import pickle
 import re
 import time
 from unicodedata import normalize
@@ -28,15 +24,12 @@ from fnmatch import fnmatch
 import coil
 import rrdtool
 
-from django import forms
 from django.conf import settings
-from django.http import HttpResponse, HttpRequest, Http404
+from django.http import HttpResponse, Http404
 from django.template import Context, loader
 from django.shortcuts import render_to_response
 
 from nagcat import nagios_objects
-from railroad.errors import RailroadError
-from railroad.viewhosts.models import URL
 from railroad.parserrd.views import get_data
 
 DAY = 86400 # 1 Day in seconds
@@ -172,11 +165,6 @@ def servicelist(stat):
     return stat['service']
 
 
-def groupnames(obj):
-    """Returns a list of groups names"""
-    return [x['alias'] for x in views.grouplist(obj)]
-
-
 def hostnames(stat):
     """Returns a list of host names"""
     return [x['host_name'] for x in hostlist(stat)]
@@ -187,85 +175,49 @@ def servicenames(stat):
     return [x['service_description'] for x in servicelist(stat)]
 
 
-def groupdetail(obj, group_name):
+def grouplist_by_name(obj, group_name):
     """Returns a list of groups with the specified name."""
-    group_list = grouplist(obj)
-    return filter(lambda g: fnmatch(g['alias'].lower(), group_name.lower()),
-        group_list)
+    return [g for g in grouplist(obj)
+            if fnmatch(g['alias'].lower(), group_name.lower())]
 
 
-def hostdetail(stat, host_name):
+def hostlist_by_name(stat, host_name):
     """Returns a list of hosts that match the give host pattern."""
-    host_list = hostlist(stat)
-    for host in host_list:
-        if host['host_name'] == host_name:
-            return host
+    return [h for h in hostlist(stat)
+            if fnmatch(h['host_name'].lower(), host_name.lower())]
 
 
 def servicelist_by_description(stat, service_name):
     """Returns a list of service objects with the specified name"""
-    all_services = servicelist(stat)
-    return filter(
-        lambda s: fnmatch(s['service_description'].lower(), service_name.lower()),
-        servicelist(stat))
+    return [s for s in servicelist(stat)
+            if fnmatch(s['service_description'].lower(), service_name.lower())]
 
 
-def servicedetail(stat, host, service_name):
+def servicelist_by_host_desc(stat, host, service_name):
     """
     Returns a list of service objects that match the given host and service
     name patterns.
     """
-    services_matching = servicelist_by_description(stat, service_name)
-    return filter(lambda s: fnmatch(s['host_name'].lower(), host.lower()),
-        services_matching)
+    return [s for s in servicelist_by_description(stat, service_name)
+            if fnmatch(s['host_name'].lower(), host.lower())]
 
 
 def hostlist_by_group(stat, obj, group_name):
     """Returns a list of hosts with the specified group"""
-    groups = groupdetail(obj, group_name)
-    all_hosts = hostlist(stat)
-    target = [t for g in groups for t in g['members'].split(',')]
-    return filter(lambda h: h['host_name'] in target, all_hosts)
+    host_names = hostnames_by_group(obj, group_name)
+    return [h for h in hostlist(stat) if h['host_name'] in host_names]
 
 
-def hostnames_by_group(stat, obj, group_name):
+def hostnames_by_group(obj, group_name):
     """Returns a list of host names with the specified group"""
-    groups = groupdetail(obj, group_name)
+    groups = grouplist_by_name(obj, group_name)
     return [h for g in groups for h in g['members'].split(',')]
-
-
-def hostlist_by_service(stat, service):
-    """Returns a list of hosts possessing the specified service"""
-    all_services = servicelist(stat)
-    filtered = []
-    for s in all_services:
-        if fnmatch(s['service_description'].lower(), service.lower()):
-            filtered.append(s)
-        elif 'service_alias' in s and fnmatch(s['service_alias'], service.lower()):
-            filtered.append(s)
-    return filtered
-
-
-def hostnames_by_service(stat, service):
-    """Returns a list of hosts (names) possessing the specified service"""
-    all_services = servicelist(stat)
-    return filter(
-        lambda s: fnmatch(s['service_description'].lower(), service.lower()),
-        all_services)
 
 
 def servicelist_by_host(stat, host):
     """Returns a list of services possessed by the specified host"""
-    return filter(lambda h:
-            fnmatch(h['host_name'].lower(), host.lower()),
-            servicelist(stat))
-
-
-def servicenames_by_host(stat, host):
-    """Returns a list of services (names) possessed by the specified host"""
-    all_services = servicelist(stat)
-    return [service['service_description'] for service in all_services  \
-                                if service['host_name'].lower() == host.lower()]
+    return [s for s in servicelist(stat)
+            if fnmatch(s['host_name'].lower(), host.lower())]
 
 
 def get_graphs(stat, obj, hosts='', groups='', services='', tests='',
@@ -297,7 +249,7 @@ def get_graphs(stat, obj, hosts='', groups='', services='', tests='',
 
     if groups:
         for group in groups:
-            group_hosts.update(set(hostnames_by_group(stat, obj, group)))
+            group_hosts.update(set(hostnames_by_group(obj, group)))
 
     if hosts or group_hosts:
         all_hosts.update(hosts | group_hosts)
@@ -314,9 +266,7 @@ def get_graphs(stat, obj, hosts='', groups='', services='', tests='',
     # with the services listed, and then will later filter out the hosts we
     # don't want
     for service in services:
-        for host in hostlist_by_service(stat, service):
-            service_list += servicedetail(stat, host['host_name'],
-                    host['service_description'])
+        service_list += servicelist_by_description(stat, service)
 
     # Given hosts and services, we already have a list of all hosts for the
     # listed services, we want to filter out hosts that weren't listed.
@@ -403,51 +353,6 @@ def index(request):
     return HttpResponse(t.render(c))
 
 
-def graphpage(request, host=None, service=None):
-    """Returns a page of graphs matching specific filter criteria."""
-
-    htmltitle = "Railroad Graphs"
-    pagetitle = "Railroad Graphs"
-    # fake up a query if we're using Django URL arguments
-    query = request.GET.copy()
-    if host:
-        query['host'] = host
-    if service:
-        query['service'] = service
-    if len(query):
-        # if no box is checked, check them all
-        if not (('a_red' in query) or ('a_yellow' in query)
-                or ('a_green' in query)):
-            query['a_red'] = True
-            query['a_yellow'] = True
-            query['a_green'] = True
-        filterform = FilterForm(query)
-    else:
-        filterform = FilterForm()
-    stat, obj = parse()
-    loaded_graphs = []
-    end = int(time.time())
-    start = end - DAY
-    loaded_graphs = servicelist_by_filters(stat, query)
-
-    for graph in loaded_graphs:
-        graph['is_graphable'] = is_graphable(graph['host_name'],
-                                             graph['service_description'])
-        graph['start'] = start
-        graph['end'] = end
-        graph['period'] = 'ajax'
-
-    context_data = {'getvars': query,
-                    'request': request,
-                    'filterform': filterform,
-                    'loaded_graphs': loaded_graphs,
-                    'htmltitle': htmltitle,
-                    'pagetitle': pagetitle,
-                    }
-    context_data = add_hostlist(stat, obj, context_data)
-    return render_to_response('graphpage.html', context_data)
-
-
 def sortkey_from_rrd(service):
     """
     Generate a sort key for SERVICE from the latest minute of RRD values.
@@ -495,10 +400,10 @@ def host(request, host):
             graph['end'] = end
             graph['period'] = 'ajax'
 
-    host_detail = hostdetail(stat, host)
-    if(host_detail == None):
+    host_list = hostlist_by_name(stat, host)
+    if not host_list:
         raise Http404
-    page_state = host_detail.get('current_state', '')
+    page_state = host_list[0].get('current_state', '')
 
     return configurator(request, stat, obj,
         'Host Detail: %s' % host, host, loaded_graphs, page_state)
@@ -508,12 +413,14 @@ def service(request, host, service):
     t = loader.get_template('service.html')
     stat, obj = parse()
     # We assume there are exactly one of these, so grab the first element.
-    service_detail = servicedetail(stat, host, service)[0]
-    host_detail = hostdetail(stat, host)
+    service_list = servicelist_by_host_desc(stat, host, service)
+    host_list = hostlist_by_name(stat, host)
 
-    if service_detail == None or host_detail == None:
+    if not service_list or not host_list:
         raise Http404
 
+    service_detail = service_list[0]
+    host_detail = host_list[0]
     plugin_output = service_detail.get('plugin_output', '')
     long_output = service_detail.get('long_plugin_output', '')
 
@@ -644,7 +551,6 @@ def real_meta(hosts='', services='', groups='', tests=''):
     stat, obj = parse()
 
     response = []
-    graph_template = loader.get_template('graph.html')
 
     for graph in get_graphs(stat, obj, hosts, groups, services, tests):
 
@@ -711,16 +617,14 @@ def customgraph(request):
         graphs = json.loads(graphs)
         service_list = []
         for graph in graphs:
-            s = servicedetail(stat, graph['host'], graph['service'])
-            if not s:
-                continue
-            s = s[0]
-            s['is_graphable'] = is_graphable(s['host_name'],
-                    s['service_description'])
-            s['slug'] = slugify(s['host_name'] + s['service_description'])
-            if 'uniq' in graph:
-                s['uniq'] = graph['uniq']
-            service_list.append(s)
+            for s in servicelist_by_host_desc(
+                    stat, graph['host'], graph['service']):
+                s['is_graphable'] = is_graphable(s['host_name'],
+                        s['service_description'])
+                s['slug'] = slugify(s['host_name'] + s['service_description'])
+                if 'uniq' in graph:
+                    s['uniq'] = graph['uniq']
+                service_list.append(s)
     else:
         groups = source.get("group")
         hosts = source.get("host")
@@ -730,43 +634,6 @@ def customgraph(request):
 
     c = {'loaded_graphs': service_list}
     return render_to_response('graph.html', c)
-
-
-def directurl(request, id):
-    """Returns a saved page by id"""
-    stat, obj = parse()
-    loaded_graphs = []
-
-    out_end = int(time.time())
-    out_start = out_end - DAY
-
-    if id != None:
-        try:
-            content = pickle.loads(str(URL.objects.get(id=id)))
-        except Exception:
-            raise Http404
-        for array in content:
-            if len(array) == 4:
-                host, service, start, end = array
-                service_detail = servicedetail(stat, host, service)[0]
-                service_detail['is_graphable'] = True
-                if start == '-1' and end == '-1':
-                    service_detail['start'] = out_start
-                    service_detail['end'] = out_end
-                    service_detail['period'] = 'ajax'
-                else:
-                    service_detail['start'] = start
-                    service_detail['end'] = end
-                    service_detail['period'] = 'zoomed'
-                loaded_graphs.append(service_detail)
-            elif len(array) == 2:
-                host, service = array
-                service_detail = servicedetail(stat, host, service)[0]
-                service_detail['is_graphable'] = False
-                loaded_graphs.append(service_detail)
-
-    return configurator(reuest, stat, obj, 'Saved Page',
-            'Saved Page', loaded_graphs)
 
 
 def directconfigurator(request):
@@ -819,39 +686,6 @@ def configurator(request, stat, obj, htmltitle='Configurator',
 
     context_data = add_hostlist(stat, obj, context_data)
     return render_to_response('configurator.html', context_data);
-
-
-def generatelink(request):
-    """Add the current page configuration to db and return its row id"""
-    if request.method == "POST":
-        querydict = request.POST
-    else:
-        querydict = request.GET
-
-    digits = re.compile('(\d+)')
-    graph_list = [graph for graph in querydict.iterlists()]
-
-    def digitcmp(x, y):
-        xmatch = digits.search(x[0])
-        ymatch = digits.search(y[0])
-        # xmatch and ymatch SHOULD be valid, but just in case
-        xrow = int(xmatch.group(0)) if xmatch else 1337
-        yrow = int(ymatch.group(0)) if ymatch else 1337
-        return cmp(xrow, yrow)
-
-    graph_list.sort(digitcmp)
-    content = pickle.dumps([graph[1] for graph in graph_list])
-
-    hostname = 'http' + ('s' if request.is_secure() else '') + '://' +    \
-                request.META['SERVER_NAME']
-
-    try:
-        id = URL.objects.get(content=content).id
-    except Exception:
-        link = URL(content=content)
-        link.save()
-        id = link.id
-    return HttpResponse(json.dumps(hostname + '/railroad/c/' + str(id)))
 
 
 def stripstate(state):
@@ -975,8 +809,6 @@ def graphs(request):
     groups = source.get('groups', source.get('group', ''))
     get_start = source.get('start', None)
     get_end = source.get('end', None)
-    res = source.get('res', None)
-    uniq = source.get('uniq', None)
 
     if graphs:
         graphs = json.loads(graphs)
@@ -984,11 +816,8 @@ def graphs(request):
         for graph in graphs:
             if not graph:
                 continue
-            sos = servicedetail(stat, graph['host'], graph['service'])
-            if not sos:
-                continue
-            sos = sos[0]
-            for so in sos:
+            for so in servicelist_by_host_desc(
+                    stat, graph['host'], graph['service']):
                 so = so.copy()
                 so['start'] = graph.get('start', get_start)
                 so['end'] = graph.get('end', get_end)
