@@ -894,30 +894,28 @@ def downtime(request):
 
     for dt in nag_dts:
         dt['comment'], dt['key'], dt['expr'] = parse_comment(dt['comment'])
+        key = dt['key']
+        if not key:
+            # Use a fake key to group manually entered downtimes.
+            start = dt['start_time'].strftime("%Y%m%d%H%M")
+            end = dt['end_time'].strftime("%Y%m%d%H%M")
+            key = '_'.join([dt['comment'], dt['author'], start, end])
+            key = re.sub('\W', '', key)
+        hs = {
+            'host': dt['host_name'],
+            'service': dt.get('service_description', 'All services')
+        }
 
-        if dt['key'] in downtime:
-            downtime[dt['key']]['hosts_services'].append({
-                'host': dt['host_name'],
-                'service': dt['service_description']
-            })
-            downtime[dt['key']]['count'] += 1
+        if key in downtime:
+            downtime[key]['hosts_services'].append(hs)
+            downtime[key]['count'] += 1
         else:
-            if 'service_description' in dt:
-                hs = {
-                    'host': dt['host_name'],
-                    'service': dt['service_description'],
-                }
-            else:
-                hs = {
-                    'host': dt['host_name'],
-                    'service': 'All services',
-                }
-
-            downtime[dt['key']] = {
+            downtime[key] = {
                 'hosts_services': [hs],
                 'comment': dt['comment'],
                 'expr': dt['expr'],
                 'key': dt['key'],
+                'id': key,
                 'author': dt['author'],
                 'entry_time': dt['entry_time'],
                 'start_time': dt['start_time'],

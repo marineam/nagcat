@@ -31,7 +31,10 @@ $(document).ready(function() {
         var dt = downtime[i];
         var y = downtime.length - i;
         var expr = dt.expr;
-        if (expr.length > 30) {
+        if (!expr) {
+            expr = dt.comment;
+        }
+        if (expr && expr.length > 30) {
             expr = expr.substring(0,30) + '...';
         }
 
@@ -44,7 +47,7 @@ $(document).ready(function() {
 
         flot_data.push({
             'label': expr,
-            'data': [[ startDate, y, endDate, dt.key, ]],
+            'data': [[ startDate, y, endDate, dt.id, ]],
         });
         yaxis_bits.push([y, expr]);
     }
@@ -112,8 +115,8 @@ $(document).ready(function() {
     // Highlight the text when hovering over the graph
     $('#downtimegraph').bind('plothover', function(event, pos, item) {
         if(item) {
-            var key = item.datapoint[3];
-            $('#' + key).addClass('hover');
+            var id = item.datapoint[3];
+            $('#' + id).addClass('hover');
         } else {
             $('.downtime').removeClass('hover');
         }
