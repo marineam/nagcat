@@ -68,41 +68,6 @@ def is_graphable(host, service):
     return False
 
 
-def are_graphable(host, service_list):
-    """Flags services of host that are graphable (has state or trend)"""
-    rra_path = settings.RRA_PATH
-    for service in service_list:
-        coilfile = '%s%s/%s.coil' % \
-            (rra_path, host, service['service_description'])
-        rrd = '%s%s/%s.rrd' % (rra_path, host, service['service_description'])
-        if os.path.exists(coilfile) and os.path.exists(rrd):
-            coilstring = open(coilfile).read()
-            coilstruct = coil.parse(coilstring)
-            query = coilstruct.get('query')
-
-            # rrdtool hates unicode strings, and Django gives us one,
-            # so convert to ascii
-            rrdslice = rrdtool.fetch(str(rrd),
-                        '--start', '0',
-                        '--end', '10',
-                        '--resolution', '1',
-                        'AVERAGE')
-
-            try:
-                rrdslice[1].index('_state')
-                service['is_graphable'] = True
-            except ValueError:
-                for key in query.keys():
-                    val = query.get(key)
-                    if type() == type(query) and 'trend' in val:
-                        service['is_graphable'] = True
-                        break
-                service['is_graphable'] = False
-
-        else:
-            service['is_graphable'] = False
-
-
 def parse():
     """
     Uses nagcat's nagios object parser to get host, service, group
@@ -351,36 +316,6 @@ def index(request):
     context_data = add_hostlist(stat, obj, context_data)
     c = Context(context_data)
     return HttpResponse(t.render(c))
-
-
-def sortkey_from_rrd(service):
-    """
-    Generate a sort key for SERVICE from the latest minute of RRD values.
-
-    Currently just returns the whole list of results, meaning that we
-    effectively sort by first trend.
-    """
-    return fetch_current_rrd_data(service)[2][0]
-
-
-def fetch_current_rrd_data(service, interval=60, aggregate='AVERAGE'):
-    """
-    Fetch the current data for SERVICE over INTERVAL aggregated by AGGREGATE.
-    """
-    rra_path = settings.RRA_PATH
-    rrd = '%s%s/%s.rrd' % (rra_path, service['host_name'],
-                           service['service_description'])
-    if not os.path.exists(rrd):
-        # there's no RRD file for state-only checks so return a dummy list
-        end = int(time.time())
-        start = end - interval
-        return [(start, end, interval),
-                ('dummy1', 'dummy2'),
-                (0, 0)]
-    end = rrdtool.last(rrd)
-    start = end - interval
-    return rrdtool.fetch(rrd, '--start', str(start),
-                              '--end', str(end), aggregate)
 
 
 def host(request, host):
