@@ -102,13 +102,18 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     # calculate custom resolution
     resolution = (int(end) - int(start)) / int(resolution)
 
+    daemon_args = []
+    daemon = getattr(settings, 'RRDCACHED_ADDRESS', None)
+    if daemon:
+        daemon_args = ['--daemon', str(daemon)]
+
     # rrdtool hates unicode strings, and Django gives us one,
     # so convert to ascii
     rrdslice = rrdtool.fetch(str(rrd),
                 '--start', str(start),
                 '--end', str(end),
                 '--resolution', str(resolution),
-                'AVERAGE')
+                'AVERAGE', *daemon_args)
 
     time_struct = time.gmtime()
     time_dict = {'h': time_struct.tm_hour, 'm': time_struct.tm_min, \
