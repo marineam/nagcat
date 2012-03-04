@@ -37,6 +37,8 @@ NOTIFICATION_TEMPLATES = {
 }
 
 DEFAULT_CONFIG = '''
+metadata: { }
+
 urls: {
     nagios: None
     graphs: None
@@ -252,7 +254,8 @@ class Notification(object):
         macro = key.upper()
         return self.macros.get('_CONTACT%s' % macro,
                self.macros.get('_SERVICE%s' % macro,
-               self.macros.get('_HOST%s' % macro, default)))
+               self.macros.get('_HOST%s' % macro,
+               self.config.get('metadata.%s' % key, default))))
 
     def subject(self):
         return self._format(self.config[self.type]['subject'])
