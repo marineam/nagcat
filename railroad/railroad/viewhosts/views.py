@@ -16,6 +16,7 @@ import json
 import os
 import sys
 import re
+import stat as statmod
 import time
 from unicodedata import normalize
 from datetime import datetime
@@ -366,7 +367,11 @@ def service(request, host, service):
 
     coilstring = ''
     if os.path.exists(coilfile):
-        coilstring = open(coilfile).read()
+        coil_fd = open(coilfile)
+        # Only show the config if it is world readable
+        if os.fstat(coil_fd.fileno()).st_mode & statmod.S_IROTH:
+            coilstring = coil_fd.read()
+        coil_fd.close()
 
     time_intervals = get_time_intervals()
 

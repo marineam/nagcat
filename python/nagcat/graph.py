@@ -15,6 +15,7 @@
 """RRDTool Graphing"""
 
 import os
+import stat
 import tempfile
 
 try:
@@ -59,8 +60,12 @@ class Graph(object):
         self.period = period
 
         try:
-            self.conf = coil.parse_file("%s.coil" % path)
-        except IOError, ex:
+            coil_fd = open("%s.coil" % path)
+            coil_stat = os.fstat(coil_fd.fileno())
+            self.private = not (coil_stat.st_mode & stat.S_IROTH)
+            self.conf = coil.parse(coil_fd.read())
+            coil_fd.close()
+        except (IOError, OSError), ex:
             raise errors.InitError("Unable to read coil file: %s" % ex)
 
         if period not in ('day', 'week', 'month', 'year'):

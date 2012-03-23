@@ -304,7 +304,7 @@ class Notification(object):
             return None
 
     def coil(self):
-        if self.trend:
+        if self.trend and not self.trend.private:
             return str(self.trend.conf)
         else:
             return None

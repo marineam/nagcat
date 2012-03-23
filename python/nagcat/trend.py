@@ -69,7 +69,10 @@ class TrendMaster(object):
 
     def setup_test_trending(self, testobj, testconf):
         """Setup a Trend object for the given test."""
-        trendobj = Trend(testconf, self._rradir, rrdapi=self._rrdapi)
+        trendobj = Trend(testconf,
+                         self._rradir,
+                         rrdapi=self._rrdapi,
+                         private=testobj.private())
         testobj.addReportCallback(trendobj.update)
 
     def lastupdate(self, host, description):
@@ -102,7 +105,7 @@ class Trend(object):
             _hour*2: _year,     # 2 hour intervals for 1 year
             _day:    _year*6}   # 1 day intervals for 6 years
 
-    def __init__(self, conf, rradir, start=None, rrdapi=None):
+    def __init__(self, conf, rradir, start=None, rrdapi=None, private=False):
         self._step = util.Interval(conf.get("repeat", "1m")).seconds
         self._ds_list = {'_state': {'type': "GAUGE", 'min': None, 'max': None}}
         # _ds_order is the order in the actual file and is set in validate()
@@ -189,11 +192,20 @@ class Trend(object):
                         (self._rradir, ex))
 
         coil_file = os.path.join(self._rradir, "%s.coil" % conf['description'])
+        # If the config is marked as private then we must make sure
+        # it is not world readable. This impacts both access on the
+        # local host and other tools such as Railroad.
+        if private:
+            mode = 0640
+        else:
+            mode = 0644
         try:
-            coil_fd = open(coil_file, 'w')
-            coil_fd.write('%s\n' % conf)
-            coil_fd.close()
-        except (IOError, OSError), ex:
+            coil_fd = os.open(coil_file, os.O_WRONLY|os.O_CREAT, mode)
+            # Force a chmod just in case the file already existed
+            os.fchmod(coil_fd, mode)
+            os.write(coil_fd, '%s\n' % conf)
+            os.close(coil_fd)
+        except OSError, ex:
             raise errors.InitError("Cannot write to %s: %s" % (coil_file, ex))
 
         if os.path.exists(self._rrafile):

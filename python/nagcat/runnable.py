@@ -44,6 +44,7 @@ class Runnable(object):
 
         self.label = conf.get('label', "")
         self.host = conf.get('host', None)
+        self._private = conf.get('private', False)
 
         try:
             self.repeat = util.Interval(conf.get('repeat', '1m'))
@@ -60,6 +61,17 @@ class Runnable(object):
                         % (self.host, ex))
         else:
             self.addr = None
+
+    def private(self):
+        """True if this or any of its dependencies have a private config."""
+
+        if self._private:
+            return True
+        elif any(dep.private() for dep in self.getDependencies()):
+            self._private = True
+            return True
+        else:
+            return False
 
     def finalize(self):
         pass

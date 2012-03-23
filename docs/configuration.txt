@@ -201,6 +201,19 @@ inside the query block, expectwarning doesn't have much use, probably it is
 only useful for a 'nagios_plugin' query type which is a script that can set 
 the state to anything just like a normal (non-nagcat) nagios run tests.
 
+Security
+--------
+
+A number of tools that work with Nagcat expose the expanded configs of
+individual tests, namely the notify script and the Railroad web app.
+This is problematic if the test configuration includes sensitive
+information such as database credentials. To prevent this set:
+
+    private: True
+
+Any test with that appearing in the root test block or a query block
+will not have its config exposed to the world.
+
 Format Details
 --------------
 
@@ -256,6 +269,9 @@ test-name: {
     # you probably only need seconds and minutes but other time values
     # use the same format. The default value is 1 minute.
     repeat: "1m"
+
+    # See the `Security`_ section above.
+    private: False
 
     # Filters are strings defining some manipulation to the data
     # returned, they are run in the order listed.
@@ -546,6 +562,9 @@ query: {
     # takes longer than the timeout it will be aborted and raise a
     # critical error. The default value is 15 seconds.
     timeout: "15s"
+
+    # See the `Security`_ section above.
+    private: False
 }
 
 HTTP:
