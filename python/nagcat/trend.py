@@ -200,8 +200,10 @@ class Trend(object):
         else:
             mode = 0644
         try:
-            coil_fd = os.open(coil_file, os.O_WRONLY|os.O_CREAT, mode)
-            # Force a chmod just in case the file already existed
+            coil_fd = os.open(
+                coil_file, os.O_WRONLY|os.O_TRUNC|os.O_CREAT, mode)
+            # Force a chmod/chown just in case the file already existed
+            os.fchown(coil_fd, os.getuid(), os.getgid())
             os.fchmod(coil_fd, mode)
             os.write(coil_fd, '%s\n' % conf)
             os.close(coil_fd)
