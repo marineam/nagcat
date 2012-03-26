@@ -61,10 +61,12 @@ class Graph(object):
 
         try:
             coil_fd = open("%s.coil" % path)
-            coil_stat = os.fstat(coil_fd.fileno())
-            self.private = not (coil_stat.st_mode & stat.S_IROTH)
-            self.conf = coil.parse(coil_fd.read())
-            coil_fd.close()
+            try:
+              coil_stat = os.fstat(coil_fd.fileno())
+              self.private = not (coil_stat.st_mode & stat.S_IROTH)
+              self.conf = coil.parse(coil_fd.read())
+            finally:
+              coil_fd.close()
         except (IOError, OSError), ex:
             raise errors.InitError("Unable to read coil file: %s" % ex)
 
