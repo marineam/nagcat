@@ -15,6 +15,7 @@
 import json
 import types
 import time
+import logging
 import random
 from math import floor
 
@@ -26,6 +27,8 @@ from django.http import HttpResponse
 from railroad.errors import RailroadError
 
 DAY = 60 * 60 * 24 # Seconds in a day
+
+logger = logging.getLogger(__name__)
 
 
 def sigfigs(float):
@@ -102,10 +105,14 @@ def get_data(host, service, start=None, end=None, resolution='150'):
     # calculate custom resolution
     resolution = (int(end) - int(start)) / int(resolution)
 
-    daemon_args = []
+    # Flush rrdcached as a separate command rather as part of fetch().
+    # A failure to flush isn't fatal, just results in stale data.
     daemon = getattr(settings, 'RRDCACHED_ADDRESS', None)
     if daemon:
-        daemon_args = ['--daemon', str(daemon)]
+        try:
+            rrdtool.flushcached('--daemon', str(daemon), str(rrd))
+        except rrdtool.error, ex:
+            logger.warning('rrdcached flush failed: %s', ex)
 
     # rrdtool hates unicode strings, and Django gives us one,
     # so convert to ascii
@@ -113,7 +120,7 @@ def get_data(host, service, start=None, end=None, resolution='150'):
                 '--start', str(start),
                 '--end', str(end),
                 '--resolution', str(resolution),
-                'AVERAGE', *daemon_args)
+                'AVERAGE')
 
     time_struct = time.gmtime()
     time_dict = {'h': time_struct.tm_hour, 'm': time_struct.tm_min, \
