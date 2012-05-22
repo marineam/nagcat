@@ -30,7 +30,10 @@ try:
     rrd_th = ctypes.CDLL("librrd_th.so", ctypes.RTLD_GLOBAL)
 except OSError:
     from ctypes.util import find_library
-    rrd_th = ctypes.CDLL(find_library("rrd_th"), ctypes.RTLD_GLOBAL)
+    rrd_th_name = find_library("rrd_th")
+    if not rrd_th_name:
+        raise ImportError("Unable to load RRDTool library rrd_th")
+    rrd_th = ctypes.CDLL(rrd_th_name, ctypes.RTLD_GLOBAL)
 
 rrd_th.rrd_version.argtypes = []
 rrd_th.rrd_version.restype = ctypes.c_double

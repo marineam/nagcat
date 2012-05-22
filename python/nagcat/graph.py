@@ -20,11 +20,11 @@ import tempfile
 
 try:
     import rrdtool
+    import twirrdy
 except ImportError:
     rrdtool = None
 
 import coil
-import twirrdy
 from nagcat import errors
 
 def available():
