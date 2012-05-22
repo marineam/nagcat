@@ -151,35 +151,35 @@ Negative Monitoring
 -------------------
 A feature for asserting that a test will raise a particular error as
 expected. This kind of testing is sometimes needed in disaster recovery
-sites (or others) where we might expect to have few components in cold state 
-rather than running them actively, or we might rarely expect to have some 
-warning / error to show up in the active site for some reason. The set of 
+sites (or others) where we might expect to have few components in cold state
+rather than running them actively, or we might rarely expect to have some
+warning / error to show up in the active site for some reason. The set of
 attributes used for designing the negative monitoring tests are -
 "expectwarning" (to catch the WARNING), "expectcritical" (to catch CRITICAL)
-and a generic "expecterror" (to catch both WARNING & CRITICAL). 
+and a generic "expecterror" (to catch both WARNING & CRITICAL).
 
-One of the main usecase for these attributes are to capture any errors that 
+One of the main usecase for these attributes are to capture any errors that
 might happen when trying to make a connection (http/oracle/snmp and others)
-to the defined host / port. The returned TCP error message can be applied to 
-the regular expression to match the expected output. The set of TCP error 
+to the defined host / port. The returned TCP error message can be applied to
+the regular expression to match the expected output. The set of TCP error
 messages that can be used for the regular expression match are -
-  - "TCP handshake timeout"
-  - "TCP connection refused"
-  - "TCP connection lost unexpectedly"
-  - "TCP error: {actual error}"
+  - "TCP Error: handshake timeout"
+  - "TCP Error: connection refused"
+  - "TCP Error: connection lost unexpectedly"
+  - "TCP Error: {actual error}"
 
-These negative test attributes "expectcritical", "expectwarning" and 
+These negative test attributes "expectcritical", "expectwarning" and
 "expecterror" are currently supported only inside the query block, soon it will
-be supported inside the test as well. A sample negative test is given below 
-with expectcritical to find out whether the application is not actively 
-listening on a particluar TCP port as expected and receiving "TCP connection 
-refused" error.
+be supported inside the test as well. A sample negative test is given below
+with expectcritical to find out whether the application is not actively
+listening on a particluar TCP port as expected and receiving "TCP Error:
+connection refused" error.
 
 foo-is-dead: {
     query: {
         type: "http"
         path: "/status"
-        filters: [ "expectcritical:^.*connection refused$" ]
+        filters: [ "expectcritical: =~ ^.*connection refused$" ]
     }
 
     documentation: "Check that foo is not accessible"
@@ -198,7 +198,7 @@ the above query can be equally written as this -
 
 With the current limited set of support of this negative test attributes only
 inside the query block, expectwarning doesn't have much use, probably it is
-only useful for a 'nagios_plugin' query type which is a script that can set 
+only useful for a 'nagios_plugin' query type which is a script that can set
 the state to anything just like a normal (non-nagcat) nagios run tests.
 
 Security
@@ -357,9 +357,9 @@ test-name: {
     #       clarity but using them as filters allows more complex tests.
     #       See the description of warning/critical below for more info.
     #
-    #   "expectwarning:<some regular expression>"
-    #   "expectcritical:<some regular expression>"
-    #   "expecterror:<some regular expression>"
+    #   "expectwarning:<operator> <value>"
+    #   "expectcritical:<operator> <value>"
+    #   "expecterror:<operator> <value>"
     #       Negative monitoring checks to filter the expected warning/
     #       critical or error messages. See the Negative Monitoring section
     #       above for more info.
@@ -539,12 +539,12 @@ query: {
     warning: "<operator> <value>"
     critical: "<operator> <value>"
     # Likewise expected warning/critical/error tests can be defined
-    # inside the query but currently these expected errors are not 
-    # supported inside a test. See the Negative Monitoring section 
+    # inside the query but currently these expected errors are not
+    # supported inside a test. See the Negative Monitoring section
     # above for more info.
-    expectwarning: "<some regular expression"
-    expectcritical: "<some regular expression>"
-    expecterror: "<some regular expression>"
+    expectwarning: "<operator> <value>"
+    expectcritical: "<operator> <value>"
+    expecterror: "<operator> <value>"
 
     # 'trend' is the same as the trend block in the main test section
     # but will graph this specific query's data. All the same

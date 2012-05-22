@@ -113,19 +113,23 @@ class BaseErrorFilter(filters._Filter):
     def __init__(self, test, default, arguments):
         super(BaseErrorFilter, self).__init__(test, default, arguments)
         try:
-            self.arg_regex = re.compile(arguments, re.MULTILINE | re.DOTALL)
-        except re.error, ex:
-            raise errors.InitError(
-                    "Invalid regex '%s': %s" % (self.arguments, ex))
+            self.tester = util.Tester.mktest(arguments)
+        except util.TesterError, ex:
+            raise errors.InitError("Invalid %s test: %s" % (self.name, ex))
 
         assert self.target_error
 
     def filter(self, result):
         if isinstance(result, errors.Failure) and isinstance(result.value, self.target_error):
-            if self.arg_regex.search(str(result.value)):
-                return "Expected Error: %s" % result.value
+            try:
+                msg = self.tester.test("%s" % result.value)
+                if not msg:
+                    raise errors.TestCritical("Unexpected Error: %s" %
+                                            result.value)
+            except Exception, ex:
+                return errors.Failure(result=result)
             else:
-                raise errors.TestCritical("Unexpected Error: %s" % result.value)
+                return "%s" % result.value
         else:
             raise errors.TestCritical("Unexpected: %s" % result)
 
