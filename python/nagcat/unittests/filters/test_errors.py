@@ -18,7 +18,7 @@ from nagcat import errors, filters
 class ExpectCriticalTestCase(unittest.TestCase):
 
     def testBasic(self):
-        f = filters.Filter(object(), "expectcritical:^foo$")
+        f = filters.Filter(object(), "expectcritical:=~^foo$")
         self.assertEquals(f.filter(errors.Failure(errors.TestCritical("foo"))), "Expected Error: foo")
         self.assertRaises(errors.TestCritical, f.filter, errors.Failure(errors.TestCritical("bar")))
         self.assertRaises(errors.TestCritical, f.filter, "foo")
@@ -26,7 +26,7 @@ class ExpectCriticalTestCase(unittest.TestCase):
 class ExpectWarningTestCase(unittest.TestCase):
 
     def testBasic(self):
-        f = filters.Filter(object(), "expectwarning:^foo$")
+        f = filters.Filter(object(), "expectwarning:=~^foo$")
         self.assertEquals(f.filter(errors.Failure(errors.TestWarning("foo"))), "Expected Error: foo")
         self.assertRaises(errors.TestCritical, f.filter, errors.Failure(errors.TestWarning("bar")))
         self.assertRaises(errors.TestCritical, f.filter, "foo")
@@ -34,10 +34,9 @@ class ExpectWarningTestCase(unittest.TestCase):
 class ExpectErrorTestCase(unittest.TestCase):
 
     def testBasic(self):
-        f = filters.Filter(object(), "expecterror:^foo$")
+        f = filters.Filter(object(), "expecterror:=~^foo$")
         self.assertEquals(f.filter(errors.Failure(errors.TestCritical("foo"))), "Expected Error: foo")
         self.assertRaises(errors.TestCritical, f.filter, errors.Failure(errors.TestCritical("bar")))
         self.assertEquals(f.filter(errors.Failure(errors.TestWarning("foo"))), "Expected Error: foo")
         self.assertRaises(errors.TestCritical, f.filter, errors.Failure(errors.TestWarning("bar")))
         self.assertRaises(errors.TestCritical, f.filter, "foo")
-

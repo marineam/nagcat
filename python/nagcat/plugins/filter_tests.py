@@ -123,13 +123,14 @@ class BaseErrorFilter(filters._Filter):
         if isinstance(result, errors.Failure) and isinstance(result.value, self.target_error):
             try:
                 msg = self.tester.test("%s" % result.value)
-                if not msg:
-                    raise errors.TestCritical("Unexpected Error: %s" %
-                                            result.value)
             except Exception, ex:
                 return errors.Failure(result=result)
             else:
-                return "%s" % result.value
+                if not msg:
+                    raise errors.TestCritical("Unexpected Error: %s" %
+                                              result.value)
+                else:
+                    return "Expected Error: %s" % result.value
         else:
             raise errors.TestCritical("Unexpected: %s" % result)
 
