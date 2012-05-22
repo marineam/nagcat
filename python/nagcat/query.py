@@ -116,19 +116,20 @@ class Query(runnable.Runnable):
         """Catch common TCP failures and convert them to a TestError"""
 
         if isinstance(result.value, neterror.TimeoutError):
-            raise errors.TestCritical("TCP handshake timeout")
+            raise errors.TestCritical("TCP Error: handshake timeout")
 
         elif isinstance(result.value, neterror.ConnectionRefusedError):
-            raise errors.TestCritical("TCP connection refused")
+            raise errors.TestCritical("TCP Error: connection refused")
 
         elif isinstance(result.value, neterror.ConnectionLost):
-            raise errors.TestCritical("TCP connection lost unexpectedly")
+            raise errors.TestCritical("TCP Error: connection lost " \
+                                      "unexpectedly")
 
         elif isinstance(result.value, neterror.ConnectError):
             if result.value.osError == errno.EMFILE:
                 log.error("Too many open files! Restart with a new ulimit -n")
                 raise errors.TestAbort("NAGCAT ERROR: %s" % result.value)
-            raise errors.TestCritical("TCP error: %s" % result.value)
+            raise errors.TestCritical("TCP Error: %s" % result.value)
 
         return result
 
