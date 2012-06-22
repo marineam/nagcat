@@ -146,7 +146,7 @@ class Scheduler(object):
 
         task_deps = task.getAllDependencies()
         groups = set(g for g in (self._group_index.get(d, None)
-                for d in task_deps) if g and g.repeat <= task.repeat)
+                for d in task_deps) if g and g.repeat == task.repeat)
 
         update_index = set(task_deps)
         update_index.add(task)
