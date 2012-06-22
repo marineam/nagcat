@@ -258,6 +258,7 @@ class SNMPCombined(SNMPCommon):
 
     def update(self, conf):
         """Update compound query with oids to be retreived from host."""
+        super(SNMPCombined, self).update(conf)
         self.oids.add(self.check_oid(conf, 'oid'))
 
     def _start(self):

@@ -143,13 +143,20 @@ class Query(runnable.Runnable):
         return "<%s %r>" % (self.__class__.__name__, self.conf)
 
     def update(self, conf):
-        """ Update a reused Query object.
+        """Update a reused Query object.
 
         When a query object is reused for a new query it will be given
-        the new query's config via this method. Most fo the time this will
-        not need to be used but may be useful for the tricky cases.
+        the new query's config via this method. In most cases all we
+        need to do is select the lower of the two repeat values.
         """
-        pass
+        try:
+            repeat = util.Interval(conf.get('repeat', '1m'))
+        except util.IntervalError, ex:
+            raise errors.ConfigError(conf, "Invalid repeat: %s" % ex)
+
+        if self.repeat < repeat:
+            self.repeat = repeat
+
 
 class SSLMixin(Query):
     """Mixin class for adding SSL support to a query.
