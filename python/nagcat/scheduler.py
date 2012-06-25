@@ -35,7 +35,8 @@ Scheduling works as follows:
 
 import time
 import random
-from collections import deque
+from collections import defaultdict, deque
+from itertools import chain
 
 from twisted.internet import defer, reactor, task
 
@@ -95,7 +96,7 @@ class Scheduler(object):
                  **kwargs):
 
         self._registered = set()
-        self._group_index = {}
+        self._group_index = defaultdict(set)
         self._startup = True
         self._shutdown = None
         self._latency = deque([0], 60)
@@ -145,14 +146,15 @@ class Scheduler(object):
         log.trace("Registering task %s", task)
 
         task_deps = task.getAllDependencies()
-        groups = set(g for g in (self._group_index.get(d, None)
-                for d in task_deps) if g and g.repeat <= task.repeat)
+        all_groups = chain.from_iterable(self._group_index[d]
+                                         for d in task_deps)
+        groups = set(g for g in all_groups if g.repeat == task.repeat)
 
         update_index = set(task_deps)
         update_index.add(task)
 
         if not groups:
-            group = RunnableGroup([task])
+            group = RunnableGroup([task], task.repeat)
             self._update_stats(group)
             self._registered.add(group)
             log.trace("Created group %s", group)
@@ -168,9 +170,12 @@ class Scheduler(object):
                 log.trace("Merged group %s", extra_group)
 
         for runnable in update_index:
-            if runnable not in self._group_index:
+            # If the group set is empty this runnable is new, count it.
+            if not self._group_index[runnable]:
                 self._update_stats(runnable)
-            self._group_index[runnable] = group
+            # Add our selected group, discard extras
+            self._group_index[runnable].add(group)
+            self._group_index[runnable].difference_update(groups)
 
     def stats(self):
         """Get a variety of stats to report on"""

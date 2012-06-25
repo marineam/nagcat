@@ -25,6 +25,7 @@ class SchedulerTestCase(unittest.TestCase):
         r1 = runnable.Runnable(Struct({'repeat': 60}))
         r2 = runnable.Runnable(Struct({'repeat': 60}))
         r3 = runnable.Runnable(Struct({'repeat': 60}))
+        r4 = runnable.Runnable(Struct({'repeat': 60}))
         t1 = runnable.Runnable(Struct({'repeat': 60}))
         t1.addDependency(r1)
         t1.addDependency(r2)
@@ -35,10 +36,33 @@ class SchedulerTestCase(unittest.TestCase):
         t3 = runnable.Runnable(Struct({'repeat': 60}))
         t3.addDependency(r3)
         s.register(t3)
+        t4 = runnable.Runnable(Struct({'repeat': 60}))
+        t4.addDependency(r4)
+        s.register(t4)
         stats = s.stats()
-        expect = {'count': 8,
+        expect = {'count': 11,
                   'Test': {'count': 0},
-                  'Runnable': {'count': 6},
+                  'Runnable': {'count': 8},
+                  'Group': {'count': 3},
+                  'Query': {'count': 0}}
+        self.assertEquals(stats['tasks'], expect)
+
+    def testMismatchGrouping(self):
+        s = simple.NagcatDummy()
+        r1 = runnable.Runnable(Struct({'repeat': 60}))
+        t1 = runnable.Runnable(Struct({'repeat': 3600}))
+        t1.addDependency(r1)
+        s.register(t1)
+        t2 = runnable.Runnable(Struct({'repeat': 60}))
+        t2.addDependency(r1)
+        s.register(t2)
+        t3 = runnable.Runnable(Struct({'repeat': 3600}))
+        t3.addDependency(r1)
+        s.register(t3)
+        stats = s.stats()
+        expect = {'count': 6,
+                  'Test': {'count': 0},
+                  'Runnable': {'count': 4},
                   'Group': {'count': 2},
                   'Query': {'count': 0}}
         self.assertEquals(stats['tasks'], expect)

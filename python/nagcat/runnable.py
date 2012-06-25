@@ -177,11 +177,19 @@ class RunnableGroup(Runnable):
 
     type = "Group"
 
-    def __init__(self, group):
-        conf = Struct({'repeat': None, 'host': None, 'addr': None})
+    def __init__(self, group, repeat):
+        conf = Struct({'repeat': repeat, 'host': None, 'addr': None})
         Runnable.__init__(self, conf)
         for dependency in group:
             self.addDependency(dependency)
+
+    def addDependency(self, dep):
+        assert dep.repeat == self.repeat
+        super(RunnableGroup, self).addDependency(dep)
+
+    def addDependencies(self, group):
+        assert all(d.repeat == self.repeat for d in group.getDependencies())
+        super(RunnableGroup, self).addDependencies(group)
 
     def finalize(self):
         # Grab the first non-zero repeat value and count hosts
