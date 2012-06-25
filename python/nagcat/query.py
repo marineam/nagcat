@@ -154,7 +154,7 @@ class Query(runnable.Runnable):
         except util.IntervalError, ex:
             raise errors.ConfigError(conf, "Invalid repeat: %s" % ex)
 
-        if self.repeat < repeat:
+        if self.repeat > repeat:
             self.repeat = repeat
 
 
