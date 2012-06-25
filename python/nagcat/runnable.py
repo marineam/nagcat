@@ -195,9 +195,6 @@ class RunnableGroup(Runnable):
         # Grab the first non-zero repeat value and count hosts
         hosts = {}
         for dependency in self.getDependencies():
-            if not self.repeat:
-                self.repeat = dependency.repeat
-
             if dependency.host in hosts:
                 hosts[dependency.host] += 1
             else:
